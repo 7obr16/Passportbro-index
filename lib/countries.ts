@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { COUNTRY_FILTER_DATA, DEFAULT_COUNTRY_FILTER_META } from "./countryFilterData";
 
 export type Country = {
   slug: string;
@@ -44,21 +45,24 @@ type CountryRow = {
   majority_religion: string;
   image_url: string;
   women_image_url?: string;
-  receptiveness: string;
-  local_values: string;
-  english_proficiency: string;
-  budget_tier: string;
-  visa_ease: string;
-  internet_speed: string;
-  climate: string;
-  has_nightlife: boolean;
-  has_beach: boolean;
-  has_nature: boolean;
-  safety_level: string;
-  healthcare_quality: string;
 };
 
+const PORTRAIT_AVAILABLE = new Set([
+  "philippines", "thailand", "indonesia", "malaysia", "vietnam", "cambodia", "kenya",
+  "nigeria", "uganda", "rwanda", "tanzania", "ethiopia", "bolivia", "colombia", "mexico",
+  "peru", "venezuela", "dominican-republic", "costa-rica", "india", "pakistan", "morocco",
+  "brazil", "argentina", "chile", "china", "mongolia", "south-africa", "russia", "ukraine",
+  "poland", "romania", "turkey", "kazakhstan", "algeria", "libya", "usa", "canada",
+  "australia", "uk", "france", "germany", "spain", "italy", "sweden", "japan",
+  "south-korea", "saudi-arabia", "egypt", "iran",
+]);
+
 function rowToCountry(row: CountryRow): Country {
+  const meta = COUNTRY_FILTER_DATA[row.slug] ?? DEFAULT_COUNTRY_FILTER_META;
+  const womenPortrait = PORTRAIT_AVAILABLE.has(row.slug)
+    ? `/women/${row.slug}.png`
+    : row.image_url;
+
   return {
     slug: row.slug,
     name: row.name,
@@ -73,19 +77,19 @@ function rowToCountry(row: CountryRow): Country {
     gdpPerCapita: row.gdp_per_capita,
     majorityReligion: row.majority_religion,
     imageUrl: row.image_url,
-    womenImageUrl: row.women_image_url || "",
-    receptiveness: row.receptiveness || "Medium",
-    localValues: row.local_values || "Mixed",
-    englishProficiency: row.english_proficiency || "Moderate",
-    budgetTier: row.budget_tier || "$1k-$2k",
-    visaEase: row.visa_ease || "Visa-Free",
-    internetSpeed: row.internet_speed || "Moderate",
-    climate: row.climate || "Temperate",
-    hasNightlife: row.has_nightlife || false,
-    hasBeach: row.has_beach || false,
-    hasNature: row.has_nature || false,
-    safetyLevel: row.safety_level || "Safe",
-    healthcareQuality: row.healthcare_quality || "Moderate",
+    womenImageUrl: row.women_image_url || womenPortrait,
+    receptiveness: meta.receptiveness,
+    localValues: meta.localValues,
+    englishProficiency: meta.englishProficiency,
+    budgetTier: meta.budgetTier,
+    visaEase: meta.visaEase,
+    internetSpeed: meta.internetSpeed,
+    climate: meta.climate,
+    hasNightlife: meta.vibe === "Great Nightlife",
+    hasBeach: meta.vibe === "Beach Access",
+    hasNature: meta.vibe === "Nature/Mountains",
+    safetyLevel: meta.safetyLevel,
+    healthcareQuality: meta.healthcareQuality,
   };
 }
 

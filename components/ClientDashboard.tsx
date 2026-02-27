@@ -6,7 +6,7 @@ import { ChevronRight, Users, DollarSign, Cross, Filter } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { TIER_CONFIG } from "@/lib/countries";
 import GlobeSection from "@/components/GlobeSection";
-import FilterSidebar, { FiltersState, DEFAULT_FILTERS } from "@/components/FilterSidebar";
+import FilterSidebar, { FiltersState, createDefaultFilters } from "@/components/FilterSidebar";
 
 const TIERS = ["Very Easy", "Easy", "Normal", "Hard", "Improbable"] as const;
 
@@ -31,7 +31,7 @@ type Props = {
 };
 
 export default function ClientDashboard({ initialCountries }: Props) {
-  const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<FiltersState>(() => createDefaultFilters());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const filteredCountries = useMemo(() => {
@@ -117,7 +117,7 @@ export default function ClientDashboard({ initialCountries }: Props) {
               <div className="py-20 text-center text-zinc-500">
                 <p>No countries match your selected filters.</p>
                 <button 
-                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  onClick={() => setFilters(createDefaultFilters())}
                   className="mt-4 text-sm text-emerald-500 hover:text-emerald-400"
                 >
                   Clear all filters

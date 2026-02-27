@@ -17,7 +17,7 @@ export type FiltersState = {
   healthcareQuality: string[];
 };
 
-export const DEFAULT_FILTERS: FiltersState = {
+export const createDefaultFilters = (): FiltersState => ({
   datingDifficulty: [],
   receptiveness: [],
   localValues: [],
@@ -29,7 +29,7 @@ export const DEFAULT_FILTERS: FiltersState = {
   vibe: [],
   safetyLevel: [],
   healthcareQuality: [],
-};
+});
 
 type Props = {
   filters: FiltersState;
@@ -109,7 +109,7 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }: 
   };
 
   const handleClear = () => {
-    setFilters(DEFAULT_FILTERS);
+    setFilters(createDefaultFilters());
   };
 
   return (

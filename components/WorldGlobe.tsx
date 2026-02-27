@@ -21,7 +21,13 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   "libya": "LBY", "usa": "USA", "canada": "CAN", "australia": "AUS",
   "uk": "GBR", "france": "FRA", "germany": "DEU", "spain": "ESP",
   "italy": "ITA", "sweden": "SWE", "japan": "JPN", "south-korea": "KOR",
-  "saudi-arabia": "SAU", "egypt": "EGY", "iran": "IRN"
+  "saudi-arabia": "SAU", "egypt": "EGY", "iran": "IRN",
+  "portugal": "PRT", "taiwan": "TWN", "panama": "PAN", "hungary": "HUN",
+  "czech-republic": "CZE", "bulgaria": "BGR", "serbia": "SRB", "croatia": "HRV",
+  "georgia": "GEO", "estonia": "EST", "greece": "GRC", "united-arab-emirates": "ARE",
+  "mauritius": "MUS", "cyprus": "CYP", "malta": "MLT", "montenegro": "MNE",
+  "albania": "ALB", "north-macedonia": "MKD", "sri-lanka": "LKA", "laos": "LAO",
+  "ecuador": "ECU", "guatemala": "GTM", "paraguay": "PRY", "uruguay": "URY"
 };
 
 const TIER_COLORS: Record<string, string> = {

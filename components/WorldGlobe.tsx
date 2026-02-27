@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion } from "framer-motion";
+import { Heart, Wallet, Wifi } from "lucide-react";
 import { Country } from "@/lib/countries";
 
 // Dynamically import react-globe.gl to avoid SSR issues
@@ -30,13 +32,36 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   "ecuador": "ECU", "guatemala": "GTM", "paraguay": "PRY", "uruguay": "URY"
 };
 
-const TIER_COLORS: Record<string, string> = {
-  "Very Easy": "#10b981", // emerald-500
-  "Easy": "#84cc16",      // lime-500
-  "Normal": "#f59e0b",    // amber-500
-  "Hard": "#f97316",      // orange-500
-  "Improbable": "#ef4444",// red-500
+// Rough lat/lng anchors for top destinations.
+const HOTSPOT_COORDS: Record<string, [number, number]> = {
+  "philippines": [14.6, 121.0],
+  "colombia": [4.7, -74.1],
+  "thailand": [13.8, 100.5],
+  "vietnam": [10.8, 106.7],
+  "brazil": [-22.9, -43.2],
+  "mexico": [19.4, -99.1],
+  "indonesia": [-6.2, 106.8],
+  "dominican-republic": [18.5, -69.9],
+  "peru": [-12.0, -77.0],
+  "argentina": [-34.6, -58.4],
+  "malaysia": [3.1, 101.7],
+  "turkey": [41.0, 28.9],
+  "romania": [44.4, 26.1],
+  "poland": [52.2, 21.0],
+  "spain": [40.4, -3.7],
+  "japan": [35.7, 139.7],
+  "costa-rica": [9.9, -84.1],
+  "morocco": [33.6, -7.6],
+  "kenya": [-1.3, 36.8],
+  "south-africa": [-33.9, 18.4],
 };
+
+const ORIGIN_HUBS: Array<{ lat: number; lng: number }> = [
+  { lat: 40.71, lng: -74.0 },   // New York
+  { lat: 51.5, lng: -0.12 },    // London
+  { lat: -33.86, lng: 151.2 },  // Sydney
+  { lat: 1.35, lng: 103.82 },   // Singapore
+];
 
 type Props = {
   countries: Country[];
@@ -47,6 +72,8 @@ export default function WorldGlobe({ countries }: Props) {
   const globeRef = useRef<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [geoJson, setGeoJson] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [hoverD, setHoverD] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [hoveredCountry, setHoveredCountry] = useState<Country | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +117,40 @@ export default function WorldGlobe({ countries }: Props) {
     };
   }, [countries]);
 
+  const hotspotRings = useMemo(() => {
+    return countries
+      .filter((country) => {
+        const goodDating = country.datingEase === "Very Easy" || country.datingEase === "Easy";
+        const affordable = country.budgetTier === "<$1k" || country.budgetTier === "$1k-$2k";
+        return goodDating && affordable && HOTSPOT_COORDS[country.slug];
+      })
+      .sort((a, b) => b.datingEaseScore - a.datingEaseScore)
+      .slice(0, 10)
+      .map((country) => {
+        const [lat, lng] = HOTSPOT_COORDS[country.slug];
+        return { lat, lng, slug: country.slug };
+      });
+  }, [countries]);
+
+  const flightArcs = useMemo(() => {
+    const topDestinations = countries
+      .filter((country) => HOTSPOT_COORDS[country.slug])
+      .sort((a, b) => b.datingEaseScore - a.datingEaseScore)
+      .slice(0, 5);
+
+    return topDestinations.map((country, idx) => {
+      const hub = ORIGIN_HUBS[idx % ORIGIN_HUBS.length];
+      const [endLat, endLng] = HOTSPOT_COORDS[country.slug];
+
+      return {
+        startLat: hub.lat,
+        startLng: hub.lng,
+        endLat,
+        endLng,
+      };
+    });
+  }, [countries]);
+
   if (!geoJson) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -98,8 +159,27 @@ export default function WorldGlobe({ countries }: Props) {
     );
   }
 
+  const vibeTag = hoveredCountry
+    ? hoveredCountry.hasNightlife
+      ? "Great Nightlife"
+      : hoveredCountry.hasBeach
+        ? "Beach Access"
+        : "Nature/Mountains"
+    : "";
+
   return (
-    <div ref={containerRef} className="h-full w-full cursor-grab active:cursor-grabbing">
+    <div
+      ref={containerRef}
+      className="relative h-full w-full cursor-grab active:cursor-grabbing"
+      onMouseMove={(event) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        setMousePos({
+          x: event.clientX - rect.left + 14,
+          y: event.clientY - rect.top + 14,
+        });
+      }}
+    >
       <Globe
         ref={globeRef}
         width={dimensions.width}
@@ -109,35 +189,37 @@ export default function WorldGlobe({ countries }: Props) {
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.15}
         polygonsData={geoJson.features}
+        ringsData={hotspotRings}
+        ringColor={() => "#10b981"}
+        ringMaxRadius={5}
+        ringPropagationSpeed={1.5}
+        ringRepeatPeriod={700}
+        arcsData={flightArcs}
+        arcColor={() => ["rgba(255,255,255,0.1)", "rgba(16, 185, 129, 0.8)"]}
+        arcDashLength={0.4}
+        arcDashGap={2}
+        arcDashAnimateTime={2000}
+        polygonTransitionDuration={800}
         polygonAltitude={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           const c = getCountryFromFeature(d);
-          if (!c) return 0.005;
-          if (hoverD === d) return 0.06;
-          return 0.02;
+          return c ? 0.01 : 0.005;
         }}
         polygonCapColor={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           const c = getCountryFromFeature(d);
-          if (!c) return "#18181b"; // zinc-900 for unmentioned
-          if (hoverD === d) return "#ffffff";
-          return TIER_COLORS[c.datingEase];
+          if (!c) return "rgba(39, 39, 42, 0.2)";
+          if (hoverD === d) return "rgba(16, 185, 129, 1)";
+          return "rgba(16, 185, 129, 0.9)";
         }}
-        polygonSideColor={() => "#09090b"} // zinc-950
-        polygonStrokeColor={() => "#27272a"} // zinc-800
-        polygonLabel={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        polygonSideColor={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           const c = getCountryFromFeature(d);
-          if (!c) return "";
-          return `
-            <div class="rounded-lg border border-zinc-800 bg-zinc-950/90 px-3 py-2 text-sm text-zinc-100 shadow-xl backdrop-blur-md">
-              <div class="flex items-center gap-2 font-bold">
-                <span>${c.name}</span>
-              </div>
-              <div class="mt-1 text-xs text-zinc-400">
-                Tier: <span style="color: ${TIER_COLORS[c.datingEase]}">${c.datingEase}</span>
-              </div>
-            </div>
-          `;
+          return c ? "rgba(16, 185, 129, 0.35)" : "rgba(39, 39, 42, 0.2)";
         }}
-        onPolygonHover={setHoverD}
+        polygonStrokeColor={() => "#27272a"} // zinc-800
+        onPolygonHover={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          setHoverD(d);
+          const c = d ? getCountryFromFeature(d) : null;
+          setHoveredCountry(c ?? null);
+        }}
         onPolygonClick={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           const c = getCountryFromFeature(d);
           if (c) {
@@ -145,6 +227,51 @@ export default function WorldGlobe({ countries }: Props) {
           }
         }}
       />
+
+      <AnimatePresence>
+        {hoveredCountry && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            className="pointer-events-none absolute z-30 min-w-[200px] rounded-xl border border-zinc-800 bg-zinc-950/80 p-4 shadow-2xl backdrop-blur-md"
+            style={{
+              left: `${mousePos.x}px`,
+              top: `${mousePos.y}px`,
+            }}
+          >
+            <p className="text-sm font-bold text-white">{hoveredCountry.name}</p>
+            <span className="mt-2 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+              {vibeTag}
+            </span>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2">
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <Heart className="h-3 w-3" />
+                  <span className="text-[10px]">Dating</span>
+                </div>
+                <p className="mt-1 text-[11px] font-semibold text-zinc-100">{hoveredCountry.datingEase}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2">
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <Wallet className="h-3 w-3" />
+                  <span className="text-[10px]">Budget</span>
+                </div>
+                <p className="mt-1 text-[11px] font-semibold text-zinc-100">{hoveredCountry.budgetTier}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2">
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <Wifi className="h-3 w-3" />
+                  <span className="text-[10px]">Internet</span>
+                </div>
+                <p className="mt-1 text-[11px] font-semibold text-zinc-100">{hoveredCountry.internetSpeed}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -39,14 +39,16 @@ type Props = {
 const TIER_BADGE: Record<string, string> = {
   "Very Easy":  "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30",
   "Easy":       "bg-lime-500/10 text-lime-300 ring-lime-500/30",
+  "Possible":   "bg-yellow-500/10 text-yellow-300 ring-yellow-500/30",
   "Normal":     "bg-amber-500/10 text-amber-300 ring-amber-500/30",
   "Hard":       "bg-orange-500/10 text-orange-300 ring-orange-500/30",
   "Improbable": "bg-red-500/10 text-red-300 ring-red-500/30",
+  "N/A":        "bg-zinc-500/10 text-zinc-300 ring-zinc-500/30",
 };
 
 const TIER_BAR: Record<string, string> = {
-  "Very Easy": "bg-emerald-500", "Easy": "bg-lime-500", "Normal": "bg-amber-500",
-  "Hard": "bg-orange-500", "Improbable": "bg-red-500",
+  "Very Easy": "bg-emerald-500", "Easy": "bg-lime-500", "Possible": "bg-yellow-500", "Normal": "bg-amber-500",
+  "Hard": "bg-orange-500", "Improbable": "bg-red-500", "N/A": "bg-zinc-500",
 };
 
 export default async function CountryPage({ params }: Props) {

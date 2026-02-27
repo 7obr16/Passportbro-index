@@ -95,12 +95,14 @@ function rowToCountry(row: CountryRow): Country {
   };
 }
 
-export const TIER_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; text: string }> = {
-  "Very Easy": { label: "Very Easy", color: "emerald", bg: "bg-emerald-500", border: "border-emerald-400", text: "text-emerald-400" },
-  "Easy":      { label: "Easy",      color: "lime",    bg: "bg-lime-500",    border: "border-lime-400",    text: "text-lime-400" },
-  "Normal":    { label: "Normal",    color: "amber",   bg: "bg-amber-500",   border: "border-amber-400",   text: "text-amber-400" },
-  "Hard":      { label: "Hard",      color: "orange",  bg: "bg-orange-500",  border: "border-orange-400",  text: "text-orange-400" },
-  "Improbable":{ label: "Improbable",color: "red",     bg: "bg-red-500",     border: "border-red-400",     text: "text-red-400" },
+export const TIER_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; text: string; hex: string }> = {
+  "Very Easy": { label: "Very Easy", color: "emerald", bg: "bg-emerald-500", border: "border-emerald-400", text: "text-emerald-400", hex: "#059669" },
+  "Easy":      { label: "Easy",      color: "lime",    bg: "bg-lime-500",    border: "border-lime-400",    text: "text-lime-400",    hex: "#84cc16" },
+  "Possible":  { label: "Possible",  color: "yellow",  bg: "bg-yellow-500",  border: "border-yellow-400",  text: "text-yellow-400",  hex: "#eab308" },
+  "Normal":    { label: "Normal",    color: "amber",   bg: "bg-amber-500",   border: "border-amber-400",   text: "text-amber-400",   hex: "#f59e0b" },
+  "Hard":      { label: "Hard",      color: "orange",  bg: "bg-orange-500",  border: "border-orange-400",  text: "text-orange-400",  hex: "#f97316" },
+  "Improbable":{ label: "Improbable",color: "red",     bg: "bg-red-500",     border: "border-red-400",     text: "text-red-400",     hex: "#dc2626" },
+  "N/A":       { label: "N/A",       color: "zinc",    bg: "bg-zinc-500",    border: "border-zinc-400",    text: "text-zinc-400",    hex: "#71717a" },
 };
 
 export async function getCountries(): Promise<Country[]> {

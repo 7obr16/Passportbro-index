@@ -27,10 +27,10 @@ const SORT_OPTIONS: { id: LeaderboardSortKey; label: string }[] = [
 
 const scoreForView = (country: LeaderboardCountry, selected: LeaderboardSortKey) => {
   if (selected === "overall") return country.scores.overall;
-  if (selected === "dating") return country.scores.dating * 10;
-  if (selected === "affordable") return country.scores.cost * 10;
-  if (selected === "lifestyle") return country.scores.lifestyle * 10;
-  return country.scores.safetyHealthcare * 10;
+  if (selected === "dating") return country.scores.dating;
+  if (selected === "affordable") return country.scores.cost;
+  if (selected === "lifestyle") return country.scores.lifestyle;
+  return country.scores.safetyHealthcare;
 };
 
 export default function LeaderboardClient({ countries }: Props) {

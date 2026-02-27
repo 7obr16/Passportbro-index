@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import { parse } from "csv-parse/sync";
+import fs from "fs";
 
 config({ path: ".env.local" });
 
@@ -94,7 +95,8 @@ const MAP_TIER = {
   "Normal (Hellgelb)": "Normal",
   "Schwer (Orange)": "Hard",
   "Unwahrscheinlich (Rot)": "Improbable",
-  "N/A (Grau)": "N/A"
+  "N/A (Grau)": "N/A",
+  "Sehr Leicht (Dunkgrün)": "Very Easy", // typo in input fixing
 };
 
 const MAP_ENGLISH = { "Hoch": "High", "Moderat": "Moderate", "Niedrig": "Low" };
@@ -103,43 +105,91 @@ const MAP_SAFETY = { "Sehr Sicher": "Very Safe", "Sicher": "Safe", "Moderat": "M
 
 async function run() {
   const records = parse(csvData, { columns: true, skip_empty_lines: true });
+  const filterData = {};
 
   for (const row of records) {
     const slug = MAP_NAME_TO_SLUG[row["Land"]];
-    if (!slug) {
-      console.log("No slug found for", row["Land"]);
-      continue;
-    }
+    if (!slug) continue;
 
     const vibe = row["Vibe"].toLowerCase();
     const has_beach = vibe.includes("strand");
     const has_nature = vibe.includes("natur") || vibe.includes("safari") || vibe.includes("berg");
     const has_nightlife = vibe.includes("nightlife") || vibe.includes("party") || vibe.includes("city");
 
-    const updateObj = {
+    let dating_ease = MAP_TIER[row["Map Rating"]];
+    if (!dating_ease) {
+        if (row["Map Rating"].includes("Leicht")) dating_ease = "Easy";
+        else dating_ease = "Normal";
+    }
+
+    // UPDATE DB FOR CORE FIELDS
+    const dbObj = {
       slug,
       name: row["Land"] === "Dubai (VAE)" ? "United Arab Emirates" : 
             row["Land"] === "Großbritannien" ? "United Kingdom" : 
             row["Land"] === "Lettland / Estland" ? "Estonia" : row["Land"],
-      dating_ease: MAP_TIER[row["Map Rating"]],
+      dating_ease,
       dating_ease_score: Math.round(parseFloat(row["PPB Score"]) * 10), // 9.5 -> 95
-      budget_tier: row["Budget/Monat"],
-      english_proficiency: MAP_ENGLISH[row["Englisch"]] || "Moderate",
-      local_values: MAP_VALUES[row["Werte"]] || "Mixed",
-      safety_level: MAP_SAFETY[row["Sicherheit"]] || "Moderate",
       reddit_pros: row["Reddit Pro-Konsens"],
       reddit_cons: row["Reddit Contra-Konsens"],
-      has_beach,
-      has_nature,
-      has_nightlife,
-      receptiveness: "Medium" // We can estimate this via score/ease in the frontend, or leave generic
     };
 
-    const { error } = await supabase.from("Countries").upsert(updateObj, { onConflict: "slug" });
+    const { error } = await supabase.from("Countries").update(dbObj).eq("slug", slug);
     if (error) {
-      console.error("Error updating", slug, error.message);
+      console.error("Error updating DB for", slug, error.message);
     }
+
+    // UPDATE LOCAL FILTER DATA FOR EXTENDED FIELDS (to bypass cache issues safely)
+    const tier = row["Map Rating"];
+    let receptiveness = "Medium";
+    if (tier.includes("Sehr Leicht") || tier.includes("Leicht")) receptiveness = "High";
+    if (tier.includes("Schwer") || tier.includes("Unwahrscheinlich")) receptiveness = "Low";
+
+    filterData[slug] = {
+      receptiveness,
+      localValues: MAP_VALUES[row["Werte"]] || "Mixed",
+      englishProficiency: MAP_ENGLISH[row["Englisch"]] || "Moderate",
+      budgetTier: row["Budget/Monat"],
+      visaEase: "Visa-Free", // default as it's missing in new data
+      internetSpeed: "Moderate", // default
+      climate: "Temperate", // default
+      vibe: [has_nightlife && "Great Nightlife", has_beach && "Beach Access", has_nature && "Nature/Mountains"].filter(Boolean).join(", ") || "City",
+      safetyLevel: MAP_SAFETY[row["Sicherheit"]] || "Moderate",
+      healthcareQuality: "Moderate" // default
+    };
   }
-  console.log("Data successfully synced to Supabase!");
+  
+  const fileOutput = `// This file is auto-generated based on the latest dataset
+export type CountryFilterMeta = {
+  receptiveness: string;
+  localValues: string;
+  englishProficiency: string;
+  budgetTier: string;
+  visaEase: string;
+  internetSpeed: string;
+  climate: string;
+  vibe: string;
+  safetyLevel: string;
+  healthcareQuality: string;
+};
+
+export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = ${JSON.stringify(filterData, null, 2)};
+
+export const DEFAULT_COUNTRY_FILTER_META: CountryFilterMeta = {
+  receptiveness: "Medium",
+  localValues: "Mixed",
+  englishProficiency: "Moderate",
+  budgetTier: "$1k-$2k",
+  visaEase: "Visa-Free",
+  internetSpeed: "Moderate",
+  climate: "Temperate",
+  vibe: "City",
+  safetyLevel: "Moderate",
+  healthcareQuality: "Moderate"
+};
+`;
+
+  fs.writeFileSync("./lib/countryFilterData.ts", fileOutput);
+  console.log("Data sync and local generation complete!");
 }
 run();

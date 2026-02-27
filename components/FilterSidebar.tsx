@@ -42,7 +42,7 @@ const FILTER_CONFIG = [
   {
     id: "datingDifficulty",
     label: "Dating Difficulty",
-    options: ["Very Easy", "Easy", "Normal", "Hard"],
+    options: ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable", "N/A"],
   },
   {
     id: "receptiveness",

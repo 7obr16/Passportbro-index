@@ -95,11 +95,8 @@ export function getCountryScores(country: Country): ScoreBreakdown {
     fallback(country.healthcareQuality, HEALTHCARE_POINTS),
   );
 
-  const overall10 =
-    dating * 0.4 + cost * 0.3 + lifestyle * 0.15 + safetyHealthcare * 0.15;
-
   return {
-    overall: round1(overall10 * 10),
+    overall: country.datingEaseScore / 10,
     dating: round1(dating),
     cost: round1(cost),
     lifestyle: round1(lifestyle),

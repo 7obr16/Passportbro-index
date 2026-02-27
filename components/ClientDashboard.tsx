@@ -9,22 +9,26 @@ import GlobeSection from "@/components/GlobeSection";
 import FilterSidebar, { FiltersState, createDefaultFilters } from "@/components/FilterSidebar";
 import CountryMark from "@/components/CountryMark";
 
-const TIERS = ["Very Easy", "Easy", "Normal", "Hard", "Improbable"] as const;
+const TIERS = ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable", "N/A"] as const;
 
 const TIER_BADGE: Record<string, string> = {
   "Very Easy":  "bg-emerald-500/10 text-emerald-400 ring-emerald-500/30",
   "Easy":       "bg-lime-500/10 text-lime-400 ring-lime-500/30",
+  "Possible":   "bg-yellow-500/10 text-yellow-400 ring-yellow-500/30",
   "Normal":     "bg-amber-500/10 text-amber-400 ring-amber-500/30",
   "Hard":       "bg-orange-500/10 text-orange-400 ring-orange-500/30",
   "Improbable": "bg-red-500/10 text-red-400 ring-red-500/30",
+  "N/A":        "bg-zinc-500/10 text-zinc-400 ring-zinc-500/30",
 };
 
 const TIER_BAR: Record<string, string> = {
   "Very Easy":  "bg-emerald-500",
   "Easy":       "bg-lime-500",
+  "Possible":   "bg-yellow-500",
   "Normal":     "bg-amber-500",
   "Hard":       "bg-orange-500",
   "Improbable": "bg-red-500",
+  "N/A":        "bg-zinc-500",
 };
 
 type Props = {

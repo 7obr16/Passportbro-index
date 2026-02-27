@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, Wallet, Wifi } from "lucide-react";
-import { Country } from "@/lib/countries";
+import { Country, TIER_CONFIG } from "@/lib/countries";
 
 // Dynamically import react-globe.gl to avoid SSR issues
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
@@ -29,39 +29,9 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   "georgia": "GEO", "estonia": "EST", "greece": "GRC", "united-arab-emirates": "ARE",
   "mauritius": "MUS", "cyprus": "CYP", "malta": "MLT", "montenegro": "MNE",
   "albania": "ALB", "north-macedonia": "MKD", "sri-lanka": "LKA", "laos": "LAO",
-  "ecuador": "ECU", "guatemala": "GTM", "paraguay": "PRY", "uruguay": "URY"
+  "ecuador": "ECU", "guatemala": "GTM", "paraguay": "PRY", "uruguay": "URY",
+  "cuba": "CUB", "jamaica": "JAM"
 };
-
-// Rough lat/lng anchors for top destinations.
-const HOTSPOT_COORDS: Record<string, [number, number]> = {
-  "philippines": [14.6, 121.0],
-  "colombia": [4.7, -74.1],
-  "thailand": [13.8, 100.5],
-  "vietnam": [10.8, 106.7],
-  "brazil": [-22.9, -43.2],
-  "mexico": [19.4, -99.1],
-  "indonesia": [-6.2, 106.8],
-  "dominican-republic": [18.5, -69.9],
-  "peru": [-12.0, -77.0],
-  "argentina": [-34.6, -58.4],
-  "malaysia": [3.1, 101.7],
-  "turkey": [41.0, 28.9],
-  "romania": [44.4, 26.1],
-  "poland": [52.2, 21.0],
-  "spain": [40.4, -3.7],
-  "japan": [35.7, 139.7],
-  "costa-rica": [9.9, -84.1],
-  "morocco": [33.6, -7.6],
-  "kenya": [-1.3, 36.8],
-  "south-africa": [-33.9, 18.4],
-};
-
-const ORIGIN_HUBS: Array<{ lat: number; lng: number }> = [
-  { lat: 40.71, lng: -74.0 },   // New York
-  { lat: 51.5, lng: -0.12 },    // London
-  { lat: -33.86, lng: 151.2 },  // Sydney
-  { lat: 1.35, lng: 103.82 },   // Singapore
-];
 
 type Props = {
   countries: Country[];
@@ -117,40 +87,6 @@ export default function WorldGlobe({ countries }: Props) {
     };
   }, [countries]);
 
-  const hotspotRings = useMemo(() => {
-    return countries
-      .filter((country) => {
-        const goodDating = country.datingEase === "Very Easy" || country.datingEase === "Easy";
-        const affordable = country.budgetTier === "<$1k" || country.budgetTier === "$1k-$2k";
-        return goodDating && affordable && HOTSPOT_COORDS[country.slug];
-      })
-      .sort((a, b) => b.datingEaseScore - a.datingEaseScore)
-      .slice(0, 10)
-      .map((country) => {
-        const [lat, lng] = HOTSPOT_COORDS[country.slug];
-        return { lat, lng, slug: country.slug };
-      });
-  }, [countries]);
-
-  const flightArcs = useMemo(() => {
-    const topDestinations = countries
-      .filter((country) => HOTSPOT_COORDS[country.slug])
-      .sort((a, b) => b.datingEaseScore - a.datingEaseScore)
-      .slice(0, 5);
-
-    return topDestinations.map((country, idx) => {
-      const hub = ORIGIN_HUBS[idx % ORIGIN_HUBS.length];
-      const [endLat, endLng] = HOTSPOT_COORDS[country.slug];
-
-      return {
-        startLat: hub.lat,
-        startLng: hub.lng,
-        endLat,
-        endLng,
-      };
-    });
-  }, [countries]);
-
   if (!geoJson) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -189,16 +125,6 @@ export default function WorldGlobe({ countries }: Props) {
         atmosphereColor="#3b82f6"
         atmosphereAltitude={0.15}
         polygonsData={geoJson.features}
-        ringsData={hotspotRings}
-        ringColor={() => "#10b981"}
-        ringMaxRadius={5}
-        ringPropagationSpeed={1.5}
-        ringRepeatPeriod={700}
-        arcsData={flightArcs}
-        arcColor={() => ["rgba(255,255,255,0.1)", "rgba(16, 185, 129, 0.8)"]}
-        arcDashLength={0.4}
-        arcDashGap={2}
-        arcDashAnimateTime={2000}
         polygonTransitionDuration={800}
         polygonAltitude={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           const c = getCountryFromFeature(d);
@@ -206,15 +132,16 @@ export default function WorldGlobe({ countries }: Props) {
         }}
         polygonCapColor={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           const c = getCountryFromFeature(d);
-          if (!c) return "rgba(39, 39, 42, 0.2)";
-          if (hoverD === d) return "rgba(16, 185, 129, 1)";
-          return "rgba(16, 185, 129, 0.9)";
+          if (!c) return "rgba(39, 39, 42, 0.2)"; // Not in filtered list or no data
+          const hex = TIER_CONFIG[c.datingEase]?.hex || "#71717a";
+          if (hoverD === d) return "#ffffff"; // Highlight white on hover
+          return hex;
         }}
         polygonSideColor={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           const c = getCountryFromFeature(d);
-          return c ? "rgba(16, 185, 129, 0.35)" : "rgba(39, 39, 42, 0.2)";
+          return c ? "rgba(39, 39, 42, 0.5)" : "rgba(39, 39, 42, 0.2)";
         }}
-        polygonStrokeColor={() => "#27272a"} // zinc-800
+        polygonStrokeColor={() => "#18181b"} // zinc-900
         onPolygonHover={(d: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
           setHoverD(d);
           const c = d ? getCountryFromFeature(d) : null;

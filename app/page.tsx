@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe } from "lucide-react";
+import { BarChart3, Globe } from "lucide-react";
 import { getCountries } from "@/lib/countries";
 import ClientDashboard from "@/components/ClientDashboard";
 
@@ -26,6 +26,13 @@ export default async function Home() {
               <Globe className="h-3 w-3" />
               {countries.length} countries ranked
             </span>
+            <Link
+              href="/leaderboard"
+              className="hidden items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-[11px] text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-100 md:inline-flex"
+            >
+              <BarChart3 className="h-3 w-3" />
+              Leaderboard
+            </Link>
             <button className="rounded-lg bg-emerald-500 px-4 py-1.5 text-xs font-bold text-black transition hover:bg-emerald-400">
               Login
             </button>

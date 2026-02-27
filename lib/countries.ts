@@ -1,6 +1,8 @@
 import { supabase } from "./supabase";
 import { COUNTRY_FILTER_DATA, DEFAULT_COUNTRY_FILTER_META } from "./countryFilterData";
 
+const CURATED_SLUGS = Object.keys(COUNTRY_FILTER_DATA);
+
 export type Country = {
   slug: string;
   name: string;
@@ -105,6 +107,7 @@ export async function getCountries(): Promise<Country[]> {
   const { data, error } = await supabase
     .from("Countries")
     .select("*")
+    .in("slug", CURATED_SLUGS)
     .order("dating_ease_score", { ascending: false })
     .order("name");
 
@@ -134,7 +137,8 @@ export async function getCountryBySlug(slug: string): Promise<Country | undefine
 export async function getAllSlugs(): Promise<string[]> {
   const { data, error } = await supabase
     .from("Countries")
-    .select("slug");
+    .select("slug")
+    .in("slug", CURATED_SLUGS);
 
   if (error || !data) return [];
   return (data as { slug: string }[]).map((r) => r.slug);

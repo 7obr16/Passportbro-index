@@ -14,34 +14,34 @@ export type City = {
   cons: string[];
 };
 
-/** Row shape coming straight from the Supabase "Cities" table (snake_case). */
+/** Row shape coming from the Supabase "Cities" table (capitalised columns). */
 type CityRow = {
-  slug: string;
-  name: string;
-  country: string;
-  cost_per_month: number;
-  internet_speed: number;
-  safety_score: number;
-  dating_score: number;
-  image_url: string;
-  description: string;
-  pros: string[];
-  cons: string[];
+  Slug: string;
+  Name: string;
+  Country: string;
+  Cost_per_month: number;
+  Internet_speed: number;
+  Safety_score: number;
+  Dating_score: number;
+  Image_url: string;
+  Description: string;
+  Pros: string[];
+  Cons: string[];
 };
 
 function rowToCity(row: CityRow): City {
   return {
-    slug: row.slug,
-    name: row.name,
-    country: row.country,
-    costPerMonth: row.cost_per_month,
-    internetSpeed: row.internet_speed,
-    safetyScore: row.safety_score,
-    datingScore: row.dating_score,
-    imageUrl: row.image_url,
-    description: row.description,
-    pros: row.pros ?? [],
-    cons: row.cons ?? [],
+    slug: row.Slug,
+    name: row.Name,
+    country: row.Country,
+    costPerMonth: row.Cost_per_month,
+    internetSpeed: row.Internet_speed,
+    safetyScore: row.Safety_score,
+    datingScore: row.Dating_score,
+    imageUrl: row.Image_url,
+    description: row.Description,
+    pros: row.Pros ?? [],
+    cons: row.Cons ?? [],
   };
 }
 
@@ -50,10 +50,17 @@ export async function getCities(): Promise<City[]> {
   const { data, error } = await supabase
     .from("Cities")
     .select("*")
-    .order("name");
+    .order("Name");
 
   if (error || !data) {
-    console.error("Supabase fetch failed, using static fallback:", error);
+    console.error(
+      "Supabase fetch failed, using static fallback.",
+      "\n  Code:", error?.code,
+      "\n  Message:", error?.message,
+      "\n  Hint:", error?.hint,
+      "\n  URL set:", !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      "\n  Key set:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    );
     return fallbackCities;
   }
 
@@ -67,11 +74,15 @@ export async function getCityBySlug(
   const { data, error } = await supabase
     .from("Cities")
     .select("*")
-    .eq("slug", slug)
+    .eq("Slug", slug)
     .single();
 
   if (error || !data) {
-    console.error("Supabase single-city fetch failed, using static fallback:", error);
+    console.error(
+      "Supabase single-city fetch failed, using static fallback.",
+      "\n  Code:", error?.code,
+      "\n  Message:", error?.message,
+    );
     return fallbackCities.find((c) => c.slug === slug);
   }
 
@@ -82,10 +93,10 @@ export async function getCityBySlug(
 export async function getAllSlugs(): Promise<string[]> {
   const { data, error } = await supabase
     .from("Cities")
-    .select("slug");
+    .select("Slug");
 
   if (error || !data) return fallbackCities.map((c) => c.slug);
-  return (data as { slug: string }[]).map((r) => r.slug);
+  return (data as { Slug: string }[]).map((r) => r.Slug);
 }
 
 // ── Static fallback data (used when Supabase is unreachable) ────────────

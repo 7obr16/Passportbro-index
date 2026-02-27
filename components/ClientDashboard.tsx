@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Users, DollarSign, Cross, Filter } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { TIER_CONFIG } from "@/lib/countries";
@@ -41,16 +42,72 @@ export default function ClientDashboard({ initialCountries }: Props) {
 
   const filteredCountries = useMemo(() => {
     return initialCountries.filter((c) => {
-      if (filters.datingDifficulty.length && !filters.datingDifficulty.includes(c.datingEase)) return false;
-      if (filters.receptiveness.length && !filters.receptiveness.includes(c.receptiveness)) return false;
+      if (filters.datingDifficulty.length) {
+        // Treat dating difficulty as "Max Difficulty"
+        const diffLevels = { "Very Easy": 1, "Easy": 2, "Possible": 3, "Normal": 4, "Hard": 5, "Improbable": 6, "N/A": 7 };
+        const maxSelectedLevel = Math.max(...filters.datingDifficulty.map(d => diffLevels[d as keyof typeof diffLevels] || 0));
+        const countryLevel = diffLevels[c.datingEase as keyof typeof diffLevels] || 7;
+        
+        if (countryLevel > maxSelectedLevel) return false;
+      }
+      if (filters.receptiveness.length) {
+        // Treat receptiveness as "Minimum Receptiveness"
+        const recLevels = { "Low": 1, "Medium": 2, "High": 3 };
+        const minSelectedLevel = Math.min(...filters.receptiveness.map(s => recLevels[s as keyof typeof recLevels] || 3));
+        const countryLevel = recLevels[c.receptiveness as keyof typeof recLevels] || 1;
+        
+        if (countryLevel < minSelectedLevel) return false;
+      }
       if (filters.localValues.length && !filters.localValues.includes(c.localValues)) return false;
-      if (filters.englishProficiency.length && !filters.englishProficiency.includes(c.englishProficiency)) return false;
-      if (filters.monthlyBudget.length && !filters.monthlyBudget.includes(c.budgetTier)) return false;
-      if (filters.visaEase.length && !filters.visaEase.includes(c.visaEase)) return false;
-      if (filters.internetSpeed.length && !filters.internetSpeed.includes(c.internetSpeed)) return false;
+      if (filters.englishProficiency.length) {
+        // Treat english as "Minimum Proficiency"
+        const engLevels = { "Low": 1, "Moderate": 2, "High": 3 };
+        const minSelectedLevel = Math.min(...filters.englishProficiency.map(s => engLevels[s as keyof typeof engLevels] || 3));
+        const countryLevel = engLevels[c.englishProficiency as keyof typeof engLevels] || 1;
+        
+        if (countryLevel < minSelectedLevel) return false;
+      }
+      if (filters.monthlyBudget.length) {
+        // Treat budget as "Max Budget" (inclusive of cheaper options)
+        const budgetLevels = { "<$1k": 1, "$1k-$2k": 2, "$2k-$3k": 3, "$3k+": 4 };
+        const maxSelectedLevel = Math.max(...filters.monthlyBudget.map(b => budgetLevels[b as keyof typeof budgetLevels] || 0));
+        const countryLevel = budgetLevels[c.budgetTier as keyof typeof budgetLevels] || 4;
+        
+        if (countryLevel > maxSelectedLevel) return false;
+      }
+      if (filters.visaEase.length) {
+        // Treat visa as "Minimum Ease"
+        const visaLevels = { "Difficult": 1, "e-Visa": 2, "Visa-Free": 3 };
+        const minSelectedLevel = Math.min(...filters.visaEase.map(s => visaLevels[s as keyof typeof visaLevels] || 3));
+        const countryLevel = visaLevels[c.visaEase as keyof typeof visaLevels] || 1;
+        
+        if (countryLevel < minSelectedLevel) return false;
+      }
+      if (filters.internetSpeed.length) {
+        // Treat internet as "Minimum Speed"
+        const speedLevels = { "Slow": 1, "Moderate": 2, "Fast": 3 };
+        const minSelectedLevel = Math.min(...filters.internetSpeed.map(s => speedLevels[s as keyof typeof speedLevels] || 3));
+        const countryLevel = speedLevels[c.internetSpeed as keyof typeof speedLevels] || 1;
+        
+        if (countryLevel < minSelectedLevel) return false;
+      }
       if (filters.climate.length && !filters.climate.includes(c.climate)) return false;
-      if (filters.safetyLevel.length && !filters.safetyLevel.includes(c.safetyLevel)) return false;
-      if (filters.healthcareQuality.length && !filters.healthcareQuality.includes(c.healthcareQuality)) return false;
+      if (filters.safetyLevel.length) {
+        // Treat safety as "Minimum Safety" (inclusive of safer options)
+        const safetyLevels = { "Dangerous": 1, "Moderate": 2, "Safe": 3, "Very Safe": 4 };
+        const minSelectedLevel = Math.min(...filters.safetyLevel.map(s => safetyLevels[s as keyof typeof safetyLevels] || 4));
+        const countryLevel = safetyLevels[c.safetyLevel as keyof typeof safetyLevels] || 1;
+        
+        if (countryLevel < minSelectedLevel) return false;
+      }
+      if (filters.healthcareQuality.length) {
+        // Treat healthcare as "Minimum Quality"
+        const healthLevels = { "Low": 1, "Moderate": 2, "High": 3 };
+        const minSelectedLevel = Math.min(...filters.healthcareQuality.map(s => healthLevels[s as keyof typeof healthLevels] || 3));
+        const countryLevel = healthLevels[c.healthcareQuality as keyof typeof healthLevels] || 1;
+        
+        if (countryLevel < minSelectedLevel) return false;
+      }
 
       // Vibes (AND logic within vibes if multiple selected)
       if (filters.vibe.length) {
@@ -143,66 +200,76 @@ export default function ClientDashboard({ initialCountries }: Props) {
                   </div>
 
                   {/* Country cards */}
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                    {tierCountries.map((country) => (
-                      <Link
-                        key={country.slug}
-                        href={`/country/${country.slug}`}
-                        className="group relative flex flex-col overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/60 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900"
-                      >
-                        {/* Tier color strip */}
-                        <div className={`h-1 w-full ${TIER_BAR[tier]}`} />
+                  <motion.div layout className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    <AnimatePresence>
+                      {tierCountries.map((country) => (
+                        <motion.div
+                          key={country.slug}
+                          layout
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Link
+                            href={`/country/${country.slug}`}
+                            className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/60 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900"
+                          >
+                            {/* Tier color strip */}
+                            <div className={`h-1 w-full ${TIER_BAR[tier]}`} />
 
-                        {/* Image */}
-                        <div className="relative h-40 w-full overflow-hidden">
-                          <img
-                            src={country.womenImageUrl || country.imageUrl}
-                            alt={country.name}
-                            className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                          />
-                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
-                          <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between gap-2">
-                            <div className="flex min-w-0 items-center gap-2">
-                              <CountryMark slug={country.slug} name={country.name} compact />
-                              <h3 className="truncate text-sm font-bold text-white drop-shadow-lg">
-                                {country.name}
-                              </h3>
+                            {/* Image */}
+                            <div className="relative h-40 w-full shrink-0 overflow-hidden">
+                              <img
+                                src={country.womenImageUrl || country.imageUrl}
+                                alt={country.name}
+                                className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                              />
+                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
+                              <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between gap-2">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <CountryMark slug={country.slug} name={country.name} compact />
+                                  <h3 className="truncate text-sm font-bold text-white drop-shadow-lg">
+                                    {country.name}
+                                  </h3>
+                                </div>
+                              </div>
+                              <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${TIER_BADGE[tier]}`}>
+                                {tier}
+                              </span>
                             </div>
-                          </div>
-                          <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${TIER_BADGE[tier]}`}>
-                            {tier}
-                          </span>
-                        </div>
 
-                        {/* Stats */}
-                        <div className="flex flex-1 flex-col gap-2 px-3 py-3">
-                          <p className="line-clamp-2 text-xs leading-relaxed text-zinc-400">
-                            {country.redditPros}
-                          </p>
-                          <div className="mt-auto flex items-center gap-3 border-t border-zinc-800/60 pt-2 text-[10px] text-zinc-500">
-                            <span className="flex items-center gap-1">
-                              <DollarSign className="h-3 w-3" />
-                              {country.gdpPerCapita}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {country.avgHeightFemale}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Cross className="h-3 w-3" />
-                              {country.majorityReligion}
-                            </span>
-                          </div>
-                        </div>
+                            {/* Stats */}
+                            <div className="flex flex-1 flex-col gap-2 px-3 py-3">
+                              <p className="line-clamp-2 text-xs leading-relaxed text-zinc-400">
+                                {country.redditPros}
+                              </p>
+                              <div className="mt-auto flex items-center gap-3 border-t border-zinc-800/60 pt-2 text-[10px] text-zinc-500">
+                                <span className="flex items-center gap-1">
+                                  <DollarSign className="h-3 w-3" />
+                                  {country.gdpPerCapita}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {country.avgHeightFemale}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Cross className="h-3 w-3" />
+                                  {country.majorityReligion}
+                                </span>
+                              </div>
+                            </div>
 
-                        {/* Arrow */}
-                        <div className="flex items-center justify-between border-t border-zinc-800/50 px-3 py-2">
-                          <span className="text-[10px] text-zinc-600">{country.region}</span>
-                          <ChevronRight className="h-3.5 w-3.5 text-zinc-700 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-400" />
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                            {/* Arrow */}
+                            <div className="flex shrink-0 items-center justify-between border-t border-zinc-800/50 px-3 py-2">
+                              <span className="text-[10px] text-zinc-600">{country.region}</span>
+                              <ChevronRight className="h-3.5 w-3.5 text-zinc-700 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-400" />
+                            </div>
+                          </Link>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
                 </section>
               ))
             )}

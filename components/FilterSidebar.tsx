@@ -41,12 +41,12 @@ type Props = {
 const FILTER_CONFIG = [
   {
     id: "datingDifficulty",
-    label: "Dating Difficulty",
+    label: "Max Dating Difficulty",
     options: ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable", "N/A"],
   },
   {
     id: "receptiveness",
-    label: "Receptiveness to Foreigners",
+    label: "Min. Receptiveness",
     options: ["High", "Medium", "Low"],
   },
   {
@@ -56,22 +56,22 @@ const FILTER_CONFIG = [
   },
   {
     id: "englishProficiency",
-    label: "English Proficiency",
+    label: "Min. English Level",
     options: ["High", "Moderate", "Low"],
   },
   {
     id: "monthlyBudget",
-    label: "Monthly Budget",
+    label: "Max Monthly Budget",
     options: ["<$1k", "$1k-$2k", "$2k-$3k", "$3k+"],
   },
   {
     id: "visaEase",
-    label: "Visa Ease",
+    label: "Min. Visa Ease",
     options: ["Visa-Free", "e-Visa", "Difficult"],
   },
   {
     id: "internetSpeed",
-    label: "Internet Speed",
+    label: "Min. Internet Speed",
     options: ["Fast", "Moderate", "Slow"],
   },
   {
@@ -81,17 +81,17 @@ const FILTER_CONFIG = [
   },
   {
     id: "vibe",
-    label: "Vibe",
+    label: "Vibes (Must have all selected)",
     options: ["Great Nightlife", "Beach Access", "Nature/Mountains"],
   },
   {
     id: "safetyLevel",
-    label: "Safety Level",
-    options: ["Very Safe", "Safe", "Moderate"],
+    label: "Min. Safety Level",
+    options: ["Very Safe", "Safe", "Moderate", "Dangerous"],
   },
   {
     id: "healthcareQuality",
-    label: "Healthcare Quality",
+    label: "Min. Healthcare Quality",
     options: ["High", "Moderate", "Low"],
   },
 ];

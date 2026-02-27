@@ -87,9 +87,9 @@ function rowToCountry(row: CountryRow): Country {
     visaEase: meta.visaEase,
     internetSpeed: meta.internetSpeed,
     climate: meta.climate,
-    hasNightlife: meta.vibe === "Great Nightlife",
-    hasBeach: meta.vibe === "Beach Access",
-    hasNature: meta.vibe === "Nature/Mountains",
+    hasNightlife: meta.vibe.includes("Great Nightlife"),
+    hasBeach: meta.vibe.includes("Beach Access"),
+    hasNature: meta.vibe.includes("Nature/Mountains"),
     safetyLevel: meta.safetyLevel,
     healthcareQuality: meta.healthcareQuality,
   };

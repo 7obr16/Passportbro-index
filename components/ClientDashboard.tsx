@@ -7,6 +7,7 @@ import type { Country } from "@/lib/countries";
 import { TIER_CONFIG } from "@/lib/countries";
 import GlobeSection from "@/components/GlobeSection";
 import FilterSidebar, { FiltersState, createDefaultFilters } from "@/components/FilterSidebar";
+import CountryMark from "@/components/CountryMark";
 
 const TIERS = ["Very Easy", "Easy", "Normal", "Hard", "Improbable"] as const;
 
@@ -156,10 +157,13 @@ export default function ClientDashboard({ initialCountries }: Props) {
                             className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                           />
                           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
-                          <div className="absolute bottom-2 left-3 flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-white drop-shadow-lg">
-                              {country.name}
-                            </h3>
+                          <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <CountryMark slug={country.slug} name={country.name} compact />
+                              <h3 className="truncate text-sm font-bold text-white drop-shadow-lg">
+                                {country.name}
+                              </h3>
+                            </div>
                           </div>
                           <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${TIER_BADGE[tier]}`}>
                             {tier}

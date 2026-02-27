@@ -23,6 +23,7 @@ import {
   Mountain
 } from "lucide-react";
 import { getCountryBySlug, getAllSlugs, TIER_CONFIG } from "@/lib/countries";
+import CountryMark from "@/components/CountryMark";
 
 export const revalidate = 60;
 
@@ -118,6 +119,7 @@ export default async function CountryPage({ params }: Props) {
             <div className={`absolute left-0 top-0 h-full w-1.5 ${TIER_BAR[country.datingEase]}`} />
             <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8">
               <div className="flex items-center gap-3">
+                <CountryMark slug={country.slug} name={country.name} />
                 <div>
                   <p className="text-xs font-medium uppercase tracking-widest text-zinc-400">
                     {country.region}

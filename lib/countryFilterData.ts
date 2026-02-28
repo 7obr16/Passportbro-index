@@ -1,4 +1,3 @@
-// This file is auto-generated and manually curated for perfect filtering
 export type CountryFilterMeta = {
   receptiveness: string;
   localValues: string;
@@ -6,10 +5,24 @@ export type CountryFilterMeta = {
   budgetTier: string;
   visaEase: string;
   internetSpeed: string;
+  internetMbps?: number;
   climate: string;
-  vibe: string;
+  vibe: string[];
   safetyLevel: string;
   healthcareQuality: string;
+};
+
+export const DEFAULT_COUNTRY_FILTER_META: CountryFilterMeta = {
+  receptiveness: "Medium",
+  localValues: "Mixed",
+  englishProficiency: "Moderate",
+  budgetTier: "$1k-$2k",
+  visaEase: "Visa-Free",
+  internetSpeed: "Moderate",
+  climate: "Temperate",
+  vibe: [],
+  safetyLevel: "Moderate",
+  healthcareQuality: "Moderate",
 };
 
 export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
@@ -22,8 +35,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Moderate",
     "climate": "Tropical",
     "vibe": "Beach Access, Nature/Mountains, Great Nightlife",
-    "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Dangerous",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 103.91
   },
   "thailand": {
     "receptiveness": "High",
@@ -34,8 +48,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Tropical",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
-    "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Moderate",
+    "healthcareQuality": "High",
+    "internetMbps": 272.99
   },
   "indonesia": {
     "receptiveness": "High",
@@ -47,7 +62,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Beach Access, Nature/Mountains, Great Nightlife",
     "safetyLevel": "Safe",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 44.62
   },
   "malaysia": {
     "receptiveness": "Medium",
@@ -58,8 +74,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Tropical",
     "vibe": "Great Nightlife, Nature/Mountains",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "High",
+    "internetMbps": 165.48
   },
   "vietnam": {
     "receptiveness": "High",
@@ -70,8 +87,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Tropical",
     "vibe": "Great Nightlife, Nature/Mountains, Beach Access",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 284.99
   },
   "cambodia": {
     "receptiveness": "High",
@@ -83,7 +101,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 50.88
   },
   "kenya": {
     "receptiveness": "High",
@@ -95,7 +114,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Nature/Mountains, Great Nightlife",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 15.92
   },
   "nigeria": {
     "receptiveness": "High",
@@ -107,7 +127,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Great Nightlife",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 35.93
   },
   "uganda": {
     "receptiveness": "High",
@@ -119,7 +140,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Nature/Mountains",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 28.66
   },
   "rwanda": {
     "receptiveness": "High",
@@ -130,8 +152,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Moderate",
     "climate": "Tropical",
     "vibe": "Nature/Mountains",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 41.98
   },
   "tanzania": {
     "receptiveness": "High",
@@ -143,7 +166,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Nature/Mountains, Beach Access",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 22.11
   },
   "ethiopia": {
     "receptiveness": "High",
@@ -167,7 +191,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Nature/Mountains",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 62.99
   },
   "colombia": {
     "receptiveness": "High",
@@ -179,7 +204,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Great Nightlife, Nature/Mountains, Beach Access",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 208.11
   },
   "mexico": {
     "receptiveness": "High",
@@ -190,8 +216,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Tropical",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
-    "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Dangerous",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 93.19
   },
   "peru": {
     "receptiveness": "High",
@@ -203,7 +230,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains, Beach Access",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 256.52
   },
   "venezuela": {
     "receptiveness": "High",
@@ -215,7 +243,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Beach Access, Nature/Mountains",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 96.6
   },
   "dominican-republic": {
     "receptiveness": "High",
@@ -227,7 +256,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Great Nightlife, Beach Access",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 73.07
   },
   "costa-rica": {
     "receptiveness": "High",
@@ -239,7 +269,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Nature/Mountains, Beach Access",
     "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 161.77
   },
   "india": {
     "receptiveness": "High",
@@ -251,7 +282,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Nature/Mountains, Beach Access",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 61.67
   },
   "pakistan": {
     "receptiveness": "Low",
@@ -263,7 +295,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Nature/Mountains",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 18.06
   },
   "morocco": {
     "receptiveness": "Medium",
@@ -274,8 +307,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Moderate",
     "climate": "Temperate",
     "vibe": "Beach Access, Nature/Mountains",
-    "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 55.71
   },
   "brazil": {
     "receptiveness": "High",
@@ -286,8 +320,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Tropical",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
-    "safetyLevel": "Dangerous",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Moderate",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 222.3
   },
   "argentina": {
     "receptiveness": "High",
@@ -299,7 +334,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 113.33
   },
   "chile": {
     "receptiveness": "Medium",
@@ -310,8 +346,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Temperate",
     "vibe": "Nature/Mountains, Beach Access",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "High",
+    "internetMbps": 337.86
   },
   "china": {
     "receptiveness": "Medium",
@@ -322,8 +359,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 216.96
   },
   "mongolia": {
     "receptiveness": "Medium",
@@ -335,7 +373,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Cold",
     "vibe": "Nature/Mountains",
     "safetyLevel": "Safe",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 81.13
   },
   "south-africa": {
     "receptiveness": "High",
@@ -347,7 +386,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 48.39
   },
   "russia": {
     "receptiveness": "Medium",
@@ -358,8 +398,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Cold",
     "vibe": "Great Nightlife",
-    "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "safetyLevel": "Dangerous",
+    "healthcareQuality": "Moderate",
+    "internetMbps": 91.34
   },
   "ukraine": {
     "receptiveness": "High",
@@ -371,7 +412,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Cold",
     "vibe": "Great Nightlife",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 91.38
   },
   "poland": {
     "receptiveness": "Medium",
@@ -382,8 +424,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Cold",
     "vibe": "Great Nightlife, Nature/Mountains",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "High",
+    "internetMbps": 214.57
   },
   "romania": {
     "receptiveness": "High",
@@ -395,7 +438,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Safe",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 268.82
   },
   "turkey": {
     "receptiveness": "High",
@@ -406,8 +450,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Temperate",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
-    "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Dangerous",
+    "healthcareQuality": "High",
+    "internetMbps": 75.34
   },
   "kazakhstan": {
     "receptiveness": "Medium",
@@ -419,7 +464,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Cold",
     "vibe": "Nature/Mountains",
     "safetyLevel": "Safe",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 87.17
   },
   "algeria": {
     "receptiveness": "Low",
@@ -431,7 +477,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Beach Access",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 55.13
   },
   "libya": {
     "receptiveness": "Low",
@@ -443,7 +490,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Beach Access",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "Low"
+    "healthcareQuality": "Low",
+    "internetMbps": 10.96
   },
   "usa": {
     "receptiveness": "Low",
@@ -455,7 +503,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 306.15
   },
   "canada": {
     "receptiveness": "Low",
@@ -466,8 +515,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Cold",
     "vibe": "Great Nightlife, Nature/Mountains",
-    "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Very Safe",
+    "healthcareQuality": "High",
+    "internetMbps": 274.35
   },
   "australia": {
     "receptiveness": "Low",
@@ -479,7 +529,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
     "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 158.62
   },
   "uk": {
     "receptiveness": "Low",
@@ -491,7 +542,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 166.28
   },
   "france": {
     "receptiveness": "Low",
@@ -503,7 +555,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
     "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 348.02
   },
   "germany": {
     "receptiveness": "Low",
@@ -515,7 +568,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 102.67
   },
   "spain": {
     "receptiveness": "Low",
@@ -526,8 +580,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Temperate",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "High",
+    "internetMbps": 274.21
   },
   "italy": {
     "receptiveness": "Low",
@@ -539,7 +594,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Beach Access, Nature/Mountains",
     "safetyLevel": "Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 113.34
   },
   "sweden": {
     "receptiveness": "Low",
@@ -551,7 +607,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Cold",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 203.36
   },
   "japan": {
     "receptiveness": "Medium",
@@ -563,7 +620,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 248.85
   },
   "south-korea": {
     "receptiveness": "Low",
@@ -575,7 +633,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Great Nightlife, Nature/Mountains",
     "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "healthcareQuality": "High",
+    "internetMbps": 247.37
   },
   "saudi-arabia": {
     "receptiveness": "Low",
@@ -586,8 +645,9 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "internetSpeed": "Fast",
     "climate": "Tropical",
     "vibe": "Great Nightlife",
-    "safetyLevel": "Very Safe",
-    "healthcareQuality": "High"
+    "safetyLevel": "Safe",
+    "healthcareQuality": "High",
+    "internetMbps": 160.79
   },
   "egypt": {
     "receptiveness": "Low",
@@ -599,7 +659,8 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Tropical",
     "vibe": "Beach Access",
     "safetyLevel": "Moderate",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 91.62
   },
   "iran": {
     "receptiveness": "Low",
@@ -611,19 +672,7 @@ export const COUNTRY_FILTER_DATA: Record<string, CountryFilterMeta> = {
     "climate": "Temperate",
     "vibe": "Nature/Mountains",
     "safetyLevel": "Dangerous",
-    "healthcareQuality": "Moderate"
+    "healthcareQuality": "Moderate",
+    "internetMbps": 22.05
   }
-};
-
-export const DEFAULT_COUNTRY_FILTER_META: CountryFilterMeta = {
-  receptiveness: "Medium",
-  localValues: "Mixed",
-  englishProficiency: "Moderate",
-  budgetTier: "$1k-$2k",
-  visaEase: "Visa-Free",
-  internetSpeed: "Moderate",
-  climate: "Temperate",
-  vibe: "Great Nightlife",
-  safetyLevel: "Moderate",
-  healthcareQuality: "Moderate"
 };

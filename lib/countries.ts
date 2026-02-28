@@ -1,5 +1,8 @@
 import { supabase } from "./supabase";
 import { COUNTRY_FILTER_DATA, DEFAULT_COUNTRY_FILTER_META } from "./countryFilterData";
+import { getSafetyScoreBySlug, getSafetyLevelFromScore } from "./safetyIndex";
+import { getFriendlinessScoreBySlug, getFriendlinessLabelFromScore } from "./friendlinessIndex";
+import { getAffordabilityScoreBySlug, getBudgetTierFromScore } from "./affordabilityIndex";
 
 const CURATED_SLUGS = Object.keys(COUNTRY_FILTER_DATA);
 
@@ -24,6 +27,7 @@ export type Country = {
   budgetTier: string;
   visaEase: string;
   internetSpeed: string;
+  internetMbps?: number;
   climate: string;
   hasNightlife: boolean;
   hasBeach: boolean;
@@ -80,17 +84,18 @@ function rowToCountry(row: CountryRow): Country {
     majorityReligion: row.majority_religion,
     imageUrl: row.image_url,
     womenImageUrl: row.women_image_url || womenPortrait,
-    receptiveness: meta.receptiveness,
+    receptiveness: getFriendlinessLabelFromScore(getFriendlinessScoreBySlug(row.slug)),
     localValues: meta.localValues,
     englishProficiency: meta.englishProficiency,
-    budgetTier: meta.budgetTier,
+    budgetTier: getBudgetTierFromScore(getAffordabilityScoreBySlug(row.slug)),
     visaEase: meta.visaEase,
     internetSpeed: meta.internetSpeed,
+    internetMbps: meta.internetMbps,
     climate: meta.climate,
     hasNightlife: meta.vibe.includes("Great Nightlife"),
     hasBeach: meta.vibe.includes("Beach Access"),
     hasNature: meta.vibe.includes("Nature/Mountains"),
-    safetyLevel: meta.safetyLevel,
+    safetyLevel: getSafetyLevelFromScore(getSafetyScoreBySlug(row.slug)),
     healthcareQuality: meta.healthcareQuality,
   };
 }

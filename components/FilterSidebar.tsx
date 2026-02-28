@@ -4,12 +4,12 @@ import { X } from "lucide-react";
 import { Dispatch, SetStateAction } from "react";
 
 export type FiltersState = {
+  maxGdp: number;
   datingDifficulty: string[];
   receptiveness: string[];
   localValues: string[];
   englishProficiency: string[];
   monthlyBudget: string[];
-  visaEase: string[];
   internetSpeed: string[];
   climate: string[];
   vibe: string[];
@@ -18,12 +18,12 @@ export type FiltersState = {
 };
 
 export const createDefaultFilters = (): FiltersState => ({
+  maxGdp: 80000,
   datingDifficulty: [],
   receptiveness: [],
   localValues: [],
   englishProficiency: [],
   monthlyBudget: [],
-  visaEase: [],
   internetSpeed: [],
   climate: [],
   vibe: [],
@@ -42,17 +42,7 @@ const FILTER_CONFIG = [
   {
     id: "datingDifficulty",
     label: "Max Dating Difficulty",
-    options: ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable", "N/A"],
-  },
-  {
-    id: "receptiveness",
-    label: "Min. Receptiveness",
-    options: ["High", "Medium", "Low"],
-  },
-  {
-    id: "localValues",
-    label: "Local Values",
-    options: ["Traditional", "Mixed", "Modern"],
+    options: ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable"],
   },
   {
     id: "englishProficiency",
@@ -65,11 +55,6 @@ const FILTER_CONFIG = [
     options: ["<$1k", "$1k-$2k", "$2k-$3k", "$3k+"],
   },
   {
-    id: "visaEase",
-    label: "Min. Visa Ease",
-    options: ["Visa-Free", "e-Visa", "Difficult"],
-  },
-  {
     id: "internetSpeed",
     label: "Min. Internet Speed",
     options: ["Fast", "Moderate", "Slow"],
@@ -78,11 +63,6 @@ const FILTER_CONFIG = [
     id: "climate",
     label: "Climate",
     options: ["Tropical", "Temperate", "Cold"],
-  },
-  {
-    id: "vibe",
-    label: "Vibes (Must have all selected)",
-    options: ["Great Nightlife", "Beach Access", "Nature/Mountains"],
   },
   {
     id: "safetyLevel",
@@ -144,6 +124,26 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }: 
         </div>
 
         <div className="space-y-8">
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">
+                Max GDP per Capita
+              </h3>
+              <span className="text-[11px] font-medium text-zinc-300">
+                {filters.maxGdp >= 80000 ? "Any" : `$${filters.maxGdp.toLocaleString()}`}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1000"
+              max="80000"
+              step="1000"
+              value={filters.maxGdp}
+              onChange={(e) => setFilters(prev => ({ ...prev, maxGdp: parseInt(e.target.value, 10) }))}
+              className="h-1.5 w-full appearance-none rounded-full bg-zinc-800 accent-emerald-500 outline-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500"
+            />
+          </div>
+
           {FILTER_CONFIG.map((group) => (
             <div key={group.id}>
               <h3 className="mb-3 text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">

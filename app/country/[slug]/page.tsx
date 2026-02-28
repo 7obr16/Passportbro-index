@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getCountryBySlug, getAllSlugs, TIER_CONFIG } from "@/lib/countries";
 import CountryDetailClient from "@/components/CountryDetailClient";
+import { COUNTRY_GALLERY } from "@/lib/countryImages";
+import { WOMEN_GROUP_IMAGE } from "@/lib/womenGroupImages";
 
 export const revalidate = 60;
 
@@ -14,49 +16,25 @@ type Props = {
 };
 
 type GalleryItem = {
+  key: "nightlife" | "food" | "city" | "beaches";
   label: string;
-  url: string;
+  images: string[];
 };
 
-function buildImageUrl(query: string, seed: string): string {
-  // Unsplash Source provides real travel photos by keyword query.
-  return `https://source.unsplash.com/1600x1000/?${encodeURIComponent(query)}&${seed}`;
+function toArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
 }
 
-function buildCountryGallery(country: {
-  slug: string;
-  name: string;
-  hasBeach: boolean;
-  hasNature: boolean;
-  hasNightlife: boolean;
-  climate: string;
-}): GalleryItem[] {
-  const base = country.name;
-  const lifestyleTag = country.hasNightlife
-    ? "nightlife"
-    : country.hasBeach
-      ? "beach"
-      : country.hasNature
-        ? "mountains"
-        : "city";
+function buildCountryGallery(slug: string): GalleryItem[] {
+  const entry = COUNTRY_GALLERY[slug];
+  if (!entry) return [];
 
   return [
-    {
-      label: "City",
-      url: buildImageUrl(`${base} city skyline architecture`, `${country.slug}-city`),
-    },
-    {
-      label: "Nature",
-      url: buildImageUrl(`${base} nature landscape ${country.climate}`, `${country.slug}-nature`),
-    },
-    {
-      label: "People & Culture",
-      url: buildImageUrl(`${base} people street culture`, `${country.slug}-people`),
-    },
-    {
-      label: "Lifestyle",
-      url: buildImageUrl(`${base} travel ${lifestyleTag}`, `${country.slug}-lifestyle`),
-    },
+    { key: "nightlife", label: "Nightlife", images: toArray(entry.nightlife) },
+    { key: "food", label: "Food & Cafes", images: toArray(entry.food) },
+    { key: "city", label: "City & Streets", images: toArray(entry.city) },
+    { key: "beaches", label: "Beaches & Nature", images: toArray(entry.beaches) },
   ];
 }
 
@@ -66,13 +44,14 @@ export default async function CountryPage({ params }: Props) {
   if (!country) notFound();
 
   const tierConfig = TIER_CONFIG[country.datingEase];
-  const gallery = buildCountryGallery(country);
+  const gallery = buildCountryGallery(slug);
+  const womenGroupImageUrl = WOMEN_GROUP_IMAGE[slug] ?? null;
 
   return (
     <CountryDetailClient
       country={country}
-      tierConfig={tierConfig}
       gallery={gallery}
+      womenGroupImageUrl={womenGroupImageUrl}
     />
   );
 }

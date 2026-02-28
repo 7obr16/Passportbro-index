@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactCountryFlag from "react-country-flag";
-import { ChevronDown, ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink, Heart, DollarSign, Wifi, Users, Shield, Star } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
 import {
@@ -18,20 +18,22 @@ type Props = {
 };
 
 const SORT_OPTIONS: { id: LeaderboardSortKey; label: string }[] = [
-  { id: "overall", label: "Overall Passport Score" },
-  { id: "dating", label: "Top Dating Success" },
-  { id: "affordable", label: "Most Affordable" },
-  { id: "lifestyle", label: "Best Lifestyle & Remote Work" },
-  { id: "safest", label: "Safest" },
+  { id: "overall",  label: "Overall Score" },
+  { id: "dating",   label: "Dating Success" },
+  { id: "cost",     label: "Most Affordable" },
+  { id: "internet", label: "Best Internet" },
+  { id: "friendly", label: "Most Friendly" },
+  { id: "safety",   label: "Safest" },
 ];
 
-const scoreForView = (country: LeaderboardCountry, selected: LeaderboardSortKey) => {
-  if (selected === "overall") return country.scores.overall;
-  if (selected === "dating") return country.scores.dating;
-  if (selected === "affordable") return country.scores.cost;
-  if (selected === "lifestyle") return country.scores.lifestyle;
-  return country.scores.safetyHealthcare;
-};
+const BREAKDOWN: { key: keyof LeaderboardCountry["scores"]; label: string; icon: typeof Star; extra?: (c: LeaderboardCountry) => string }[] = [
+  { key: "overall",  label: "Overall",  icon: Star },
+  { key: "dating",   label: "Dating",   icon: Heart,      extra: (c) => c.datingEase },
+  { key: "cost",     label: "Cost",     icon: DollarSign,  extra: (c) => c.budgetTier },
+  { key: "internet", label: "Internet", icon: Wifi,        extra: (c) => c.internetSpeed },
+  { key: "friendly", label: "Friendly", icon: Users,       extra: (c) => c.receptiveness },
+  { key: "safety",   label: "Safety",   icon: Shield,      extra: (c) => c.safetyLevel },
+];
 
 export default function LeaderboardClient({ countries }: Props) {
   const [selected, setSelected] = useState<LeaderboardSortKey>("overall");
@@ -41,17 +43,17 @@ export default function LeaderboardClient({ countries }: Props) {
 
   return (
     <div className="mx-auto max-w-5xl px-5 pb-20 pt-8">
-      <div className="mb-8 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-5 backdrop-blur-xl">
-        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Ranking Criteria</p>
-        <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mb-8 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Sort by</p>
+        <div className="mt-3 flex flex-wrap gap-2">
           {SORT_OPTIONS.map((option) => (
             <button
               key={option.id}
               onClick={() => setSelected(option.id)}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
+              className={`rounded-full border px-4 py-1.5 text-[11px] font-semibold transition-all ${
                 selected === option.id
-                  ? "border-emerald-400/70 bg-emerald-500/10 text-emerald-300"
-                  : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                  : "border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
               }`}
             >
               {option.label}
@@ -60,31 +62,40 @@ export default function LeaderboardClient({ countries }: Props) {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {ranked.map((country, idx) => {
-          const score = scoreForView(country, selected);
+          const score = country.scores[selected];
           const isOpen = openSlug === country.slug;
           const flagCode = COUNTRY_FLAG_CODE[country.slug];
+          const isTop3 = idx < 3;
 
           return (
             <motion.div
               key={`${country.slug}-${selected}`}
               layout
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-sm"
+              transition={{ duration: 0.15, delay: Math.min(idx * 0.02, 0.3) }}
+              className={`overflow-hidden rounded-xl border transition-colors ${
+                isTop3
+                  ? "border-emerald-500/20 bg-zinc-900/70"
+                  : "border-zinc-800/60 bg-zinc-900/40"
+              }`}
             >
               <button
                 onClick={() => setOpenSlug(isOpen ? null : country.slug)}
-                className="flex w-full items-center gap-4 px-4 py-4 text-left transition hover:bg-zinc-800/50"
+                className="flex w-full items-center gap-4 px-4 py-3 text-left transition hover:bg-zinc-800/30"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-xs font-bold text-zinc-200">
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                  isTop3
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "bg-zinc-800/80 text-zinc-400"
+                }`}>
                   {idx + 1}
                 </div>
 
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950">
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-800 bg-zinc-950">
                     {flagCode ? (
                       <ReactCountryFlag
                         countryCode={flagCode}
@@ -92,22 +103,28 @@ export default function LeaderboardClient({ countries }: Props) {
                         style={{ width: "1.1em", height: "1.1em" }}
                       />
                     ) : (
-                      <span className="text-[10px] text-zinc-500">NA</span>
+                      <span className="text-[9px] text-zinc-600">--</span>
                     )}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-zinc-100">{country.name}</p>
-                    <p className="text-xs text-zinc-500">{country.region}</p>
+                    <p className="text-[10px] text-zinc-600">{country.region}</p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-wider text-zinc-500">Score</p>
-                  <p className="text-lg font-black text-emerald-300">{score.toFixed(1)}</p>
+                  <p className="text-[9px] uppercase tracking-wider text-zinc-600">
+                    {SORT_OPTIONS.find(o => o.id === selected)?.label}
+                  </p>
+                  <p className={`text-lg font-black tabular-nums ${
+                    score >= 70 ? "text-emerald-400" : score >= 40 ? "text-zinc-200" : "text-zinc-400"
+                  }`}>
+                    {score.toFixed(0)}
+                  </p>
                 </div>
 
                 <ChevronDown
-                  className={`h-4 w-4 text-zinc-500 transition ${isOpen ? "rotate-180" : ""}`}
+                  className={`h-3.5 w-3.5 shrink-0 text-zinc-600 transition-transform ${isOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
@@ -118,34 +135,38 @@ export default function LeaderboardClient({ countries }: Props) {
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="border-t border-zinc-800/70"
+                    className="border-t border-zinc-800/50"
                   >
-                    <div className="grid gap-3 px-4 py-4 sm:grid-cols-2 lg:grid-cols-4">
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-500">Dating</p>
-                        <p className="mt-1 text-sm font-bold text-zinc-100">{country.scores.dating.toFixed(1)} / 10</p>
-                      </div>
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-500">Cost</p>
-                        <p className="mt-1 text-sm font-bold text-zinc-100">{country.scores.cost.toFixed(1)} / 10</p>
-                      </div>
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-500">Lifestyle</p>
-                        <p className="mt-1 text-sm font-bold text-zinc-100">{country.scores.lifestyle.toFixed(1)} / 10</p>
-                      </div>
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-500">Safety & Healthcare</p>
-                        <p className="mt-1 text-sm font-bold text-zinc-100">{country.scores.safetyHealthcare.toFixed(1)} / 10</p>
-                      </div>
+                    <div className="grid gap-2 px-4 py-4 sm:grid-cols-3 lg:grid-cols-6">
+                      {BREAKDOWN.map((item) => {
+                        const val = country.scores[item.key];
+                        const extra = item.extra?.(country);
+                        return (
+                          <div key={item.key} className="rounded-lg border border-zinc-800/50 bg-zinc-950/60 px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <item.icon className="h-3 w-3 text-zinc-600" />
+                              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{item.label}</p>
+                            </div>
+                            <p className={`mt-1 text-sm font-bold tabular-nums ${
+                              val >= 70 ? "text-emerald-400" : val >= 40 ? "text-zinc-200" : "text-zinc-500"
+                            }`}>
+                              {val.toFixed(0)}
+                            </p>
+                            {extra && (
+                              <p className="mt-0.5 text-[10px] text-zinc-600">{extra}</p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    <div className="flex items-center justify-end px-4 pb-4">
+                    <div className="flex items-center justify-end border-t border-zinc-800/30 px-4 py-3">
                       <Link
                         href={`/country/${country.slug}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300 hover:text-emerald-200"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 transition hover:text-emerald-400"
                       >
-                        View Country Details
-                        <ExternalLink className="h-3.5 w-3.5" />
+                        View Details
+                        <ExternalLink className="h-3 w-3" />
                       </Link>
                     </div>
                   </motion.div>

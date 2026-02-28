@@ -3,33 +3,34 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, Users, DollarSign, Cross, Filter } from "lucide-react";
+import { ChevronRight, Users, DollarSign, Cross, Filter, Star, Wifi, Heart, Shield } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { TIER_CONFIG } from "@/lib/countries";
 import GlobeSection from "@/components/GlobeSection";
 import FilterSidebar, { FiltersState, createDefaultFilters } from "@/components/FilterSidebar";
 import CountryMark from "@/components/CountryMark";
+import { getCountryScores } from "@/lib/scoring";
 
 const TIERS = ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable", "N/A"] as const;
 
 const TIER_BADGE: Record<string, string> = {
   "Very Easy":  "bg-emerald-500/10 text-emerald-400 ring-emerald-500/30",
-  "Easy":       "bg-lime-500/10 text-lime-400 ring-lime-500/30",
-  "Possible":   "bg-yellow-500/10 text-yellow-400 ring-yellow-500/30",
-  "Normal":     "bg-amber-500/10 text-amber-400 ring-amber-500/30",
-  "Hard":       "bg-orange-500/10 text-orange-400 ring-orange-500/30",
-  "Improbable": "bg-red-500/10 text-red-400 ring-red-500/30",
-  "N/A":        "bg-zinc-500/10 text-zinc-400 ring-zinc-500/30",
+  "Easy":       "bg-emerald-500/5 text-emerald-300/80 ring-emerald-500/20",
+  "Possible":   "bg-zinc-500/10 text-zinc-300 ring-zinc-500/20",
+  "Normal":     "bg-zinc-500/10 text-zinc-400 ring-zinc-600/20",
+  "Hard":       "bg-zinc-600/10 text-zinc-500 ring-zinc-700/20",
+  "Improbable": "bg-zinc-700/10 text-zinc-500 ring-zinc-700/20",
+  "N/A":        "bg-zinc-800/10 text-zinc-600 ring-zinc-800/20",
 };
 
 const TIER_BAR: Record<string, string> = {
   "Very Easy":  "bg-emerald-500",
-  "Easy":       "bg-lime-500",
-  "Possible":   "bg-yellow-500",
-  "Normal":     "bg-amber-500",
-  "Hard":       "bg-orange-500",
-  "Improbable": "bg-red-500",
-  "N/A":        "bg-zinc-500",
+  "Easy":       "bg-emerald-500/70",
+  "Possible":   "bg-zinc-500",
+  "Normal":     "bg-zinc-600",
+  "Hard":       "bg-zinc-700",
+  "Improbable": "bg-zinc-700",
+  "N/A":        "bg-zinc-800",
 };
 
 type Props = {
@@ -42,6 +43,10 @@ export default function ClientDashboard({ initialCountries }: Props) {
 
   const filteredCountries = useMemo(() => {
     return initialCountries.filter((c) => {
+      if (filters.maxGdp < 80000) {
+        const countryGdp = parseInt(c.gdpPerCapita.replace(/[^0-9]/g, "") || "0", 10);
+        if (countryGdp > filters.maxGdp) return false;
+      }
       if (filters.datingDifficulty.length) {
         // Treat dating difficulty as "Max Difficulty"
         const diffLevels = { "Very Easy": 1, "Easy": 2, "Possible": 3, "Normal": 4, "Hard": 5, "Improbable": 6, "N/A": 7 };
@@ -74,14 +79,6 @@ export default function ClientDashboard({ initialCountries }: Props) {
         const countryLevel = budgetLevels[c.budgetTier as keyof typeof budgetLevels] || 4;
         
         if (countryLevel > maxSelectedLevel) return false;
-      }
-      if (filters.visaEase.length) {
-        // Treat visa as "Minimum Ease"
-        const visaLevels = { "Difficult": 1, "e-Visa": 2, "Visa-Free": 3 };
-        const minSelectedLevel = Math.min(...filters.visaEase.map(s => visaLevels[s as keyof typeof visaLevels] || 3));
-        const countryLevel = visaLevels[c.visaEase as keyof typeof visaLevels] || 1;
-        
-        if (countryLevel < minSelectedLevel) return false;
       }
       if (filters.internetSpeed.length) {
         // Treat internet as "Minimum Speed"
@@ -152,14 +149,19 @@ export default function ClientDashboard({ initialCountries }: Props) {
           {/* Hero with Globe */}
           <section className="relative flex flex-col items-center">
             <div className="relative z-10 text-center">
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 backdrop-blur-md">
+              <a
+                href="https://www.reddit.com/r/passportbros"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 backdrop-blur-md transition hover:border-emerald-500/40 hover:bg-emerald-500/15"
+              >
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                 Sourced from Reddit r/passportbros
-              </p>
+              </a>
               <h1 className="text-4xl font-black tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
                 The Passport Bro{" "}
-                <span className="bg-gradient-to-r from-emerald-400 via-lime-400 to-amber-400 bg-clip-text text-transparent">
-                  Country Tier List
+                <span className="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
+                  Index
                 </span>
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-zinc-400 drop-shadow-md">
@@ -202,31 +204,73 @@ export default function ClientDashboard({ initialCountries }: Props) {
                   {/* Country cards */}
                   <motion.div layout className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     <AnimatePresence>
-                      {tierCountries.map((country) => (
-                        <motion.div
-                          key={country.slug}
-                          layout
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <Link
-                            href={`/country/${country.slug}`}
-                            className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/60 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900"
+                      {tierCountries.map((country) => {
+                        const scores = getCountryScores(country);
+                        const hoverStats = [
+                          { label: "Overall", score: scores.overall, icon: Star, text: scores.overall.toFixed(0) },
+                          { label: "Cost", score: scores.cost, icon: DollarSign, text: country.budgetTier },
+                          { label: "Internet", score: scores.internet, icon: Wifi, text: country.internetSpeed },
+                          { label: "Friendly", score: scores.friendly, icon: Heart, text: country.receptiveness },
+                          { label: "Safety", score: scores.safety, icon: Shield, text: country.safetyLevel },
+                        ];
+
+                        return (
+                          <motion.div
+                            key={country.slug}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2 }}
                           >
+                            <Link
+                              href={`/country/${country.slug}`}
+                              className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/60 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900"
+                            >
                             {/* Tier color strip */}
                             <div className={`h-1 w-full ${TIER_BAR[tier]}`} />
 
                             {/* Image */}
-                            <div className="relative h-40 w-full shrink-0 overflow-hidden">
+                            <div className="relative h-40 w-full shrink-0 overflow-hidden bg-zinc-900">
                               <img
                                 src={country.womenImageUrl || country.imageUrl}
                                 alt={country.name}
-                                className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                                className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-110"
                               />
-                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
-                              <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between gap-2">
+                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent transition-opacity duration-300 group-hover:opacity-0" />
+                              
+                              {/* Hover Overlay with Stats */}
+                              <div className="absolute inset-0 z-20 flex flex-col justify-start bg-zinc-950/85 px-4 pt-3 opacity-0 backdrop-blur-[2px] transition-all duration-300 group-hover:opacity-100">
+                                <div className="space-y-2">
+                                  {hoverStats.map((stat, i) => (
+                                    <div key={stat.label} className="group/stat flex items-center gap-2.5">
+                                      <div className="flex w-[68px] shrink-0 items-center gap-1.5 text-[10px] font-medium text-zinc-300">
+                                        <stat.icon className="h-3 w-3 text-zinc-500" />
+                                        {stat.label}
+                                      </div>
+                                      <div className="relative h-4 flex-1 overflow-hidden rounded-md bg-zinc-800/60">
+                                        <div 
+                                          className="h-full w-0 rounded-md transition-all duration-1000 ease-out group-hover:[width:var(--score)]"
+                                          style={{ 
+                                            "--score": `${stat.score}%`, 
+                                            backgroundColor: stat.score >= 70 ? "rgba(16, 185, 129, 0.45)" : stat.score >= 40 ? "rgba(16, 185, 129, 0.2)" : "rgba(113, 113, 122, 0.3)",
+                                            transitionDelay: `${i * 60}ms`
+                                          } as React.CSSProperties}
+                                        />
+                                        <span
+                                          className="absolute inset-y-0 left-2 flex items-center text-[9px] font-bold tracking-wider text-white opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                                          style={{ transitionDelay: `${i * 60 + 300}ms` }}
+                                        >
+                                          {stat.text}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Absolute Badges (Stay above overlay) */}
+                              <div className="absolute bottom-2 left-3 right-3 z-30 flex items-center justify-between gap-2 transition-transform duration-300 group-hover:-translate-y-1">
                                 <div className="flex min-w-0 items-center gap-2">
                                   <CountryMark slug={country.slug} name={country.name} compact />
                                   <h3 className="truncate text-sm font-bold text-white drop-shadow-lg">
@@ -234,7 +278,7 @@ export default function ClientDashboard({ initialCountries }: Props) {
                                   </h3>
                                 </div>
                               </div>
-                              <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${TIER_BADGE[tier]}`}>
+                              <span className={`absolute right-2 top-2 z-30 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 transition-opacity duration-300 group-hover:opacity-0 ${TIER_BADGE[tier]}`}>
                                 {tier}
                               </span>
                             </div>
@@ -267,7 +311,8 @@ export default function ClientDashboard({ initialCountries }: Props) {
                             </div>
                           </Link>
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </AnimatePresence>
                   </motion.div>
                 </section>

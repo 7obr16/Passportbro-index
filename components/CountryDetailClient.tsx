@@ -279,7 +279,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                transition={{ type: "spring" as const, stiffness: 260, damping: 22 }}
               >
                 <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
                   <div>
@@ -516,7 +516,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
             </div>
             <motion.div
               animate={{ rotate: isIntelOpen ? 180 : 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              transition={{ type: "spring" as const, stiffness: 300, damping: 20 }}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-400"
             >
               <ChevronDown className="h-4 w-4" />
@@ -633,7 +633,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
             </div>
             <motion.div
               animate={{ rotate: isStatsOpen ? 180 : 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              transition={{ type: "spring" as const, stiffness: 300, damping: 20 }}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-400"
             >
               <ChevronDown className="h-4 w-4" />

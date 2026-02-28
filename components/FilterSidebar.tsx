@@ -31,6 +31,8 @@ export const createDefaultFilters = (): FiltersState => ({
   healthcareQuality: [],
 });
 
+type ArrayFilterKey = Exclude<keyof FiltersState, "maxGdp">;
+
 type Props = {
   filters: FiltersState;
   setFilters: Dispatch<SetStateAction<FiltersState>>;
@@ -38,7 +40,7 @@ type Props = {
   onClose: () => void;
 };
 
-const FILTER_CONFIG = [
+const FILTER_CONFIG: { id: ArrayFilterKey; label: string; options: string[] }[] = [
   {
     id: "datingDifficulty",
     label: "Max Dating Difficulty",
@@ -77,7 +79,7 @@ const FILTER_CONFIG = [
 ];
 
 export default function FilterSidebar({ filters, setFilters, isOpen, onClose }: Props) {
-  const handleToggle = (key: keyof FiltersState, value: string) => {
+  const handleToggle = (key: ArrayFilterKey, value: string) => {
     setFilters((prev) => {
       const current = prev[key];
       if (current.includes(value)) {
@@ -151,11 +153,11 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }: 
               </h3>
               <div className="flex flex-wrap gap-2">
                 {group.options.map((option) => {
-                  const isActive = filters[group.id as keyof FiltersState].includes(option);
+                  const isActive = filters[group.id].includes(option);
                   return (
                     <button
                       key={option}
-                      onClick={() => handleToggle(group.id as keyof FiltersState, option)}
+                      onClick={() => handleToggle(group.id, option)}
                       className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
                         isActive
                           ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"

@@ -7,7 +7,7 @@ export type CountryFilterMeta = {
   internetSpeed: string;
   internetMbps?: number;
   climate: string;
-  vibe: string[];
+  vibe: string;
   safetyLevel: string;
   healthcareQuality: string;
 };
@@ -20,7 +20,7 @@ export const DEFAULT_COUNTRY_FILTER_META: CountryFilterMeta = {
   visaEase: "Visa-Free",
   internetSpeed: "Moderate",
   climate: "Temperate",
-  vibe: [],
+  vibe: "",
   safetyLevel: "Moderate",
   healthcareQuality: "Moderate",
 };

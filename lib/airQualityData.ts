@@ -634,17 +634,6 @@ export const AIR_QUALITY_DATA: Record<string, CountryAirQuality> = {
       { name: "Hainan Island", aqi: 18, lat: 19.2, lng: 110.33, tourismNote: "Tropical island resort" },
     ],
   },
-  "india": {
-    overall: 145,
-    trend: "worsening",
-    cities: [
-      { name: "Delhi", aqi: 185, lat: 28.61, lng: 77.21, tourismNote: "Capital — severe pollution" },
-      { name: "Mumbai", aqi: 115, lat: 19.08, lng: 72.88, tourismNote: "Financial capital" },
-      { name: "Goa", aqi: 35, lat: 15.5, lng: 73.83, tourismNote: "Beach state" },
-      { name: "Jaipur", aqi: 125, lat: 26.92, lng: 75.78, tourismNote: "Pink city" },
-      { name: "Kerala", aqi: 40, lat: 10.85, lng: 76.27, tourismNote: "Backwaters" },
-    ],
-  },
   "pakistan": {
     overall: 165,
     trend: "worsening",

@@ -49,6 +49,11 @@ export const DATA_SOURCES = {
     label: "UN WPP",
     url: "https://population.un.org/wpp/",
   },
+  /** World Bank – Total Fertility Rate (SP.DYN.TFRT.IN) */
+  fertility: {
+    label: "World Bank",
+    url: "https://data.worldbank.org/indicator/SP.DYN.TFRT.IN",
+  },
 } as const;
 
 export type DataSourceKey = keyof typeof DATA_SOURCES;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Calendar, Layers, Heart, Globe2 } from "lucide-react";
+import { Calendar, Layers, Heart, Globe2, Baby } from "lucide-react";
 import {
   getMedianAgeBySlug,
   getEthnicHomogeneityBySlug,
@@ -12,6 +12,12 @@ import {
   getOutGroupMarriagePct,
   hasEurostatMarriageData,
 } from "@/lib/marriageTrendsIndex";
+import {
+  getFertilityRate,
+  getFertilityLabel,
+  US_FERTILITY_RATE,
+  REPLACEMENT_RATE,
+} from "@/lib/fertilityData";
 import SourceLink from "@/components/SourceLink";
 
 type Props = {
@@ -31,6 +37,15 @@ export default function SocietyStats({ slug }: Props) {
   const outGroupPct = useMemo(() => getOutGroupMarriagePct(slug), [slug]);
   const hasMarriageData = useMemo(() => hasEurostatMarriageData(slug), [slug]);
 
+  // Fertility
+  const tfr = useMemo(() => getFertilityRate(slug), [slug]);
+  const fertilityLabel = useMemo(() => getFertilityLabel(tfr), [tfr]);
+  const deltaFertility = tfr - US_FERTILITY_RATE;
+  // Scale: 0–6 TFR maps to 0–100% bar width
+  const tfrBarPct    = Math.min((tfr / 6) * 100, 100);
+  const tfrUsPct     = Math.min((US_FERTILITY_RATE / 6) * 100, 100);
+  const tfrReplPct   = Math.min((REPLACEMENT_RATE / 6) * 100, 100);
+
   return (
     <div className="flex h-full flex-col rounded-2xl border border-zinc-800/60 bg-zinc-950/60 overflow-hidden">
       {/* Header */}
@@ -41,12 +56,12 @@ export default function SocietyStats({ slug }: Props) {
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-600">Society Overview</p>
-            <p className="text-xs font-semibold text-zinc-200">Age, Ethnicity & Marriage</p>
+            <p className="text-xs font-semibold text-zinc-200">Demographics & Society</p>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col p-5 gap-5">
+      <div className="flex flex-col p-4 gap-4">
         {/* Median Age block */}
         <div>
           <div className="mb-2 flex items-center justify-between">
@@ -118,6 +133,82 @@ export default function SocietyStats({ slug }: Props) {
               </p>
             </div>
           )}
+        </div>
+
+        <div className="h-px bg-zinc-800/50" />
+
+        {/* Fertility Rate block */}
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Baby className="h-3.5 w-3.5 text-zinc-500" />
+              <span className="text-[11px] font-medium text-zinc-400">Fertility Rate</span>
+            </div>
+            <SourceLink sourceKey="fertility" />
+          </div>
+
+          <div className="flex items-end justify-between mb-1.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className={`text-2xl font-black tracking-tight ${fertilityLabel.color}`}>
+                {tfr.toFixed(1)}
+              </span>
+              <span className="text-[10px] text-zinc-500">children / woman</span>
+            </div>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold bg-white/[0.05] ${fertilityLabel.color}`}>
+              {fertilityLabel.label}
+            </span>
+          </div>
+
+          {/* Bar with markers */}
+          <div className="relative h-2 w-full overflow-visible rounded-full bg-zinc-800/60">
+            {/* Country bar */}
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${tfrBarPct}%`,
+                background: tfr >= 2.1
+                  ? "linear-gradient(to right, #10b981, #34d399)"
+                  : tfr >= 1.5
+                  ? "linear-gradient(to right, #f59e0b, #fbbf24)"
+                  : "linear-gradient(to right, #ef4444, #f87171)",
+              }}
+            />
+            {/* US reference tick */}
+            <div
+              className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-zinc-400"
+              style={{ left: `${tfrUsPct}%` }}
+              title={`US: ${US_FERTILITY_RATE}`}
+            />
+            {/* Replacement rate tick */}
+            <div
+              className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-emerald-500/60"
+              style={{ left: `${tfrReplPct}%` }}
+              title="Replacement rate: 2.1"
+            />
+          </div>
+
+          {/* Axis labels */}
+          <div className="mt-1.5 flex items-center justify-between text-[9px] text-zinc-600">
+            <span>0</span>
+            <div className="flex items-center gap-0.5">
+              <div className="h-1 w-0.5 rounded-full bg-emerald-500/50" />
+              <span className="text-emerald-600/70">2.1 replacement</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <div className="h-1 w-0.5 rounded-full bg-zinc-400/50" />
+              <span>US {US_FERTILITY_RATE}</span>
+            </div>
+            <span>6+</span>
+          </div>
+
+          <p className="mt-1.5 text-[10px] text-zinc-500">
+            {deltaFertility > 0
+              ? `+${deltaFertility.toFixed(2)} above US`
+              : `${deltaFertility.toFixed(2)} below US`}
+            {tfr >= 2.1
+              ? " · Above replacement — growing population"
+              : " · Below replacement — aging population"}
+          </p>
         </div>
       </div>
     </div>

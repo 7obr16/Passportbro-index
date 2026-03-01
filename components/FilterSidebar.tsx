@@ -44,12 +44,12 @@ const FILTER_CONFIG: { id: ArrayFilterKey; label: string; options: string[] }[] 
   {
     id: "datingDifficulty",
     label: "Max Dating Difficulty",
-    options: ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable"],
+    options: ["Very Easy", "Easy", "Normal", "Hard", "Improbable"],
   },
   {
     id: "englishProficiency",
-    label: "Min. English Level",
-    options: ["High", "Moderate", "Low"],
+    label: "English proficiency",
+    options: ["Very high", "High", "Moderate", "Low", "Very low"],
   },
   {
     id: "monthlyBudget",
@@ -106,7 +106,7 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }: 
 
       {/* Sidebar */}
       <aside
-        className={`fixed bottom-0 left-0 top-14 z-50 w-72 overflow-y-auto border-r border-zinc-800 bg-zinc-950/95 p-5 pb-24 backdrop-blur-xl transition-transform duration-300 lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0 ${
+        className={`fixed bottom-0 left-0 top-0 z-50 w-[85vw] max-w-80 overflow-y-auto overscroll-contain border-r border-zinc-800 bg-zinc-950/98 p-5 pb-24 pt-6 backdrop-blur-xl transition-transform duration-300 ease-out lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:w-72 lg:max-w-none lg:translate-x-0 lg:pt-5 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -142,7 +142,7 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }: 
               step="1000"
               value={filters.maxGdp}
               onChange={(e) => setFilters(prev => ({ ...prev, maxGdp: parseInt(e.target.value, 10) }))}
-              className="h-1.5 w-full appearance-none rounded-full bg-zinc-800 accent-emerald-500 outline-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500"
+              className="h-2 w-full appearance-none rounded-full bg-zinc-800 accent-emerald-500 outline-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 sm:[&::-webkit-slider-thumb]:h-4 sm:[&::-webkit-slider-thumb]:w-4"
             />
           </div>
 
@@ -158,7 +158,7 @@ export default function FilterSidebar({ filters, setFilters, isOpen, onClose }: 
                     <button
                       key={option}
                       onClick={() => handleToggle(group.id, option)}
-                      className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all ${
+                      className={`rounded-full border px-3 py-2 text-xs font-medium transition-all sm:py-1.5 sm:text-[11px] ${
                         isActive
                           ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
                           : "border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-200"

@@ -30,7 +30,11 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   "mauritius": "MUS", "cyprus": "CYP", "malta": "MLT", "montenegro": "MNE",
   "albania": "ALB", "north-macedonia": "MKD", "sri-lanka": "LKA", "laos": "LAO",
   "ecuador": "ECU", "guatemala": "GTM", "paraguay": "PRY", "uruguay": "URY",
-  "cuba": "CUB", "jamaica": "JAM"
+  "cuba": "CUB", "jamaica": "JAM",
+  "netherlands": "NLD", "belgium": "BEL", "austria": "AUT", "switzerland": "CHE",
+  "norway": "NOR", "denmark": "DNK", "finland": "FIN", "ireland": "IRL",
+  "slovakia": "SVK", "lithuania": "LTU", "latvia": "LVA", "slovenia": "SVN",
+  "luxembourg": "LUX", "iceland": "ISL", "bosnia-and-herzegovina": "BIH", "moldova": "MDA",
 };
 
 const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
@@ -54,6 +58,10 @@ const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   ALB: [41.2, 20.2], MKD: [41.5, 21.7], LKA: [7.9, 80.8], LAO: [19.9, 102.5],
   ECU: [-1.8, -78.2], GTM: [15.8, -90.2], PRY: [-23.4, -58.4], URY: [-32.5, -55.8],
   CUB: [21.5, -77.8], JAM: [18.1, -77.3],
+  NLD: [52.1, 5.3], BEL: [50.5, 4.5], AUT: [47.5, 14.6], CHE: [46.8, 8.2],
+  NOR: [60.5, 8.5], DNK: [56.3, 9.5], FIN: [64.0, 26.0], IRL: [53.4, -8.2],
+  SVK: [48.7, 19.7], LTU: [55.2, 24.0], LVA: [56.9, 24.6], SVN: [46.1, 14.8],
+  LUX: [49.8, 6.1], ISL: [64.9, -19.0], BIH: [43.9, 17.9], MDA: [47.4, 28.4],
 };
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -84,19 +92,57 @@ export default function WorldGlobe({ countries }: Props) {
       .then(setGeoJson);
   }, []);
 
+  const updateDimensions = useCallback(() => {
+    if (containerRef.current) {
+      const el = containerRef.current;
+      const w = el.offsetWidth || el.clientWidth || 0;
+      const h = el.offsetHeight || el.clientHeight || 0;
+      if (w > 0 && h > 0) {
+        setDimensions({ width: w, height: h });
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current) {
-        setDimensions({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
+    const el = containerRef.current;
+    if (!el) return;
+    updateDimensions();
+
+    const ro = new ResizeObserver(() => {
+      updateDimensions();
+    });
+    ro.observe(el);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(updateDimensions);
         });
       }
     };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    const onOrientationChange = () => {
+      requestAnimationFrame(() => updateDimensions());
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("orientationchange", onOrientationChange);
+    window.addEventListener("resize", updateDimensions);
+    return () => {
+      ro.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("orientationchange", onOrientationChange);
+      window.removeEventListener("resize", updateDimensions);
+    };
+  }, [updateDimensions]);
+
+  // Delayed re-measure after mount (catches layout not yet settled, e.g. after nav-back or orientation change)
+  useEffect(() => {
+    const t = setTimeout(updateDimensions, 100);
+    const t2 = setTimeout(updateDimensions, 400);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(t2);
+    };
+  }, [updateDimensions]);
 
   const handleGlobeReady = useCallback(() => {
     if (!globeRef.current) return;
@@ -107,6 +153,11 @@ export default function WorldGlobe({ countries }: Props) {
     controls.enablePan = false;
     controls.minPolarAngle = Math.PI * 0.25;
     controls.maxPolarAngle = Math.PI * 0.75;
+    // On mobile: disable touch rotate so page scroll works; globe auto-rotates instead
+    const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    if (isTouch) {
+      controls.enableRotate = false;
+    }
     setReady(true);
   }, []);
 
@@ -171,7 +222,6 @@ export default function WorldGlobe({ countries }: Props) {
   const tierBadgeColor: Record<string, string> = {
     "Very Easy": "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
     "Easy": "border-lime-500/40 bg-lime-500/15 text-lime-300",
-    "Possible": "border-yellow-500/40 bg-yellow-500/15 text-yellow-300",
     "Normal": "border-amber-500/40 bg-amber-500/15 text-amber-300",
     "Hard": "border-orange-500/40 bg-orange-500/15 text-orange-300",
     "Improbable": "border-red-500/40 bg-red-500/15 text-red-300",
@@ -181,7 +231,7 @@ export default function WorldGlobe({ countries }: Props) {
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full cursor-grab active:cursor-grabbing"
+      className="relative h-full w-full overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
       onMouseMove={(event) => {
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;

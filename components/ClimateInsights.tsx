@@ -201,18 +201,18 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
   ];
 
   return (
-    <section className="mb-8 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden">
+    <section className="mb-6 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden sm:mb-8">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between p-5 md:p-6 text-left transition-colors hover:bg-zinc-800/30"
+        className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-zinc-800/30 sm:p-5 md:p-6"
       >
-        <div>
-          <h2 className="text-base font-bold text-zinc-100">Climate & Weather</h2>
-          <p className="mt-0.5 text-[11px] text-zinc-500">Monthly temperature and rainfall for {countryName}</p>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-bold text-zinc-100 sm:text-base">Climate & Weather</h2>
+          <p className="mt-0.5 text-[10px] text-zinc-500 sm:text-[11px]">Monthly temperature and rainfall for {countryName}</p>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" as const }}
           className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800/80 text-zinc-500"
         >
           <ChevronDown className="h-3.5 w-3.5" />
@@ -225,7 +225,7 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
         transition={{ duration: 0.35, ease: "easeInOut" }}
         className="overflow-hidden"
       >
-        <div className="px-5 pb-5 pt-0 md:px-6 md:pb-6">
+        <div className="px-3 pb-4 pt-0 sm:px-5 sm:pb-5 md:px-6 md:pb-6">
           {/* Controls */}
           <div className="mb-4 flex flex-wrap items-center gap-1.5">
             {TEMP_VIEWS.map((t) => (

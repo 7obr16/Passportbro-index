@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Ruler } from "lucide-react";
+import SourceLink from "@/components/SourceLink";
 
 type Props = {
   countryName: string;
@@ -81,8 +82,9 @@ export default function HeightComparison({ countryName, maleHeight, femaleHeight
             <p className="text-xs font-semibold text-zinc-200">{countryName} vs US</p>
           </div>
         </div>
-
-        {/* Gender toggle */}
+        <div className="flex items-center gap-2">
+          <SourceLink sourceKey="height" />
+          {/* Gender toggle */}
         <div className="flex items-center rounded-full border border-zinc-800 bg-zinc-900 p-0.5">
           {(["male", "female"] as const).map((k) => (
             <button
@@ -99,6 +101,7 @@ export default function HeightComparison({ countryName, maleHeight, femaleHeight
               {k === "male" ? "Male" : "Female"}
             </button>
           ))}
+        </div>
         </div>
       </div>
 

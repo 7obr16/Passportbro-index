@@ -1684,3 +1684,48 @@ export const COUNTRY_GALLERY: Record<string, CountryGalleryEntry> = {
     ]
   }
 };
+
+/** Slugs that use the default European gallery when not in COUNTRY_GALLERY. */
+export const EUROPEAN_DEFAULT_GALLERY_SLUGS = [
+  "portugal", "netherlands", "belgium", "austria", "switzerland", "norway", "denmark",
+  "finland", "ireland", "greece", "czech-republic", "hungary", "croatia", "serbia",
+  "bulgaria", "slovakia", "lithuania", "latvia", "estonia", "slovenia", "luxembourg",
+  "malta", "cyprus", "iceland", "montenegro", "north-macedonia", "albania",
+  "bosnia-and-herzegovina", "moldova",
+] as const;
+
+/** Default European gallery (same format as COUNTRY_GALLERY entries). Used for new EU countries. */
+export const DEFAULT_EUROPEAN_GALLERY: CountryGalleryEntry = {
+  city: [
+    "https://images.unsplash.com/photo-1497942692462-38dc3c3bff1a?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1568495596776-9e13fe33471a?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1665482955116-8226c353a5f1?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=1600&q=80",
+  ],
+  beaches: [
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1449452198679-05c7fd30f416?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1543169108-32ac15a21e05?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1506260408121-e353d10b87c7?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1549819489-29a39e0737ba?auto=format&fit=crop&w=1600&q=80",
+  ],
+  food: [
+    "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1645975735133-74cc184a9584?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1572345859911-f5cb90c337f3?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1560523335-8104a0465471?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1600&q=80",
+  ],
+  nightlife: [
+    "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1566555374250-e99b902bcdbc?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1583228370699-8406fb3f5771?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1600&q=80",
+  ],
+};

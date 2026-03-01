@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCountryBySlug, getAllSlugs, TIER_CONFIG } from "@/lib/countries";
 import CountryDetailClient from "@/components/CountryDetailClient";
-import { COUNTRY_GALLERY } from "@/lib/countryImages";
+import { COUNTRY_GALLERY, DEFAULT_EUROPEAN_GALLERY, EUROPEAN_DEFAULT_GALLERY_SLUGS } from "@/lib/countryImages";
 import { WOMEN_GROUP_IMAGE } from "@/lib/womenGroupImages";
 
 export const revalidate = 60;
@@ -27,7 +27,7 @@ function toArray(value: string | string[] | undefined): string[] {
 }
 
 function buildCountryGallery(slug: string): GalleryItem[] {
-  const entry = COUNTRY_GALLERY[slug];
+  const entry = COUNTRY_GALLERY[slug] ?? (EUROPEAN_DEFAULT_GALLERY_SLUGS.includes(slug as typeof EUROPEAN_DEFAULT_GALLERY_SLUGS[number]) ? DEFAULT_EUROPEAN_GALLERY : undefined);
   if (!entry) return [];
 
   return [

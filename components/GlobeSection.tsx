@@ -14,9 +14,12 @@ const WorldGlobe = dynamic(() => import("@/components/WorldGlobe"), {
 
 export default function GlobeSection({ countries }: { countries: Country[] }) {
   return (
-    <div className="relative mt-8 h-[420px] w-full max-w-4xl md:-mt-10 md:h-[620px]">
-      <WorldGlobe countries={countries} />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-40 w-full bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent" />
+    <div className="relative mt-6 w-full overflow-hidden px-0 md:mt-8 md:-mt-10">
+      {/* Constrained viewport: explicit size, no overflow, recalculates on resize */}
+      <div className="relative mx-auto h-[320px] w-full max-w-4xl sm:h-[420px] md:h-[520px] lg:h-[620px]">
+        <WorldGlobe countries={countries} />
+      </div>
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent md:h-40" />
     </div>
   );
 }

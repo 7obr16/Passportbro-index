@@ -20,6 +20,14 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   "uk": "GBR", "france": "FRA", "germany": "DEU", "spain": "ESP",
   "italy": "ITA", "sweden": "SWE", "japan": "JPN", "south-korea": "KOR",
   "saudi-arabia": "SAU", "egypt": "EGY", "iran": "IRN",
+  "portugal": "PRT", "netherlands": "NLD", "belgium": "BEL", "austria": "AUT",
+  "switzerland": "CHE", "norway": "NOR", "denmark": "DNK", "finland": "FIN",
+  "ireland": "IRL", "greece": "GRC", "czech-republic": "CZE", "hungary": "HUN",
+  "croatia": "HRV", "serbia": "SRB", "bulgaria": "BGR", "slovakia": "SVK",
+  "lithuania": "LTU", "latvia": "LVA", "estonia": "EST", "slovenia": "SVN",
+  "luxembourg": "LUX", "malta": "MLT", "cyprus": "CYP", "iceland": "ISL",
+  "montenegro": "MNE", "north-macedonia": "MKD", "albania": "ALB",
+  "bosnia-and-herzegovina": "BIH", "moldova": "MDA",
 };
 
 const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
@@ -36,6 +44,13 @@ const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   GBR: [55.4, -3.4], FRA: [46.2, 2.2], DEU: [51.2, 10.4], ESP: [40.5, -3.7],
   ITA: [41.9, 12.6], SWE: [60.1, 18.6], JPN: [36.2, 138.3], KOR: [35.9, 127.8],
   SAU: [23.9, 45.1], EGY: [26.8, 30.8], IRN: [32.4, 53.7],
+  PRT: [39.4, -8.2], NLD: [52.1, 5.3], BEL: [50.5, 4.5], AUT: [47.5, 14.6],
+  CHE: [46.8, 8.2], NOR: [60.5, 8.5], DNK: [56.3, 9.5], FIN: [64.0, 26.0],
+  IRL: [53.4, -8.2], GRC: [39.1, 21.8], CZE: [49.8, 15.5], HUN: [47.2, 19.5],
+  HRV: [45.1, 15.2], SRB: [44.0, 21.0], BGR: [42.7, 25.5], SVK: [48.7, 19.7],
+  LTU: [55.2, 24.0], LVA: [56.9, 24.6], EST: [58.6, 25.0], SVN: [46.1, 14.8],
+  LUX: [49.8, 6.1], MLT: [35.9, 14.4], CYP: [35.1, 33.4], ISL: [64.9, -19.0],
+  MNE: [42.7, 19.4], MKD: [41.5, 21.7], ALB: [41.2, 20.2], BIH: [43.9, 17.9], MDA: [47.4, 28.4],
 };
 
 type Props = {

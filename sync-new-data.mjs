@@ -91,7 +91,7 @@ const MAP_NAME_TO_SLUG = {
 const MAP_TIER = {
   "Sehr Leicht (Dunkelgrün)": "Very Easy",
   "Leicht (Hellgrün)": "Easy",
-  "Möglich (Gelb)": "Possible",
+  "Möglich (Gelb)": "Normal",
   "Normal (Hellgelb)": "Normal",
   "Schwer (Orange)": "Hard",
   "Unwahrscheinlich (Rot)": "Improbable",

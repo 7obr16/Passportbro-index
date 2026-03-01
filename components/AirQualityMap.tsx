@@ -143,20 +143,20 @@ export default function AirQualityMap({ slug, countryName }: Props) {
   const TrendIcon = data.trend === "improving" ? TrendingUp : data.trend === "worsening" ? TrendingDown : Minus;
 
   return (
-    <section className="mb-8 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden">
+    <section className="mb-6 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden sm:mb-8">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between p-5 md:p-6 text-left transition-colors hover:bg-zinc-800/30"
+        className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-zinc-800/30 sm:p-5 md:p-6"
       >
-        <div>
-          <h2 className="text-base font-bold text-zinc-100">Air Quality</h2>
-          <p className="mt-0.5 text-[11px] text-zinc-500">
-            AQI for {countryName}&apos;s cities and tourist destinations
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-bold text-zinc-100 sm:text-base">Air Quality</h2>
+          <p className="mt-0.5 text-[10px] text-zinc-500 sm:text-[11px]">
+            AQI for {countryName}&apos;s cities and tourist hubs
           </p>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" as const }}
           className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800/80 text-zinc-500"
         >
           <ChevronDown className="h-3.5 w-3.5" />
@@ -172,7 +172,7 @@ export default function AirQualityMap({ slug, countryName }: Props) {
             transition={{ duration: 0.35, ease: "easeInOut" }}
             className="overflow-hidden border-t border-zinc-800/40"
           >
-            <div className="px-5 pb-5 pt-4 md:px-6 md:pb-6">
+            <div className="px-3 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 md:px-6 md:pb-6">
 
               {/* Overall score + AQI scale */}
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">

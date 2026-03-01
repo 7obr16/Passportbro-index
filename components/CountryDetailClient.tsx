@@ -24,11 +24,17 @@ import {
 import type { Country } from "@/lib/countries";
 import { getCountryScores } from "@/lib/scoring";
 import { getPros, getCons } from "@/lib/communityIntel";
+import { getEnglishScore0To100 } from "@/lib/englishProficiencyIndex";
 import CountryMark from "@/components/CountryMark";
 import ClimateInsights from "@/components/ClimateInsights";
 import AirQualityMap from "@/components/AirQualityMap";
 import HeightComparison from "@/components/HeightComparison";
 import GdpVisual from "@/components/GdpVisual";
+import BmiComparison from "@/components/BmiComparison";
+import BodyComparison from "@/components/BodyComparison";
+import PopulationPyramid from "@/components/PopulationPyramid";
+import SocietyStats from "@/components/SocietyStats";
+import SourceLink from "@/components/SourceLink";
 import SiteNav from "@/components/SiteNav";
 import CountryGlobe from "@/components/CountryGlobe";
 import { TIER_CONFIG } from "@/lib/countries";
@@ -42,7 +48,6 @@ type Props = {
 const TIER_BADGE: Record<string, string> = {
   "Very Easy":  "bg-emerald-500/10 text-emerald-400 ring-emerald-500/30",
   "Easy":       "bg-emerald-500/5 text-emerald-300/80 ring-emerald-500/20",
-  "Possible":   "bg-zinc-500/10 text-zinc-300 ring-zinc-500/20",
   "Normal":     "bg-zinc-500/10 text-zinc-400 ring-zinc-600/20",
   "Hard":       "bg-zinc-600/10 text-zinc-500 ring-zinc-700/20",
   "Improbable": "bg-zinc-700/10 text-zinc-500 ring-zinc-700/20",
@@ -50,7 +55,7 @@ const TIER_BADGE: Record<string, string> = {
 };
 
 const TIER_BAR: Record<string, string> = {
-  "Very Easy": "bg-emerald-500", "Easy": "bg-emerald-500/70", "Possible": "bg-zinc-500", "Normal": "bg-zinc-600",
+  "Very Easy": "bg-emerald-500", "Easy": "bg-emerald-500/70", "Normal": "bg-zinc-600",
   "Hard": "bg-zinc-700", "Improbable": "bg-zinc-700", "N/A": "bg-zinc-800",
 };
 
@@ -104,7 +109,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
     { icon: Users,         label: "Friendly",    score: scores.friendly, value: country.receptiveness },
     { icon: Shield,        label: "Safety",      score: scores.safety,   value: country.safetyLevel },
     { icon: Activity,      label: "Healthcare",  score: Math.round(country.healthcareQuality === "High" ? 85 : country.healthcareQuality === "Moderate" ? 55 : 30), value: country.healthcareQuality },
-    { icon: MessageSquare, label: "English",     score: Math.round(country.englishProficiency === "High" ? 85 : country.englishProficiency === "Moderate" ? 55 : 25), value: country.englishProficiency },
+    { icon: MessageSquare, label: "English",     score: getEnglishScore0To100(country.slug), value: country.englishProficiency },
     { icon: Sun,           label: "Climate",     score: Math.round(country.climate === "Tropical" ? 75 : country.climate === "Temperate" ? 70 : 50), value: country.climate },
   ];
 
@@ -129,7 +134,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
       <SiteNav />
 
       <motion.div
-        className="mx-auto max-w-5xl px-5 pb-20 pt-6 md:pt-8"
+        className="mx-auto max-w-5xl px-4 pb-20 pt-4 sm:px-5 md:pt-8"
         variants={containerVariants}
         initial="hidden"
         animate="show"
@@ -146,19 +151,19 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
         </motion.div>
 
         {/* Hero: left = interactive globe, right = typical look */}
-        <motion.div variants={itemVariants} className="mb-8 grid gap-4 md:grid-cols-2">
+        <motion.div variants={itemVariants} className="mb-6 grid gap-3 sm:mb-8 sm:gap-4 md:grid-cols-2">
           {/* Left: 3D Globe highlighting this country */}
-          <div className="relative h-64 w-full overflow-hidden rounded-2xl bg-zinc-950 md:h-80">
+          <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-zinc-950 sm:h-64 md:h-80">
             <CountryGlobe slug={country.slug} tierHex={tierHex} />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
-            <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8">
-              <div className="flex items-center gap-3">
+            <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 md:bottom-8 md:left-8">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <CountryMark slug={country.slug} name={country.name} />
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-widest text-zinc-400">
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-400 sm:text-xs">
                     {country.region}
                   </p>
-                  <h1 className="text-3xl font-black tracking-tight text-white md:text-4xl">
+                  <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl">
                     {country.name}
                   </h1>
                 </div>
@@ -171,10 +176,10 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
 
           {/* Right: Single typical look */}
           {country.womenImageUrl && (
-            <div className="relative h-64 w-full overflow-hidden rounded-2xl border border-zinc-800/80 md:h-80">
+            <div className="relative h-52 w-full overflow-hidden rounded-2xl border border-zinc-800/80 sm:h-64 md:h-80">
               <motion.img
-                initial={{ scale: 1.1 }}
-                animate={{ scale: 1 }}
+                initial={{ scale: 1.15 }}
+                animate={{ scale: 1.08 }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
                 src={country.womenImageUrl}
                 alt={`Typical women in ${country.name}`}
@@ -188,25 +193,26 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
         </motion.div>
 
         {/* Passport Bro Score — always visible so you don't have to go back to menu */}
-        <motion.div variants={itemVariants} className="mb-8">
-          <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5">
-            <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+        <motion.div variants={itemVariants} className="mb-6 sm:mb-8">
+          <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500 sm:mb-4">
               Passport Bro score
             </p>
-            <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6 md:gap-8">
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black tabular-nums tracking-tight text-white">
+                <span className="text-3xl font-black tabular-nums tracking-tight text-white sm:text-4xl">
                   {Math.round(scores.overall)}
                 </span>
                 <span className="text-sm font-medium text-zinc-500">/ 100 overall</span>
               </div>
-              <div className="h-8 w-px bg-zinc-800" />
-              <div className="flex flex-wrap gap-x-6 gap-y-2 sm:gap-x-8">
+              <div className="hidden h-8 w-px bg-zinc-800 sm:block" />
+              <div className="grid grid-cols-3 gap-x-3 gap-y-2.5 sm:flex sm:flex-wrap sm:gap-x-6 md:gap-x-8">
                 {SCORE_ITEMS.map(({ key, label, icon: Icon }) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <Icon className="h-3.5 w-3.5 text-zinc-500" />
-                    <span className="text-xs text-zinc-500">{label}</span>
-                    <span className="text-sm font-bold tabular-nums text-zinc-200">{Math.round(scores[key])}</span>
+                  <div key={key} className="flex items-center gap-1.5 sm:gap-2">
+                    <Icon className="h-3 w-3 text-zinc-500 sm:h-3.5 sm:w-3.5" />
+                    <span className="text-[10px] text-zinc-500 sm:text-xs">{label}</span>
+                    <span className="text-xs font-bold tabular-nums text-zinc-200 sm:text-sm">{Math.round(scores[key])}</span>
+                    {key === "safety" && <SourceLink sourceKey="safety" className="ml-0.5" />}
                   </div>
                 ))}
               </div>
@@ -216,11 +222,11 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
 
         {/* Country Visual Gallery */}
         <motion.div variants={itemVariants} className="mb-8">
-          <div className="mb-4 flex items-end justify-between">
-            <h2 className="text-lg font-bold text-zinc-100">Country Visuals</h2>
-            <p className="text-xs text-zinc-500">Nightlife · Food & cafés · City & streets · Beaches & nature</p>
+          <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="text-base font-bold text-zinc-100 sm:text-lg">Country Visuals</h2>
+            <p className="text-[10px] text-zinc-500 sm:text-xs">Nightlife · Food · City · Beaches</p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
             {gallery.map((item, idx) => (
               <motion.div
                 key={item.label}
@@ -236,7 +242,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
                   src={item.images[0]}
                   alt={`${country.name} ${item.label}`}
                   loading="lazy"
-                  className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="h-32 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-44"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
                 <span className="absolute bottom-2 left-2 rounded-full border border-zinc-700 bg-zinc-950/80 px-2 py-0.5 text-[10px] font-semibold text-zinc-200 backdrop-blur">
@@ -247,19 +253,19 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
           </div>
         </motion.div>
 
-        {/* How Women Look — 8 women group (standardized format, white background) */}
+        {/* How Women Look — 8 women group (standardized format) */}
         {womenGroupImageUrl && (
           <motion.div variants={itemVariants} className="mb-8">
             <div className="mb-4 flex items-end justify-between">
               <h2 className="text-lg font-bold text-zinc-100">How Women Look</h2>
               <p className="text-xs text-zinc-500">Typical look · 8 women, same format (AI generated)</p>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/40">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/60 sm:aspect-[16/9]">
               <img
                 src={womenGroupImageUrl}
                 alt={`Typical women in ${country.name} — 8 women group`}
                 loading="lazy"
-                className="w-full object-contain max-h-[420px] bg-white"
+                className="block h-full w-full object-cover object-center"
               />
             </div>
           </motion.div>
@@ -275,7 +281,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/95"
+                className="relative flex h-full max-h-[90vh] w-full flex-col overflow-hidden border-zinc-800 bg-zinc-950/95 sm:mx-4 sm:h-auto sm:max-w-4xl sm:rounded-2xl sm:border"
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
@@ -305,7 +311,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
 
                   return (
                     <>
-                      <div className="relative flex h-[70vh] max-h-[520px] w-full items-center justify-center bg-zinc-900">
+                      <div className="relative flex h-[50vh] w-full items-center justify-center bg-zinc-900 sm:h-[70vh] sm:max-h-[520px]">
                         <motion.img
                           key={current}
                           src={current}
@@ -321,12 +327,12 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
                         </div>
                       </div>
 
-                      <div className="flex gap-2 overflow-x-auto border-t border-zinc-800 bg-zinc-950/90 px-3 py-3">
+                      <div className="flex gap-2 overflow-x-auto border-t border-zinc-800 bg-zinc-950/90 px-3 py-2 sm:py-3">
                         {images.map((img, idx) => (
                           <button
                             key={img}
                             onClick={() => setActiveImageIndex(idx)}
-                            className={`relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border transition ${
+                            className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-lg border transition sm:h-20 sm:w-32 ${
                               idx === activeImageIndex
                                 ? "border-emerald-500"
                                 : "border-zinc-800 hover:border-zinc-600"
@@ -500,18 +506,18 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
         </motion.div>
 
         {/* Reddit Consensus */}
-        <motion.div variants={itemVariants} className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+        <motion.div variants={itemVariants} className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden sm:mt-8">
           <button 
             onClick={() => setIsIntelOpen(!isIntelOpen)}
-            className="flex w-full items-center justify-between p-6 text-left transition-colors hover:bg-zinc-900/60"
+            className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-zinc-900/60 sm:p-6"
           >
-            <div>
-              <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-zinc-500" />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2 sm:text-lg">
+                <MessageSquare className="h-4 w-4 shrink-0 text-zinc-500 sm:h-5 sm:w-5" />
                 Community Intel
               </h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                Pros and cons from a passport bro perspective — Reddit, forums, and community reports.
+              <p className="mt-0.5 text-[10px] text-zinc-500 sm:mt-1 sm:text-xs">
+                Pros and cons — Reddit, forums, community reports
               </p>
             </div>
             <motion.div
@@ -532,9 +538,9 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="overflow-hidden border-t border-zinc-800/50"
               >
-                <div className="grid gap-4 p-6 pt-4 md:grid-cols-2 md:items-stretch">
+                <div className="grid gap-3 p-4 pt-3 sm:gap-4 sm:p-6 sm:pt-4 md:grid-cols-2 md:items-stretch">
                   {/* Pros */}
-                  <motion.div className="flex min-h-0 flex-col rounded-xl border border-zinc-800/60 bg-zinc-950/60 p-5">
+                  <motion.div className="flex min-h-0 flex-col rounded-xl border border-zinc-800/60 bg-zinc-950/60 p-4 sm:p-5">
                     <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-emerald-400">
                       <ThumbsUp className="h-3.5 w-3.5 shrink-0" />
                       Pros
@@ -573,7 +579,7 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
                   </motion.div>
 
                   {/* Cons */}
-                  <motion.div className="flex min-h-0 flex-col rounded-xl border border-zinc-800/60 bg-zinc-950/60 p-5">
+                  <motion.div className="flex min-h-0 flex-col rounded-xl border border-zinc-800/60 bg-zinc-950/60 p-4 sm:p-5">
                     <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-red-400">
                       <ThumbsDown className="h-3.5 w-3.5 shrink-0" />
                       Cons
@@ -617,18 +623,18 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
         </motion.div>
 
         {/* Physical Stats comparison */}
-        <motion.div variants={itemVariants} className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+        <motion.div variants={itemVariants} className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden sm:mt-8">
           <button 
             onClick={() => setIsStatsOpen(!isStatsOpen)}
-            className="flex w-full items-center justify-between p-6 text-left transition-colors hover:bg-zinc-900/60"
+            className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-zinc-900/60 sm:p-6"
           >
-            <div>
-              <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                <Users className="h-5 w-5 text-zinc-500" />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2 sm:text-lg">
+                <Users className="h-4 w-4 shrink-0 text-zinc-500 sm:h-5 sm:w-5" />
                 Physical & Demographic Stats
               </h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                Average height, GDP, and religious demographics.
+              <p className="mt-0.5 text-[10px] text-zinc-500 sm:mt-1 sm:text-xs">
+                Height, GDP, BMI, demographics, marriage trends, and religion
               </p>
             </div>
             <motion.div
@@ -657,14 +663,36 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
                     </span>
                   </div>
 
-                  {/* Side-by-side panels, equal height */}
-                  <div className="grid gap-4 lg:grid-cols-2 items-stretch">
+                  {/* Row 1: Body comparisons — side by side, generous space */}
+                  <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 items-stretch">
                     <HeightComparison
                       countryName={country.name}
                       maleHeight={country.avgHeightMale}
                       femaleHeight={country.avgHeightFemale}
                     />
+                    {country.avgBmi != null && (
+                      <BodyComparison
+                        countryName={country.name}
+                        countryBmi={country.avgBmi}
+                      />
+                    )}
+                  </div>
+
+                  {/* Row 2: Data cards */}
+                  <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
                     <GdpVisual gdpPerCapita={country.gdpPerCapita} />
+                    {country.avgBmi != null && (
+                      <BmiComparison
+                        countryName={country.name}
+                        countryBmi={country.avgBmi}
+                      />
+                    )}
+                    <SocietyStats slug={country.slug} />
+                  </div>
+
+                  {/* Row 3: Demographics */}
+                  <div className="mt-4">
+                    <PopulationPyramid slug={country.slug} countryName={country.name} />
                   </div>
                 </div>
               </motion.div>

@@ -54,6 +54,35 @@ export const WOMEN_GROUP_IMAGE: Record<string, string> = {
   "saudi-arabia": "/women-group/saudi-arabia.png",
   egypt: "/women-group/egypt.png",
   iran: "/women-group/iran.png",
+  "portugal": "/women-group/portugal.png",
+  "netherlands": "/women-group/netherlands.png",
+  "belgium": "/women-group/belgium.png",
+  "austria": "/women-group/austria.png",
+  "switzerland": "/women-group/switzerland.png",
+  "norway": "/women-group/norway.png",
+  "denmark": "/women-group/denmark.png",
+  "finland": "/women-group/finland.png",
+  "ireland": "/women-group/ireland.png",
+  "greece": "/women-group/greece.png",
+  "czech-republic": "/women-group/czech-republic.png",
+  "hungary": "/women-group/hungary.png",
+  "croatia": "/women-group/croatia.png",
+  "serbia": "/women-group/serbia.png",
+  "bulgaria": "/women-group/bulgaria.png",
+  "slovakia": "/women-group/slovakia.png",
+  "lithuania": "/women-group/lithuania.png",
+  "latvia": "/women-group/latvia.png",
+  "estonia": "/women-group/estonia.png",
+  "slovenia": "/women-group/slovenia.png",
+  "luxembourg": "/women-group/luxembourg.png",
+  "malta": "/women-group/malta.png",
+  "cyprus": "/women-group/cyprus.png",
+  "iceland": "/women-group/iceland.png",
+  "montenegro": "/women-group/montenegro.png",
+  "north-macedonia": "/women-group/north-macedonia.png",
+  "albania": "/women-group/albania.png",
+  "bosnia-and-herzegovina": "/women-group/bosnia-and-herzegovina.png",
+  "moldova": "/women-group/moldova.png",
 };
 
 /** One-line diversity description for image generation. Same format prompt, only this varies by country. */
@@ -108,7 +137,54 @@ export const WOMEN_GROUP_PROMPT_DESCRIPTION: Record<string, string> = {
   "saudi-arabia": "Saudi women, Arabian Peninsula, varied",
   egypt: "Egyptian women, North African Arab, varied",
   iran: "Iranian women, Persian features, varied",
+  "portugal": "Portuguese women, Southern European Mediterranean, varied",
+  "netherlands": "Dutch women, North European features, varied hair blonde brown",
+  "belgium": "Belgian women, Western European mixed Flemish Walloon, varied",
+  "austria": "Austrian women, Central European Alpine, varied",
+  "switzerland": "Swiss women, Central European diverse, varied",
+  "norway": "Norwegian women, Nordic features, varied hair blonde light brown",
+  "denmark": "Danish women, Nordic features, varied hair blonde brown",
+  "finland": "Finnish women, Nordic Baltic features, varied hair blonde light brown",
+  "ireland": "Irish women, Celtic North European, varied hair red blonde brown",
+  "greece": "Greek women, Mediterranean Southern European, varied",
+  "czech-republic": "Czech women, Central European Slavic, varied",
+  "hungary": "Hungarian women, Central European, varied",
+  "croatia": "Croatian women, Southeast European Mediterranean, varied",
+  "serbia": "Serbian women, Southeast European Slavic, varied",
+  "bulgaria": "Bulgarian women, Southeast European Slavic, varied",
+  "slovakia": "Slovak women, Central European Slavic, varied",
+  "lithuania": "Lithuanian women, Baltic North European, varied",
+  "latvia": "Latvian women, Baltic North European, varied",
+  "estonia": "Estonian women, Baltic North European, varied",
+  "slovenia": "Slovenian women, Central Southeast European, varied",
+  "luxembourg": "Luxembourgish women, Western European diverse, varied",
+  "malta": "Maltese women, Mediterranean Southern European, varied",
+  "cyprus": "Cypriot women, Mediterranean Greek Turkish mix, varied",
+  "iceland": "Icelandic women, Nordic features, varied hair blonde light",
+  "montenegro": "Montenegrin women, Southeast European Mediterranean, varied",
+  "north-macedonia": "North Macedonian women, Southeast European Slavic, varied",
+  "albania": "Albanian women, Southeast European Mediterranean, varied",
+  "bosnia-and-herzegovina": "Bosnian women, Southeast European Slavic mixed, varied",
+  "moldova": "Moldovan women, East European Slavic Romanian mix, varied",
 };
 
 export const WOMEN_GROUP_STANDARD_PROMPT_PREFIX =
   "Hyper realistic photograph, 8 women standing in a row side by side, full body visible from head to knees, equal spacing between each person, clean pure white background, even studio lighting, no shadows on background, all women facing camera, neutral friendly expression, women appear 24-26 years old, beautiful as you would see on the street, ";
+
+/** Single portrait (one woman, white background). Same style as group; use with WOMEN_GROUP_PROMPT_DESCRIPTION for consistency. */
+export const SINGLE_PORTRAIT_STANDARD_PROMPT_PREFIX =
+  "Hyper realistic photograph, one woman standing, full body visible from head to knees, clean pure white background, even studio lighting, no shadows on background, facing camera, neutral friendly expression, woman appears 24-26 years old, beautiful as you would see on the street, ";
+
+/** Full prompt for single portrait. Output path: public/women/{slug}.png */
+export function getSinglePortraitPrompt(slug: string): string {
+  const desc = WOMEN_GROUP_PROMPT_DESCRIPTION[slug];
+  if (!desc) return "";
+  return SINGLE_PORTRAIT_STANDARD_PROMPT_PREFIX + desc;
+}
+
+/** Full prompt for 8-women group. Output path: public/women-group/{slug}.png */
+export function getGroupPortraitPrompt(slug: string): string {
+  const desc = WOMEN_GROUP_PROMPT_DESCRIPTION[slug];
+  if (!desc) return "";
+  return WOMEN_GROUP_STANDARD_PROMPT_PREFIX + desc;
+}

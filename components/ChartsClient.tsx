@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import ReactCountryFlag from "react-country-flag";
 import type { Country } from "@/lib/countries";
+import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
 import { getCountryScores } from "@/lib/scoring";
 
 type MetricOption = {
@@ -67,9 +69,10 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
+        const w = containerRef.current.offsetWidth;
         setDimensions({
-          width: containerRef.current.offsetWidth,
-          height: Math.max(500, window.innerHeight * 0.6),
+          width: w,
+          height: w < 640 ? Math.max(350, window.innerHeight * 0.5) : Math.max(500, window.innerHeight * 0.6),
         });
       }
     };
@@ -130,7 +133,10 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
     return { xMin, xMax, yMin, yMax, trendline: { x1: xMin, y1, x2: xMax, y2 } };
   }, [dataPoints]);
 
-  const padding = { top: 40, right: 120, bottom: 60, left: 60 };
+  const isMobile = dimensions.width < 640;
+  const padding = isMobile
+    ? { top: 30, right: 16, bottom: 50, left: 44 }
+    : { top: 40, right: 120, bottom: 60, left: 60 };
   const graphWidth = dimensions.width - padding.left - padding.right;
   const graphHeight = dimensions.height - padding.top - padding.bottom;
 
@@ -155,14 +161,14 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
   return (
     <div className="w-full">
       {/* Selectors */}
-      <div className="mb-6 flex flex-wrap items-center justify-center gap-4 text-sm">
+      <div className="mb-4 flex flex-col items-stretch gap-2 text-sm sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-zinc-500">X-Axis:</span>
-          <div className="relative">
+          <span className="shrink-0 text-xs text-zinc-500 sm:text-sm">X-Axis:</span>
+          <div className="relative flex-1 sm:flex-initial">
             <select
               value={xAxisId}
               onChange={(e) => setXAxisId(e.target.value)}
-              className="appearance-none rounded-lg border border-zinc-800 bg-zinc-900 py-1.5 pl-3 pr-8 text-zinc-200 outline-none hover:border-zinc-700 focus:border-emerald-500/50"
+              className="w-full appearance-none rounded-lg border border-zinc-800 bg-zinc-900 py-2 pl-3 pr-8 text-xs text-zinc-200 outline-none hover:border-zinc-700 focus:border-emerald-500/50 sm:w-auto sm:py-1.5 sm:text-sm"
             >
               {METRICS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
@@ -170,15 +176,15 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
           </div>
         </div>
 
-        <span className="text-zinc-700">vs</span>
+        <span className="hidden text-zinc-700 sm:block">vs</span>
 
         <div className="flex items-center gap-2">
-          <span className="text-zinc-500">Y-Axis:</span>
-          <div className="relative">
+          <span className="shrink-0 text-xs text-zinc-500 sm:text-sm">Y-Axis:</span>
+          <div className="relative flex-1 sm:flex-initial">
             <select
               value={yAxisId}
               onChange={(e) => setYAxisId(e.target.value)}
-              className="appearance-none rounded-lg border border-zinc-800 bg-zinc-900 py-1.5 pl-3 pr-8 text-zinc-200 outline-none hover:border-zinc-700 focus:border-emerald-500/50"
+              className="w-full appearance-none rounded-lg border border-zinc-800 bg-zinc-900 py-2 pl-3 pr-8 text-xs text-zinc-200 outline-none hover:border-zinc-700 focus:border-emerald-500/50 sm:w-auto sm:py-1.5 sm:text-sm"
             >
               {METRICS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
@@ -261,17 +267,17 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
           {/* Axis Labels */}
           <text 
             x={padding.left + graphWidth / 2} 
-            y={dimensions.height - 15} 
-            fill="#a1a1aa" fontSize="12" fontWeight="600" textAnchor="middle" letterSpacing="0.05em"
+            y={dimensions.height - (isMobile ? 8 : 15)} 
+            fill="#a1a1aa" fontSize={isMobile ? 9 : 12} fontWeight="600" textAnchor="middle" letterSpacing="0.05em"
           >
             {xMetric.label.toUpperCase()}
           </text>
 
           <text 
             x={- (padding.top + graphHeight / 2)} 
-            y={20} 
+            y={isMobile ? 10 : 20} 
             transform="rotate(-90)"
-            fill="#a1a1aa" fontSize="12" fontWeight="600" textAnchor="middle" letterSpacing="0.05em"
+            fill="#a1a1aa" fontSize={isMobile ? 9 : 12} fontWeight="600" textAnchor="middle" letterSpacing="0.05em"
           >
             {yMetric.label.toUpperCase()}
           </text>
@@ -291,63 +297,82 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
             />
           )}
 
-          {/* Data Points */}
-          {dataPoints.map((point, i) => {
-            const px = getX(point.x);
-            const py = getY(point.y);
-            const isHovered = hoveredPoint?.country.slug === point.country.slug;
-            
+          {/* Hover crosshairs rendered in SVG */}
+          {hoveredPoint && (() => {
+            const px = getX(hoveredPoint.x);
+            const py = getY(hoveredPoint.y);
             return (
-              <g 
-                key={point.country.slug}
-                className="cursor-crosshair outline-none"
-                onMouseEnter={() => setHoveredPoint(point)}
-                onMouseLeave={() => setHoveredPoint(null)}
-              >
-                {/* Invisible larger hit area */}
-                <circle cx={px} cy={py} r="15" fill="transparent" />
-                
-                {/* Connecting line to axes on hover */}
-                {isHovered && (
-                  <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <line x1={px} y1={py} x2={px} y2={dimensions.height - padding.bottom} stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" opacity="0.3" />
-                    <line x1={px} y1={py} x2={padding.left} y2={py} stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" opacity="0.3" />
-                  </motion.g>
-                )}
-
-                {/* Dot */}
-                <motion.circle
-                  initial={{ cx: px, cy: py, r: 0 }}
-                  animate={{ 
-                    cx: px, 
-                    cy: py, 
-                    r: isHovered ? 6 : 3,
-                    fill: isHovered ? "#34d399" : "#10b981"
-                  }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  filter={isHovered ? "url(#glow)" : undefined}
-                />
-
-                {/* Country label (only on hover to avoid overlap) */}
-                <motion.text
-                  initial={{ opacity: 0 }}
-                  animate={{ 
-                    opacity: isHovered ? 1 : 0,
-                    fill: isHovered ? "#ffffff" : "#a1a1aa",
-                    fontWeight: isHovered ? "700" : "400"
-                  }}
-                  x={px + 6}
-                  y={py + 3}
-                  fontSize="8"
-                  style={{ pointerEvents: "none" }}
-                  className="uppercase tracking-wider"
-                >
-                  {point.country.name}
-                </motion.text>
+              <g>
+                <line x1={px} y1={py} x2={px} y2={dimensions.height - padding.bottom} stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" opacity="0.3" />
+                <line x1={px} y1={py} x2={padding.left} y2={py} stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" opacity="0.3" />
               </g>
             );
-          })}
+          })()}
         </svg>
+
+        {/* HTML Flag Overlay — positioned above the SVG */}
+        {dataPoints.map((point) => {
+          const px = getX(point.x);
+          const py = getY(point.y);
+          const isHovered = hoveredPoint?.country.slug === point.country.slug;
+          const flagCode = COUNTRY_FLAG_CODE[point.country.slug];
+          const size = isMobile ? 20 : 26;
+
+          return (
+            <motion.div
+              key={point.country.slug}
+              className="absolute flex flex-col items-center"
+              style={{
+                left: px - size / 2,
+                top: py - size / 2,
+                width: size,
+                height: size,
+                zIndex: isHovered ? 15 : 5,
+              }}
+              onMouseEnter={() => setHoveredPoint(point)}
+              onMouseLeave={() => setHoveredPoint(null)}
+              onTouchStart={() => setHoveredPoint(hoveredPoint?.country.slug === point.country.slug ? null : point)}
+            >
+              {/* Country name label — above flag on hover */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="pointer-events-none absolute -top-5 whitespace-nowrap rounded bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-100 shadow-lg"
+                  >
+                    {point.country.name}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+
+              {/* Flag circle */}
+              <div
+                className={`flex cursor-crosshair items-center justify-center rounded-full border-2 transition-all duration-150 ${
+                  isHovered
+                    ? "scale-[1.4] border-emerald-400 shadow-lg shadow-emerald-500/30"
+                    : "border-zinc-700/50 hover:border-zinc-500"
+                }`}
+                style={{ width: size, height: size, background: "#18181b" }}
+              >
+                {flagCode ? (
+                  <div className="flex items-center justify-center overflow-hidden rounded-full" style={{ width: size - 4, height: size - 4 }}>
+                    <ReactCountryFlag
+                      countryCode={flagCode}
+                      svg
+                      style={{ width: "1.6em", height: "1.6em", display: "block" }}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-[8px] font-bold text-zinc-500">
+                    {point.country.name.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
 
         {/* Hover Tooltip Overlay */}
         <AnimatePresence>
@@ -356,26 +381,42 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="pointer-events-none absolute z-20 flex min-w-[200px] flex-col rounded-xl border border-zinc-700/50 bg-zinc-950/90 p-4 shadow-2xl backdrop-blur-md"
+              className="pointer-events-none absolute z-30 flex min-w-[200px] flex-col rounded-xl border border-zinc-700/50 bg-zinc-950/92 p-4 shadow-2xl backdrop-blur-xl"
               style={{
-                left: Math.min(getX(hoveredPoint.x) + 15, dimensions.width - 220),
-                top: Math.min(getY(hoveredPoint.y) + 15, dimensions.height - 120),
+                left: isMobile
+                  ? Math.max(8, Math.min(getX(hoveredPoint.x) - 90, dimensions.width - 216))
+                  : Math.min(getX(hoveredPoint.x) + 20, dimensions.width - 230),
+                top: isMobile
+                  ? Math.max(8, getY(hoveredPoint.y) - 120)
+                  : Math.min(getY(hoveredPoint.y) - 30, dimensions.height - 130),
               }}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{hoveredPoint.country.flagEmoji}</span>
-                <span className="font-bold text-white">{hoveredPoint.country.name}</span>
+              <div className="flex items-center gap-2.5">
+                {COUNTRY_FLAG_CODE[hoveredPoint.country.slug] && (
+                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-zinc-700 bg-zinc-900">
+                    <ReactCountryFlag
+                      countryCode={COUNTRY_FLAG_CODE[hoveredPoint.country.slug]}
+                      svg
+                      style={{ width: "1.2em", height: "1.2em" }}
+                    />
+                  </div>
+                )}
+                <div>
+                  <span className="text-sm font-bold text-white">{hoveredPoint.country.name}</span>
+                  <span className="ml-2 text-[10px] text-zinc-500">{hoveredPoint.country.region}</span>
+                </div>
               </div>
-              <div className="mt-3 space-y-1.5 text-xs text-zinc-400">
-                <div className="flex justify-between gap-4 border-b border-zinc-800/60 pb-1">
-                  <span>{xMetric.label}</span>
-                  <span className="font-semibold text-emerald-400">
+              <div className="mt-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-zinc-400">{xMetric.label}</span>
+                  <span className="font-bold tabular-nums text-emerald-400">
                     {xMetric.format(hoveredPoint.x)}
                   </span>
                 </div>
-                <div className="flex justify-between gap-4 pt-0.5">
-                  <span>{yMetric.label}</span>
-                  <span className="font-semibold text-emerald-400">
+                <div className="h-px bg-zinc-800/60" />
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-zinc-400">{yMetric.label}</span>
+                  <span className="font-bold tabular-nums text-emerald-400">
                     {yMetric.format(hoveredPoint.y)}
                   </span>
                 </div>

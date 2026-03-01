@@ -42,15 +42,15 @@ export default function LeaderboardClient({ countries }: Props) {
   const ranked = useMemo(() => sortLeaderboard(countries, selected), [countries, selected]);
 
   return (
-    <div className="mx-auto max-w-5xl px-5 pb-20 pt-8">
-      <div className="mb-8 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5">
+    <div className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-5 sm:pt-8">
+      <div className="mb-6 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:mb-8 sm:p-5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Sort by</p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
           {SORT_OPTIONS.map((option) => (
             <button
               key={option.id}
               onClick={() => setSelected(option.id)}
-              className={`rounded-full border px-4 py-1.5 text-[11px] font-semibold transition-all ${
+              className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold transition-all sm:px-4 sm:text-[11px] ${
                 selected === option.id
                   ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
                   : "border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
@@ -84,9 +84,9 @@ export default function LeaderboardClient({ countries }: Props) {
             >
               <button
                 onClick={() => setOpenSlug(isOpen ? null : country.slug)}
-                className="flex w-full items-center gap-4 px-4 py-3 text-left transition hover:bg-zinc-800/30"
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-zinc-800/30 sm:gap-4 sm:px-4 sm:py-3"
               >
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold sm:h-8 sm:w-8 sm:text-xs ${
                   isTop3
                     ? "bg-emerald-500/15 text-emerald-400"
                     : "bg-zinc-800/80 text-zinc-400"
@@ -94,8 +94,8 @@ export default function LeaderboardClient({ countries }: Props) {
                   {idx + 1}
                 </div>
 
-                <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-800 bg-zinc-950">
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 sm:h-7 sm:w-7">
                     {flagCode ? (
                       <ReactCountryFlag
                         countryCode={flagCode}
@@ -107,16 +107,16 @@ export default function LeaderboardClient({ countries }: Props) {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-zinc-100">{country.name}</p>
-                    <p className="text-[10px] text-zinc-600">{country.region}</p>
+                    <p className="truncate text-xs font-semibold text-zinc-100 sm:text-sm">{country.name}</p>
+                    <p className="hidden text-[10px] text-zinc-600 sm:block">{country.region}</p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[9px] uppercase tracking-wider text-zinc-600">
+                  <p className="hidden text-[9px] uppercase tracking-wider text-zinc-600 sm:block">
                     {SORT_OPTIONS.find(o => o.id === selected)?.label}
                   </p>
-                  <p className={`text-lg font-black tabular-nums ${
+                  <p className={`text-base font-black tabular-nums sm:text-lg ${
                     score >= 70 ? "text-emerald-400" : score >= 40 ? "text-zinc-200" : "text-zinc-400"
                   }`}>
                     {score.toFixed(0)}
@@ -137,7 +137,7 @@ export default function LeaderboardClient({ countries }: Props) {
                     transition={{ duration: 0.2 }}
                     className="border-t border-zinc-800/50"
                   >
-                    <div className="grid gap-2 px-4 py-4 sm:grid-cols-3 lg:grid-cols-6">
+                    <div className="grid grid-cols-2 gap-2 px-3 py-3 sm:grid-cols-3 sm:px-4 sm:py-4 lg:grid-cols-6">
                       {BREAKDOWN.map((item) => {
                         const val = country.scores[item.key];
                         const extra = item.extra?.(country);

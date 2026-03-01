@@ -11,12 +11,11 @@ import FilterSidebar, { FiltersState, createDefaultFilters } from "@/components/
 import CountryMark from "@/components/CountryMark";
 import { getCountryScores } from "@/lib/scoring";
 
-const TIERS = ["Very Easy", "Easy", "Possible", "Normal", "Hard", "Improbable", "N/A"] as const;
+const TIERS = ["Very Easy", "Easy", "Normal", "Hard", "Improbable", "N/A"] as const;
 
 const TIER_BADGE: Record<string, string> = {
   "Very Easy":  "bg-emerald-500/10 text-emerald-400 ring-emerald-500/30",
   "Easy":       "bg-emerald-500/5 text-emerald-300/80 ring-emerald-500/20",
-  "Possible":   "bg-zinc-500/10 text-zinc-300 ring-zinc-500/20",
   "Normal":     "bg-zinc-500/10 text-zinc-400 ring-zinc-600/20",
   "Hard":       "bg-zinc-600/10 text-zinc-500 ring-zinc-700/20",
   "Improbable": "bg-zinc-700/10 text-zinc-500 ring-zinc-700/20",
@@ -26,7 +25,6 @@ const TIER_BADGE: Record<string, string> = {
 const TIER_BAR: Record<string, string> = {
   "Very Easy":  "bg-emerald-500",
   "Easy":       "bg-emerald-500/70",
-  "Possible":   "bg-zinc-500",
   "Normal":     "bg-zinc-600",
   "Hard":       "bg-zinc-700",
   "Improbable": "bg-zinc-700",
@@ -49,7 +47,7 @@ export default function ClientDashboard({ initialCountries }: Props) {
       }
       if (filters.datingDifficulty.length) {
         // Treat dating difficulty as "Max Difficulty"
-        const diffLevels = { "Very Easy": 1, "Easy": 2, "Possible": 3, "Normal": 4, "Hard": 5, "Improbable": 6, "N/A": 7 };
+        const diffLevels = { "Very Easy": 1, "Easy": 2, "Normal": 3, "Hard": 4, "Improbable": 5, "N/A": 6 };
         const maxSelectedLevel = Math.max(...filters.datingDifficulty.map(d => diffLevels[d as keyof typeof diffLevels] || 0));
         const countryLevel = diffLevels[c.datingEase as keyof typeof diffLevels] || 7;
         
@@ -65,11 +63,10 @@ export default function ClientDashboard({ initialCountries }: Props) {
       }
       if (filters.localValues.length && !filters.localValues.includes(c.localValues)) return false;
       if (filters.englishProficiency.length) {
-        // Treat english as "Minimum Proficiency"
-        const engLevels = { "Low": 1, "Moderate": 2, "High": 3 };
-        const minSelectedLevel = Math.min(...filters.englishProficiency.map(s => engLevels[s as keyof typeof engLevels] || 3));
-        const countryLevel = engLevels[c.englishProficiency as keyof typeof engLevels] || 1;
-        
+        // Min. English proficiency: Very low=1 … Very high=5
+        const engLevels: Record<string, number> = { "Very low": 1, "Low": 2, "Moderate": 3, "High": 4, "Very high": 5 };
+        const minSelectedLevel = Math.min(...filters.englishProficiency.map(s => engLevels[s] ?? 5));
+        const countryLevel = engLevels[c.englishProficiency] ?? 1;
         if (countryLevel < minSelectedLevel) return false;
       }
       if (filters.monthlyBudget.length) {
@@ -132,8 +129,8 @@ export default function ClientDashboard({ initialCountries }: Props) {
         onClose={() => setIsSidebarOpen(false)} 
       />
 
-      <div className="flex-1 min-w-0">
-        <div className="mx-auto max-w-7xl px-5 pb-20 pt-8">
+      <div className="flex-1 min-w-0 overflow-x-hidden">
+        <div className="mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-5">
           
           {/* Mobile Filter Toggle */}
           <div className="mb-6 flex justify-end lg:hidden">
@@ -147,7 +144,7 @@ export default function ClientDashboard({ initialCountries }: Props) {
           </div>
 
           {/* Hero with Globe */}
-          <section className="relative flex flex-col items-center">
+          <section className="relative flex w-full max-w-full flex-col items-center overflow-hidden">
             <div className="relative z-10 text-center">
               <a
                 href="https://www.reddit.com/r/passportbros"
@@ -158,13 +155,13 @@ export default function ClientDashboard({ initialCountries }: Props) {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                 Sourced from Reddit r/passportbros
               </a>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl md:text-5xl lg:text-7xl">
                 The Passport Bro{" "}
                 <span className="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
                   Index
                 </span>
               </h1>
-              <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-zinc-400 drop-shadow-md">
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 drop-shadow-md sm:text-base">
                 Every country ranked by <strong className="text-zinc-200">dating ease</strong> based
                 on real Reddit consensus. Includes GDP per capita, average height,
                 religion, and what the community actually says.
@@ -202,7 +199,7 @@ export default function ClientDashboard({ initialCountries }: Props) {
                   </div>
 
                   {/* Country cards */}
-                  <motion.div layout className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     <AnimatePresence>
                       {tierCountries.map((country) => {
                         const scores = getCountryScores(country);
@@ -288,7 +285,18 @@ export default function ClientDashboard({ initialCountries }: Props) {
                               <p className="line-clamp-2 text-xs leading-relaxed text-zinc-400">
                                 {country.redditPros}
                               </p>
-                              <div className="mt-auto flex items-center gap-3 border-t border-zinc-800/60 pt-2 text-[10px] text-zinc-500">
+
+                              {/* Mobile-only: compact score pills (touch devices can't hover) */}
+                              <div className="mt-1 flex flex-wrap gap-1.5 sm:hidden">
+                                {hoverStats.slice(0, 4).map((stat) => (
+                                  <span key={stat.label} className="inline-flex items-center gap-1 rounded-md bg-zinc-800/60 px-1.5 py-0.5 text-[9px] font-medium text-zinc-400">
+                                    <stat.icon className="h-2.5 w-2.5 text-zinc-500" />
+                                    {stat.label} <span className={stat.score >= 70 ? "text-emerald-400" : "text-zinc-300"}>{stat.score.toFixed(0)}</span>
+                                  </span>
+                                ))}
+                              </div>
+
+                              <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-800/60 pt-2 text-[10px] text-zinc-500">
                                 <span className="flex items-center gap-1">
                                   <DollarSign className="h-3 w-3" />
                                   {country.gdpPerCapita}

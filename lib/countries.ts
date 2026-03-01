@@ -3,6 +3,9 @@ import { COUNTRY_FILTER_DATA, DEFAULT_COUNTRY_FILTER_META } from "./countryFilte
 import { getSafetyScoreBySlug, getSafetyLevelFromScore } from "./safetyIndex";
 import { getFriendlinessScoreBySlug, getFriendlinessLabelFromScore } from "./friendlinessIndex";
 import { getAffordabilityScoreBySlug, getBudgetTierFromScore } from "./affordabilityIndex";
+import { getEnglishProficiencyBySlug } from "./englishProficiencyIndex";
+import { getCountryBmi } from "./bmiData";
+import { getDatingOverride } from "./datingOverrides";
 
 const CURATED_SLUGS = Object.keys(COUNTRY_FILTER_DATA);
 
@@ -34,6 +37,8 @@ export type Country = {
   hasNature: boolean;
   safetyLevel: string;
   healthcareQuality: string;
+  avgBmiMale?: number;
+  avgBmiFemale?: number;
 };
 
 type CountryRow = {
@@ -61,10 +66,28 @@ const PORTRAIT_AVAILABLE = new Set([
   "poland", "romania", "turkey", "kazakhstan", "algeria", "libya", "usa", "canada",
   "australia", "uk", "france", "germany", "spain", "italy", "sweden", "japan",
   "south-korea", "saudi-arabia", "egypt", "iran",
+  "portugal", "netherlands", "belgium", "austria", "switzerland", "norway", "denmark",
+  "finland", "ireland", "greece", "czech-republic", "hungary", "croatia", "serbia",
+  "bulgaria", "slovakia", "lithuania", "latvia", "estonia", "slovenia", "luxembourg",
+  "malta", "cyprus", "iceland", "montenegro", "north-macedonia", "albania",
+  "bosnia-and-herzegovina", "moldova",
 ]);
+
+/** Canonical dating tiers only. "Possible" is treated as "Normal". */
+const DATING_EASE_CANONICAL: Record<string, string> = {
+  Possible: "Normal",
+  "Normal to hard": "Hard",
+  "normal to hard": "Hard",
+};
+
+function normalizeDatingEase(ease: string): string {
+  return DATING_EASE_CANONICAL[ease] ?? ease;
+}
 
 function rowToCountry(row: CountryRow): Country {
   const meta = COUNTRY_FILTER_DATA[row.slug] ?? DEFAULT_COUNTRY_FILTER_META;
+  const datingOverride = getDatingOverride(row.slug);
+  const rawEase = datingOverride?.ease ?? row.dating_ease;
   const womenPortrait = PORTRAIT_AVAILABLE.has(row.slug)
     ? `/women/${row.slug}.png`
     : row.image_url;
@@ -74,8 +97,8 @@ function rowToCountry(row: CountryRow): Country {
     name: row.name,
     region: row.region,
     flagEmoji: row.flag_emoji,
-    datingEase: row.dating_ease,
-    datingEaseScore: row.dating_ease_score,
+    datingEase: normalizeDatingEase(rawEase),
+    datingEaseScore: datingOverride?.score ?? row.dating_ease_score,
     redditPros: row.reddit_pros,
     redditCons: row.reddit_cons,
     avgHeightMale: row.avg_height_male,
@@ -86,7 +109,7 @@ function rowToCountry(row: CountryRow): Country {
     womenImageUrl: row.women_image_url || womenPortrait,
     receptiveness: getFriendlinessLabelFromScore(getFriendlinessScoreBySlug(row.slug)),
     localValues: meta.localValues,
-    englishProficiency: meta.englishProficiency,
+    englishProficiency: getEnglishProficiencyBySlug(row.slug),
     budgetTier: getBudgetTierFromScore(getAffordabilityScoreBySlug(row.slug)),
     visaEase: meta.visaEase,
     internetSpeed: meta.internetSpeed,
@@ -97,17 +120,17 @@ function rowToCountry(row: CountryRow): Country {
     hasNature: meta.vibe.includes("Nature/Mountains"),
     safetyLevel: getSafetyLevelFromScore(getSafetyScoreBySlug(row.slug)),
     healthcareQuality: meta.healthcareQuality,
+    avgBmi: getCountryBmi(row.slug),
   };
 }
 
 export const TIER_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; text: string; hex: string }> = {
-  "Very Easy": { label: "Very Easy", color: "emerald", bg: "bg-emerald-500", border: "border-emerald-400", text: "text-emerald-400", hex: "#059669" },
-  "Easy":      { label: "Easy",      color: "lime",    bg: "bg-lime-500",    border: "border-lime-400",    text: "text-lime-400",    hex: "#84cc16" },
-  "Possible":  { label: "Possible",  color: "yellow",  bg: "bg-yellow-500",  border: "border-yellow-400",  text: "text-yellow-400",  hex: "#eab308" },
-  "Normal":    { label: "Normal",    color: "amber",   bg: "bg-amber-500",   border: "border-amber-400",   text: "text-amber-400",   hex: "#f59e0b" },
-  "Hard":      { label: "Hard",      color: "orange",  bg: "bg-orange-500",  border: "border-orange-400",  text: "text-orange-400",  hex: "#f97316" },
-  "Improbable":{ label: "Improbable",color: "red",     bg: "bg-red-500",     border: "border-red-400",     text: "text-red-400",     hex: "#dc2626" },
-  "N/A":       { label: "N/A",       color: "zinc",    bg: "bg-zinc-500",    border: "border-zinc-400",    text: "text-zinc-400",    hex: "#71717a" },
+  "Very Easy":  { label: "Very Easy",  color: "emerald", bg: "bg-emerald-500", border: "border-emerald-400", text: "text-emerald-400", hex: "#059669" },
+  "Easy":       { label: "Easy",      color: "lime",    bg: "bg-lime-500",    border: "border-lime-400",    text: "text-lime-400",    hex: "#84cc16" },
+  "Normal":     { label: "Normal",    color: "amber",   bg: "bg-amber-500",   border: "border-amber-400",   text: "text-amber-400",   hex: "#f59e0b" },
+  "Hard":       { label: "Hard",      color: "orange",  bg: "bg-orange-500",  border: "border-orange-400",  text: "text-orange-400",  hex: "#f97316" },
+  "Improbable": { label: "Improbable",color: "red",     bg: "bg-red-500",     border: "border-red-400",     text: "text-red-400",     hex: "#dc2626" },
+  "N/A":        { label: "N/A",       color: "zinc",    bg: "bg-zinc-500",    border: "border-zinc-400",   text: "text-zinc-400",    hex: "#71717a" },
 };
 
 export async function getCountries(): Promise<Country[]> {

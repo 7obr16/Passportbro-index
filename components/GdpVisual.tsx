@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import SourceLink from "@/components/SourceLink";
 
 type Props = {
   gdpPerCapita: string;
@@ -78,6 +79,7 @@ export default function GdpVisual({ gdpPerCapita }: Props) {
             <p className="text-xs font-semibold text-zinc-200">GDP per Capita vs US</p>
           </div>
         </div>
+        <SourceLink sourceKey="gdp" />
       </div>
 
       {/* Key stat */}

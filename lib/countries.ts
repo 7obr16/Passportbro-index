@@ -6,6 +6,7 @@ import { getAffordabilityScoreBySlug, getBudgetTierFromScore } from "./affordabi
 import { getEnglishProficiencyBySlug } from "./englishProficiencyIndex";
 import { getCountryBmi } from "./bmiData";
 import { getDatingOverride } from "./datingOverrides";
+import { getCountryDisplayName } from "./countryDisplayNames";
 
 const CURATED_SLUGS = Object.keys(COUNTRY_FILTER_DATA);
 
@@ -94,7 +95,7 @@ function rowToCountry(row: CountryRow): Country {
 
   return {
     slug: row.slug,
-    name: row.name,
+    name: getCountryDisplayName(row.slug),
     region: row.region,
     flagEmoji: row.flag_emoji,
     datingEase: normalizeDatingEase(rawEase),
@@ -120,7 +121,8 @@ function rowToCountry(row: CountryRow): Country {
     hasNature: meta.vibe.includes("Nature/Mountains"),
     safetyLevel: getSafetyLevelFromScore(getSafetyScoreBySlug(row.slug)),
     healthcareQuality: meta.healthcareQuality,
-    avgBmi: getCountryBmi(row.slug),
+    avgBmiMale: getCountryBmi(row.slug)?.male,
+    avgBmiFemale: getCountryBmi(row.slug)?.female,
   };
 }
 

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCountryBySlug, getAllSlugs, TIER_CONFIG } from "@/lib/countries";
+import { getCountryBySlug, getAllSlugs, getCountries, TIER_CONFIG } from "@/lib/countries";
 import CountryDetailClient from "@/components/CountryDetailClient";
 import { COUNTRY_GALLERY, DEFAULT_EUROPEAN_GALLERY, EUROPEAN_DEFAULT_GALLERY_SLUGS } from "@/lib/countryImages";
 import { WOMEN_GROUP_IMAGE } from "@/lib/womenGroupImages";
@@ -40,7 +40,10 @@ function buildCountryGallery(slug: string): GalleryItem[] {
 
 export default async function CountryPage({ params }: Props) {
   const { slug } = await params;
-  const country = await getCountryBySlug(slug);
+  const [country, allCountries] = await Promise.all([
+    getCountryBySlug(slug),
+    getCountries(),
+  ]);
   if (!country) notFound();
 
   const tierConfig = TIER_CONFIG[country.datingEase];
@@ -50,6 +53,7 @@ export default async function CountryPage({ params }: Props) {
   return (
     <CountryDetailClient
       country={country}
+      allCountries={allCountries}
       gallery={gallery}
       womenGroupImageUrl={womenGroupImageUrl}
     />

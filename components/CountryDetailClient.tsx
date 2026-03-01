@@ -28,12 +28,7 @@ import { getEnglishScore0To100 } from "@/lib/englishProficiencyIndex";
 import CountryMark from "@/components/CountryMark";
 import ClimateInsights from "@/components/ClimateInsights";
 import AirQualityMap from "@/components/AirQualityMap";
-import HeightComparison from "@/components/HeightComparison";
-import GdpVisual from "@/components/GdpVisual";
-import BmiComparison from "@/components/BmiComparison";
-import BodyComparison from "@/components/BodyComparison";
-import PopulationPyramid from "@/components/PopulationPyramid";
-import SocietyStats from "@/components/SocietyStats";
+import CountryStatsSection from "@/components/CountryStatsSection";
 import SourceLink from "@/components/SourceLink";
 import SiteNav from "@/components/SiteNav";
 import CountryGlobe from "@/components/CountryGlobe";
@@ -41,6 +36,7 @@ import { TIER_CONFIG } from "@/lib/countries";
 
 type Props = {
   country: Country;
+  allCountries: Country[];
   gallery: { key: "nightlife" | "food" | "city" | "beaches"; label: string; images: string[] }[];
   womenGroupImageUrl?: string | null;
 };
@@ -84,8 +80,7 @@ const SCORE_ITEMS: { key: "dating" | "cost" | "internet" | "friendly" | "safety"
   { key: "safety", label: "Safety", icon: Shield },
 ];
 
-export default function CountryDetailClient({ country, gallery, womenGroupImageUrl }: Props) {
-  const [isStatsOpen, setIsStatsOpen] = useState(true);
+export default function CountryDetailClient({ country, allCountries, gallery, womenGroupImageUrl }: Props) {
   const [isIntelOpen, setIsIntelOpen] = useState(true);
   const [expandPros, setExpandPros] = useState(false);
   const [expandCons, setExpandCons] = useState(false);
@@ -622,82 +617,9 @@ export default function CountryDetailClient({ country, gallery, womenGroupImageU
           </AnimatePresence>
         </motion.div>
 
-        {/* Physical Stats comparison */}
-        <motion.div variants={itemVariants} className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden sm:mt-8">
-          <button 
-            onClick={() => setIsStatsOpen(!isStatsOpen)}
-            className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-zinc-900/60 sm:p-6"
-          >
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2 sm:text-lg">
-                <Users className="h-4 w-4 shrink-0 text-zinc-500 sm:h-5 sm:w-5" />
-                Physical & Demographic Stats
-              </h2>
-              <p className="mt-0.5 text-[10px] text-zinc-500 sm:mt-1 sm:text-xs">
-                Height, GDP, BMI, demographics, marriage trends, and religion
-              </p>
-            </div>
-            <motion.div
-              animate={{ rotate: isStatsOpen ? 180 : 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-400"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </motion.div>
-          </button>
-
-          <AnimatePresence>
-            {isStatsOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="overflow-hidden border-t border-zinc-800/50"
-              >
-                <div className="p-5">
-                  {/* Religion tag */}
-                  <div className="mb-4 flex items-center justify-end">
-                    <span className="text-[11px] text-zinc-500">
-                      Religion: <span className="font-semibold text-zinc-300">{country.majorityReligion}</span>
-                    </span>
-                  </div>
-
-                  {/* Row 1: Body comparisons — side by side, generous space */}
-                  <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 items-stretch">
-                    <HeightComparison
-                      countryName={country.name}
-                      maleHeight={country.avgHeightMale}
-                      femaleHeight={country.avgHeightFemale}
-                    />
-                    {country.avgBmi != null && (
-                      <BodyComparison
-                        countryName={country.name}
-                        countryBmi={country.avgBmi}
-                      />
-                    )}
-                  </div>
-
-                  {/* Row 2: Data cards */}
-                  <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-                    <GdpVisual gdpPerCapita={country.gdpPerCapita} />
-                    {country.avgBmi != null && (
-                      <BmiComparison
-                        countryName={country.name}
-                        countryBmi={country.avgBmi}
-                      />
-                    )}
-                    <SocietyStats slug={country.slug} />
-                  </div>
-
-                  {/* Row 3: Demographics */}
-                  <div className="mt-4">
-                    <PopulationPyramid slug={country.slug} countryName={country.name} />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* Full-width tabbed stats section */}
+        <motion.div variants={itemVariants}>
+          <CountryStatsSection country={country} allCountries={allCountries} />
         </motion.div>
 
         {/* Disclaimer */}

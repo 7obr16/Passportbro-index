@@ -106,3 +106,18 @@ export const COUNTRY_BMI: Record<string, BmiByGender> = {
 export function getCountryBmi(slug: string): BmiByGender | undefined {
   return COUNTRY_BMI[slug];
 }
+
+/** Slugs that have ethnicity- and BMI-accurate reference images in /bmi/country/ */
+export const COUNTRY_BMI_IMAGE_SLUGS = [
+  "philippines",
+  "thailand",
+  "japan",
+  "mexico",
+  "indonesia",
+  "vietnam",
+  "colombia",
+] as const;
+
+export function hasCountryBmiImage(slug: string): boolean {
+  return (COUNTRY_BMI_IMAGE_SLUGS as readonly string[]).includes(slug);
+}

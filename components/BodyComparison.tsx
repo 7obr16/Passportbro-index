@@ -3,20 +3,15 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Camera } from "lucide-react";
-import { US_BMI_REFERENCE } from "@/lib/bmiData";
+import { Camera, ImageOff } from "lucide-react";
+import { US_BMI, hasCountryBmiImage } from "@/lib/bmiData";
 
 type Props = {
+  countrySlug: string;
   countryName: string;
-  countryBmi: number;
+  bmiMale: number;
+  bmiFemale: number;
 };
-
-function getBmiImage(bmi: number, gender: "male" | "female") {
-  if (bmi < 21) return `/bmi/${gender}-slim.png`;
-  if (bmi < 25) return `/bmi/${gender}-normal.png`;
-  if (bmi < 30) return `/bmi/${gender}-overweight.png`;
-  return `/bmi/${gender}-obese.png`;
-}
 
 function getBmiLabel(bmi: number) {
   if (bmi < 18.5) return { label: "Underweight", color: "#60a5fa" };
@@ -25,17 +20,35 @@ function getBmiLabel(bmi: number) {
   return { label: "Obese", color: "#f87171" };
 }
 
-export default function BodyComparison({ countryName, countryBmi }: Props) {
+/** US reference: same American images for every comparison (left panel). */
+function getUsImagePath(gender: "male" | "female") {
+  return `/bmi/us-${gender}.png`;
+}
+
+/** Country reference: ethnicity- and BMI-accurate image when available (right panel). */
+function getCountryImagePath(slug: string, gender: "male" | "female") {
+  return `/bmi/country/${slug}-${gender}.png`;
+}
+
+export default function BodyComparison({ countrySlug, countryName, bmiMale, bmiFemale }: Props) {
   const [mode, setMode] = useState<"female" | "male">("female");
 
-  const usBmi = US_BMI_REFERENCE;
-  const countryCat = useMemo(() => getBmiLabel(countryBmi), [countryBmi]);
-  const usCat = useMemo(() => getBmiLabel(usBmi), [usBmi]);
+  const countryBmi = mode === "male" ? bmiMale : bmiFemale;
+  const usBmi = mode === "male" ? US_BMI.male : US_BMI.female;
 
-  const subjects = [
-    { label: "US Average", bmi: usBmi, cat: usCat },
-    { label: countryName, bmi: countryBmi, cat: countryCat },
-  ];
+  const countryCat = useMemo(() => getBmiLabel(countryBmi), [countryBmi]);
+  const usCat = useMemo(() => getBmiLabel(usBmi), [usBmi, mode]);
+
+  const hasCountryImage = hasCountryBmiImage(countrySlug);
+
+  const usSubject = { label: "US Average", bmi: usBmi, cat: usCat, isUs: true };
+  const countrySubject = {
+    label: countryName,
+    bmi: countryBmi,
+    cat: countryCat,
+    isUs: false,
+    imagePath: getCountryImagePath(countrySlug, mode),
+  };
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-zinc-800/60 bg-zinc-950/60 overflow-hidden">
@@ -74,7 +87,7 @@ export default function BodyComparison({ countryName, countryBmi }: Props) {
         </div>
       </div>
 
-      {/* Photo comparison */}
+      {/* Photo comparison: US (left) always same reference; Country (right) ethnicity-specific when available */}
       <div className="flex-1 px-5 py-4">
         <AnimatePresence mode="wait">
           <motion.div
@@ -85,48 +98,92 @@ export default function BodyComparison({ countryName, countryBmi }: Props) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            {subjects.map(({ label, bmi, cat }, i) => (
-              <motion.div
-                key={label}
-                className="flex flex-1 flex-col items-center"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.35 }}
-              >
-                {/* Photo */}
-                <div className="relative w-full overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/60">
-                  <div className="relative aspect-[3/4] w-full">
-                    <Image
-                      src={getBmiImage(bmi, mode)}
-                      alt={`${label} average body type at BMI ${bmi}`}
-                      fill
-                      className="object-cover object-top"
-                      sizes="(max-width: 768px) 40vw, 200px"
-                    />
-                  </div>
+            {/* Left: US Average – fixed American reference image */}
+            <motion.div
+              className="flex flex-1 flex-col items-center"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05, duration: 0.35 }}
+            >
+              <div className="relative w-full overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/60">
+                <div className="relative aspect-[3/4] w-full">
+                  <Image
+                    src={getUsImagePath(mode)}
+                    alt={`US average ${mode} body type at BMI ${usBmi}`}
+                    fill
+                    className="object-cover object-top"
+                    sizes="(max-width: 768px) 40vw, 200px"
+                  />
                 </div>
+              </div>
+              <div className="mt-3 flex flex-col items-center gap-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  US Average
+                </span>
+                <span className="text-sm font-black text-zinc-100">
+                  {usBmi.toFixed(1)}{" "}
+                  <span className="text-[10px] font-medium text-zinc-500">BMI</span>
+                </span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
+                  style={{ color: usCat.color, background: `${usCat.color}18` }}
+                >
+                  {usCat.label}
+                </span>
+              </div>
+            </motion.div>
 
-                {/* Label */}
-                <div className="mt-3 flex flex-col items-center gap-0.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                    {label}
+            {/* Right: Country – ethnicity + BMI accurate when we have the image */}
+            <motion.div
+              className="flex flex-1 flex-col items-center"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.35 }}
+            >
+              {hasCountryImage ? (
+                <>
+                  <div className="relative w-full overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/60">
+                    <div className="relative aspect-[3/4] w-full">
+                      <Image
+                        src={countrySubject.imagePath}
+                        alt={`${countryName} average ${mode} body type at BMI ${countryBmi}`}
+                        fill
+                        className="object-cover object-top"
+                        sizes="(max-width: 768px) 40vw, 200px"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-col items-center gap-0.5">
+                    <span className="max-w-[120px] truncate text-center text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                      {countryName}
+                    </span>
+                    <span className="text-sm font-black text-zinc-100">
+                      {countryBmi.toFixed(1)}{" "}
+                      <span className="text-[10px] font-medium text-zinc-500">BMI</span>
+                    </span>
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
+                      style={{
+                        color: countryCat.color,
+                        background: `${countryCat.color}18`,
+                      }}
+                    >
+                      {countryCat.label}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex w-full flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-zinc-700/60 bg-zinc-900/30 px-4 py-6">
+                  <ImageOff className="h-8 w-8 text-zinc-600" />
+                  <span className="mt-2 text-center text-[11px] font-medium text-zinc-500">
+                    Reference image for {countryName} coming soon
                   </span>
-                  <span className="text-sm font-black text-zinc-100">
-                    {bmi.toFixed(1)}{" "}
-                    <span className="text-[10px] font-medium text-zinc-500">BMI</span>
-                  </span>
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
-                    style={{
-                      color: cat.color,
-                      background: `${cat.color}18`,
-                    }}
-                  >
-                    {cat.label}
+                  <span className="mt-1 text-[10px] text-zinc-600">
+                    BMI {countryBmi.toFixed(1)} · {countryCat.label}
                   </span>
                 </div>
-              </motion.div>
-            ))}
+              )}
+            </motion.div>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -134,7 +191,7 @@ export default function BodyComparison({ countryName, countryBmi }: Props) {
       {/* Footer note */}
       <div className="px-5 pb-4">
         <p className="text-center text-[9px] leading-relaxed text-zinc-600">
-          AI-generated reference based on WHO BMI data. Does not represent any individual.
+          US: same reference. Country: AI-generated with ethnicity and BMI in prompt.
         </p>
       </div>
     </div>

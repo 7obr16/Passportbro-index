@@ -24,9 +24,6 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 
 // World Bank global GDP per capita average ~$13,200 (2022)
 const WORLD_AVG_GDP = 13200;
-const US_MALE_H    = 176.9;
-const US_FEMALE_H  = 163.3;
-const US_BMI       = 29.7;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const parseH = (h: string): number => {
@@ -300,12 +297,12 @@ function EconomyTab({ country, compare }: { country: Country; compare: Country |
 
 // ─── TAB: Physical ────────────────────────────────────────────────────────────
 function PhysicalTab({ country, compare }: { country: Country; compare: Country | null }) {
-  const maleA   = parseH(country.avgHeightMale)   || US_MALE_H;
-  const femaleA = parseH(country.avgHeightFemale) || US_FEMALE_H;
-  const maleB   = compare ? (parseH(compare.avgHeightMale)   || US_MALE_H)   : null;
-  const femaleB = compare ? (parseH(compare.avgHeightFemale) || US_FEMALE_H) : null;
+  const maleA   = parseH(country.avgHeightMale)   || 170;
+  const femaleA = parseH(country.avgHeightFemale) || 160;
+  const maleB   = compare ? parseH(compare.avgHeightMale)   || 170  : null;
+  const femaleB = compare ? parseH(compare.avgHeightFemale) || 160  : null;
 
-  const allH = [maleA, femaleA, US_MALE_H, US_FEMALE_H, maleB, femaleB].filter(Boolean) as number[];
+  const allH = [maleA, femaleA, maleB, femaleB].filter((v): v is number => v != null && v > 0);
   const minH = Math.floor(Math.min(...allH) / 5) * 5 - 5;
   const maxH = Math.ceil(Math.max(...allH)  / 5) * 5 + 5;
   const hPct = (h: number) => ((h - minH) / (maxH - minH)) * 100;
@@ -329,17 +326,15 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
     {
       label: "Male", icon: "♂",
       entries: [
-        { name: country.name,    flag: country.flagEmoji,  h: maleA,    barColor: "bg-sky-500"     },
-        ...(compare && maleB   ? [{ name: compare.name,   flag: compare.flagEmoji, h: maleB,   barColor: "bg-sky-400/50"  }] : []),
-        { name: "United States", flag: "🇺🇸",             h: US_MALE_H, barColor: "bg-zinc-500/80" },
+        { name: country.name, flag: country.flagEmoji, h: maleA, barColor: "bg-sky-500" },
+        ...(compare && maleB ? [{ name: compare.name, flag: compare.flagEmoji, h: maleB, barColor: "bg-sky-300/60" }] : []),
       ],
     },
     {
       label: "Female", icon: "♀",
       entries: [
-        { name: country.name,    flag: country.flagEmoji,  h: femaleA,    barColor: "bg-pink-500"    },
-        ...(compare && femaleB ? [{ name: compare.name,   flag: compare.flagEmoji, h: femaleB, barColor: "bg-pink-400/50"  }] : []),
-        { name: "United States", flag: "🇺🇸",             h: US_FEMALE_H, barColor: "bg-zinc-500/80" },
+        { name: country.name, flag: country.flagEmoji, h: femaleA, barColor: "bg-pink-500" },
+        ...(compare && femaleB ? [{ name: compare.name, flag: compare.flagEmoji, h: femaleB, barColor: "bg-pink-300/60" }] : []),
       ],
     },
   ];
@@ -347,9 +342,8 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
   type BmiEntry = { name: string; flag: string; bmi: number | null };
 
   const bmiRows: BmiEntry[] = [
-    { name: country.name,    flag: country.flagEmoji, bmi: bmiA   },
-    ...(compare ? [{ name: compare.name,   flag: compare.flagEmoji, bmi: bmiB   }] : []),
-    { name: "United States", flag: "🇺🇸",            bmi: US_BMI },
+    { name: country.name, flag: country.flagEmoji, bmi: bmiA },
+    ...(compare ? [{ name: compare.name, flag: compare.flagEmoji, bmi: bmiB }] : []),
   ];
 
   return (
@@ -651,9 +645,8 @@ type Props = {
 
 export default function CountryStatsSection({ country, allCountries }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("population");
-  const [compareSlug, setCompareSlug] = useState<string>(
-    country.slug === "usa" ? "philippines" : "usa"
-  );
+  // Default to no comparison (empty string = off)
+  const [compareSlug, setCompareSlug] = useState<string>("");
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const sortedCountries = useMemo(
@@ -682,11 +675,21 @@ export default function CountryStatsSection({ country, allCountries }: Props) {
         <div className="relative">
           <button
             onClick={() => setPickerOpen((p) => !p)}
-            className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-800"
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+              compareSlug
+                ? "border-emerald-600/50 bg-emerald-900/20 text-zinc-200 hover:border-emerald-500/60"
+                : "border-zinc-700 bg-zinc-800/80 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+            }`}
           >
-            <span className="text-[10px] text-zinc-500">Compare with</span>
-            <span className="text-lg">{compare?.flagEmoji ?? "🌍"}</span>
-            <span className="font-semibold">{compare?.name ?? "—"}</span>
+            <span className="text-[10px] text-zinc-500">Compare</span>
+            {compareSlug && compare ? (
+              <>
+                <span className="text-lg">{compare.flagEmoji}</span>
+                <span className="font-semibold text-zinc-200">{compare.name}</span>
+              </>
+            ) : (
+              <span className="font-medium">Off</span>
+            )}
             <ChevronDown
               className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${pickerOpen ? "rotate-180" : ""}`}
             />
@@ -701,6 +704,16 @@ export default function CountryStatsSection({ country, allCountries }: Props) {
                 transition={{ duration: 0.15 }}
                 className="absolute right-0 top-full z-50 mt-2 max-h-72 w-52 overflow-y-auto overscroll-contain rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl shadow-black/60"
               >
+                {/* Off option */}
+                <button
+                  onClick={() => { setCompareSlug(""); setPickerOpen(false); }}
+                  className={`flex w-full items-center gap-2 border-b border-zinc-800 px-3 py-2 text-left text-sm transition hover:bg-zinc-800 ${
+                    !compareSlug ? "bg-zinc-800/80 text-zinc-100" : "text-zinc-400"
+                  }`}
+                >
+                  <span className="text-base">✕</span>
+                  <span>No comparison</span>
+                </button>
                 {sortedCountries
                   .filter((c) => c.slug !== country.slug)
                   .map((c) => (

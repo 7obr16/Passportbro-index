@@ -22,7 +22,8 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "society",    label: "Society",     icon: Globe2     },
 ];
 
-const US_GDP       = 80000;
+// World Bank global GDP per capita average ~$13,200 (2022)
+const WORLD_AVG_GDP = 13200;
 const US_MALE_H    = 176.9;
 const US_FEMALE_H  = 163.3;
 const US_BMI       = 29.7;
@@ -231,16 +232,16 @@ function PopulationTab({ country, compare }: { country: Country; compare: Countr
 // ─── TAB: Economy ─────────────────────────────────────────────────────────────
 function EconomyTab({ country, compare }: { country: Country; compare: Country | null }) {
   const entries = useMemo(() => {
-    const main    = { label: country.name,  flag: country.flagEmoji,  gdp: parseGdp(country.gdpPerCapita), barColor: "from-emerald-600 to-emerald-400", textColor: "text-emerald-300" };
-    const usEntry = { label: "United States", flag: "🇺🇸",            gdp: US_GDP,                         barColor: "from-zinc-600 to-zinc-500",       textColor: "text-zinc-300"    };
+    const main       = { label: country.name,   flag: country.flagEmoji,  gdp: parseGdp(country.gdpPerCapita),  barColor: "from-emerald-600 to-emerald-400", textColor: "text-emerald-300" };
+    const worldEntry = { label: "World Avg",    flag: "🌍",               gdp: WORLD_AVG_GDP,                   barColor: "from-zinc-700 to-zinc-600",       textColor: "text-zinc-400"   };
     if (compare) {
       return [
         main,
         { label: compare.name, flag: compare.flagEmoji, gdp: parseGdp(compare.gdpPerCapita), barColor: "from-sky-700 to-sky-500", textColor: "text-sky-300" },
-        usEntry,
+        worldEntry,
       ];
     }
-    return [main, usEntry];
+    return [main, worldEntry];
   }, [country, compare]);
 
   const maxGdp = Math.max(...entries.map((e) => e.gdp)) * 1.12;

@@ -4,12 +4,12 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, DollarSign, Ruler, Globe2,
-  Baby, Calendar, Layers, Heart, ChevronDown,
+  Baby, Calendar, Layers, Users, ChevronDown,
 } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { getPopulationPyramid } from "@/lib/populationDemographics";
 import { getMedianAgeBySlug, getEthnicHomogeneityBySlug, getHomogeneityLabel, WORLD_MEDIAN_AGE } from "@/lib/demographicsIndex";
-import { getOutGroupMarriagePct, hasEurostatMarriageData } from "@/lib/marriageTrendsIndex";
+import { getGallupScore, getGallupLabel } from "@/lib/friendlinessIndex";
 import { getFertilityRate, getFertilityLabel, US_FERTILITY_RATE, REPLACEMENT_RATE } from "@/lib/fertilityData";
 import SourceLink from "@/components/SourceLink";
 
@@ -456,13 +456,14 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
   const ageB  = bSlug ? getMedianAgeBySlug(bSlug) : null;
   const homoA = getEthnicHomogeneityBySlug(aSlug);
   const homoB = bSlug ? getEthnicHomogeneityBySlug(bSlug) : null;
-  const mariA = getOutGroupMarriagePct(aSlug);
-  const mariB = bSlug ? getOutGroupMarriagePct(bSlug) : null;
+  const gallupA = getGallupScore(aSlug);
+  const gallupB = bSlug ? getGallupScore(bSlug) : null;
+  const US_GALLUP = 7.86;
 
   type FRow = { name: string; flag: string; tfr: number };
   type ARow = { name: string; flag: string; age: number };
   type HRow = { name: string; flag: string; homo: number };
-  type MRow = { name: string; flag: string; pct: number | null };
+  type GRow = { name: string; flag: string; score: number };
 
   const fertilityRows: FRow[] = [
     { name: country.name,    flag: country.flagEmoji, tfr: tfrA           },
@@ -478,9 +479,10 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
     { name: country.name, flag: country.flagEmoji, homo: homoA },
     ...(compare && homoB != null ? [{ name: compare.name, flag: compare.flagEmoji, homo: homoB }] : []),
   ];
-  const marriageRows: MRow[] = [
-    { name: country.name, flag: country.flagEmoji, pct: mariA },
-    ...(compare ? [{ name: compare.name, flag: compare.flagEmoji, pct: mariB ?? null }] : []),
+  const gallupRows: GRow[] = [
+    { name: country.name,    flag: country.flagEmoji,  score: gallupA         },
+    ...(compare && gallupB != null ? [{ name: compare.name, flag: compare.flagEmoji, score: gallupB }] : []),
+    { name: "US ref",        flag: "🇺🇸",             score: US_GALLUP       },
   ];
 
   return (
@@ -593,42 +595,47 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
           </div>
         </div>
 
-        {/* Out-Group Marriage */}
+        {/* Foreigner Acceptance */}
         <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Heart className="h-4 w-4 text-zinc-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Out-Group Marriage</span>
+              <Users className="h-4 w-4 text-zinc-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Foreigner Acceptance</span>
             </div>
-            <SourceLink sourceKey={hasEurostatMarriageData(aSlug) ? "marriageEurope" : "marriageGlobal"} />
+            <SourceLink sourceKey="gallup" />
           </div>
           <div className="space-y-3.5">
-            {marriageRows.map((entry) => (
-              <div key={entry.name}>
-                <div className="mb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm">{entry.flag}</span>
-                    <span className="text-[11px] text-zinc-400">{entry.name}</span>
+            {gallupRows.map((entry) => {
+              const lbl = getGallupLabel(entry.score);
+              return (
+                <div key={entry.name}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{entry.flag}</span>
+                      <span className="text-[11px] text-zinc-400">{entry.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-black tabular-nums ${lbl.color}`}>
+                        {entry.score.toFixed(1)}
+                      </span>
+                      <span className={`text-[9px] ${lbl.color} opacity-70`}>{lbl.label}</span>
+                    </div>
                   </div>
-                  {entry.pct != null ? (
-                    <span className="text-sm font-black tabular-nums text-rose-300">{entry.pct}%</span>
-                  ) : (
-                    <span className="text-[10px] text-zinc-600">No data</span>
-                  )}
-                </div>
-                {entry.pct != null && (
                   <div className="relative h-2 w-full overflow-hidden rounded-full bg-zinc-800/60">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-rose-700 to-rose-400"
-                      style={{ width: `${Math.min(entry.pct * 3, 100)}%` }}
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${(entry.score / 9) * 100}%`,
+                        background: entry.score >= 6.5 ? "#10b981" : entry.score >= 5.0 ? "#f59e0b" : "#ef4444",
+                      }}
                     />
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
           <p className="mt-3 text-[9px] text-zinc-600">
-            % of native–foreign-born marriages. Higher = more open to international partners.
+            Gallup Migrant Acceptance Index (0–9). How willing locals are to accept immigrants as neighbors, co-workers, and family.
           </p>
         </div>
       </div>

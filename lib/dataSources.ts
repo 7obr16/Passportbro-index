@@ -54,6 +54,11 @@ export const DATA_SOURCES = {
     label: "World Bank",
     url: "https://data.worldbank.org/indicator/SP.DYN.TFRT.IN",
   },
+  /** Gallup Migrant Acceptance Index – perception of foreigners */
+  gallup: {
+    label: "Gallup",
+    url: "https://news.gallup.com/poll/216377/new-index-shows-least-accepting-countries-migrants.aspx",
+  },
 } as const;
 
 export type DataSourceKey = keyof typeof DATA_SOURCES;

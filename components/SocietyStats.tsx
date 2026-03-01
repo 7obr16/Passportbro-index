@@ -1,17 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { Calendar, Layers, Heart, Globe2, Baby } from "lucide-react";
+import { Calendar, Layers, Users, Globe2, Baby } from "lucide-react";
 import {
   getMedianAgeBySlug,
   getEthnicHomogeneityBySlug,
   getHomogeneityLabel,
   WORLD_MEDIAN_AGE,
 } from "@/lib/demographicsIndex";
-import {
-  getOutGroupMarriagePct,
-  hasEurostatMarriageData,
-} from "@/lib/marriageTrendsIndex";
+import { getGallupScore, getGallupLabel } from "@/lib/friendlinessIndex";
 import {
   getFertilityRate,
   getFertilityLabel,
@@ -33,9 +30,11 @@ export default function SocietyStats({ slug }: Props) {
   const homogeneity = useMemo(() => getEthnicHomogeneityBySlug(slug), [slug]);
   const homogeneityLabel = useMemo(() => getHomogeneityLabel(homogeneity), [homogeneity]);
 
-  // Marriage
-  const outGroupPct = useMemo(() => getOutGroupMarriagePct(slug), [slug]);
-  const hasMarriageData = useMemo(() => hasEurostatMarriageData(slug), [slug]);
+  // Foreigner acceptance
+  const gallup = useMemo(() => getGallupScore(slug), [slug]);
+  const gallupLabel = useMemo(() => getGallupLabel(gallup), [gallup]);
+  const US_GALLUP = 7.86;
+  const deltaGallup = gallup - US_GALLUP;
 
   // Fertility
   const tfr = useMemo(() => getFertilityRate(slug), [slug]);
@@ -106,33 +105,44 @@ export default function SocietyStats({ slug }: Props) {
 
         <div className="h-px bg-zinc-800/50" />
 
-        {/* Marriage Trends block */}
+        {/* Foreigner Acceptance block */}
         <div>
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Heart className="h-3.5 w-3.5 text-zinc-500" />
-              <span className="text-[11px] font-medium text-zinc-400">Out-Group Marriage</span>
+              <Users className="h-3.5 w-3.5 text-zinc-500" />
+              <span className="text-[11px] font-medium text-zinc-400">Foreigner Acceptance</span>
             </div>
-            <SourceLink sourceKey={hasMarriageData ? "marriageEurope" : "marriageGlobal"} />
+            <SourceLink sourceKey="gallup" />
           </div>
-          {outGroupPct != null ? (
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black tracking-tight text-violet-300">{outGroupPct}%</span>
-                <span className="text-[10px] text-zinc-500">of marriages</span>
-              </div>
-              <p className="mt-1 text-[10px] leading-relaxed text-zinc-500">
-                Mixed (native–foreign-born) marriages. Higher % generally indicates more openness to international partners.
-              </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className={`text-2xl font-black tracking-tight ${gallupLabel.color}`}>
+                {gallup.toFixed(1)}
+              </span>
+              <span className="text-[10px] text-zinc-500">/ 9</span>
             </div>
-          ) : (
-            <div className="rounded-lg border border-zinc-800/50 bg-zinc-900/40 p-3">
-              <p className="text-[11px] font-medium text-zinc-400 mb-1">Limited Data</p>
-              <p className="text-[10px] leading-relaxed text-zinc-500">
-                No harmonized rate available. See UN World Marriage Data for regional context.
-              </p>
-            </div>
-          )}
+            <span className={`rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] font-semibold ${gallupLabel.color}`}>
+              {gallupLabel.label}
+            </span>
+          </div>
+          <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/60">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${(gallup / 9) * 100}%`,
+                background: gallup >= 6.5 ? "#10b981" : gallup >= 5.0 ? "#f59e0b" : "#ef4444",
+              }}
+            />
+            {/* US reference tick */}
+            <div
+              className="absolute top-0 h-full w-0.5 rounded-full bg-zinc-400"
+              style={{ left: `${(US_GALLUP / 9) * 100}%` }}
+              title={`US: ${US_GALLUP}`}
+            />
+          </div>
+          <p className="mt-1.5 text-[10px] text-zinc-500">
+            {deltaGallup >= 0 ? `+${deltaGallup.toFixed(1)}` : deltaGallup.toFixed(1)} vs US · Gallup Migrant Acceptance Index (0–9)
+          </p>
         </div>
 
         <div className="h-px bg-zinc-800/50" />

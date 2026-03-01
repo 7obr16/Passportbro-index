@@ -119,4 +119,18 @@ export function getFriendlinessLabelFromScore(score: number): "High" | "Medium" 
   return "Low";
 }
 
+/** Raw Gallup Migrant Acceptance Index score (0–9) for a slug. Default 5.0 for unknown. */
+export function getGallupScore(slug: string): number {
+  return GALLUP_ACCEPTANCE[slug] ?? 5.0;
+}
+
+/** Human-readable label for a Gallup 0–9 score. */
+export function getGallupLabel(score: number): { label: string; color: string } {
+  if (score >= 8.0) return { label: "Very Welcoming",  color: "text-emerald-400" };
+  if (score >= 6.5) return { label: "Welcoming",       color: "text-lime-400"    };
+  if (score >= 5.0) return { label: "Moderate",        color: "text-amber-400"   };
+  if (score >= 3.5) return { label: "Cautious",        color: "text-orange-400"  };
+  return                    { label: "Unwelcoming",    color: "text-red-400"     };
+}
+
 export { GALLUP_ACCEPTANCE };

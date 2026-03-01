@@ -19,7 +19,7 @@ const DERIVED_BANDS = ["0-14", "15-24", "25-39", "40-54", "55-64", "65+"] as con
 type DerivedBand = (typeof DERIVED_BANDS)[number];
 
 // Bands that represent the prime passport bro dating age
-const DATING_BANDS = new Set<DerivedBand>(["15-24", "25-39"]);
+const DATING_BANDS = new Set<DerivedBand>(["25-39"]);
 
 type DerivedRow = { band: DerivedBand; malePct: number; femalePct: number };
 
@@ -222,7 +222,7 @@ export default function PopulationPyramid({ slug, countryName }: Props) {
         <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-400/15 bg-amber-400/5 px-4 py-2">
           <span className="text-[9px] font-bold text-amber-400">★</span>
           <p className="text-[10px] text-zinc-400">
-            <span className="font-semibold text-amber-300">15–39</span> is the prime passport bro dating window.
+            <span className="font-semibold text-amber-300">25–39</span> is the prime passport bro dating window.
             {" "}Dashed outline = US reference. % of total population.
           </p>
         </div>

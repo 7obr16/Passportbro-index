@@ -15,6 +15,10 @@ const NUMBEO_COST_INDEX: Record<string, number> = {
   "vietnam":     42,   // ~$1.1k/mo; HCMC / Hanoi
   "cambodia":    40,   // ~$1.0k/mo; Phnom Penh
   "mongolia":    44,   // ~$1.2k/mo; Ulaanbaatar
+  "taiwan":      62,   // ~$2.1k/mo; Taipei
+  "singapore":   100,  // ~$5k+/mo; global high-cost city state
+  "laos":        34,   // ~$900/mo; Vientiane/Luang Prabang
+  "sri-lanka":   36,   // ~$1.0k/mo; Colombo + expat buffer
   "japan":       82,   // ~$3.5k/mo; Tokyo — expensive but under $5k comfortably
   "south-korea": 78,   // ~$2.8k/mo; Seoul
   "china":       50,   // ~$1.5k/mo; tier-1 cities higher
@@ -78,6 +82,7 @@ const NUMBEO_COST_INDEX: Record<string, number> = {
   "slovakia":    50,   // ~$1.5k/mo; Bratislava
   "bosnia-and-herzegovina": 40,
   "moldova":     38,
+  "belarus":     40,
   // ── Western / Northern Europe ────────────────────────────────────────────────
   "portugal":    58,   // ~$2.0k/mo; Lisbon/Porto affordable vs rest of W.Europe
   "spain":       62,   // ~$2.2k/mo; Madrid/Barcelona

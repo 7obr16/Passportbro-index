@@ -154,7 +154,7 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 md:bottom-8 md:left-8">
               <div className="flex items-center gap-2.5 sm:gap-3">
-                <CountryMark slug={country.slug} name={country.name} />
+                <CountryMark slug={country.slug} name={country.name} flagEmoji={country.flagEmoji} />
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-400 sm:text-xs">
                     {country.region}
@@ -195,11 +195,31 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
               Passport Bro score
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6 md:gap-8">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black tabular-nums tracking-tight text-white sm:text-4xl">
-                  {Math.round(scores.overall)}
-                </span>
-                <span className="text-sm font-medium text-zinc-500">/ 100 overall</span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black tabular-nums tracking-tight text-white sm:text-4xl">
+                    {Math.round(scores.overall)}
+                  </span>
+                  <span className="text-sm font-medium text-zinc-500">/ 100 overall</span>
+                </div>
+                {(country.slug === "indonesia" || country.slug === "malaysia") && (
+                  <p className="max-w-xl text-[10px] leading-relaxed text-zinc-400">
+                    {country.slug === "indonesia" && (
+                      <>
+                        Legal note: Indonesia&apos;s revised national Criminal Code (<span className="italic">KUHP</span>)
+                        contains articles that can criminalize sex outside of marriage if reported by close relatives,
+                        which means casual relationships can carry real legal risk for both locals and foreigners.
+                      </>
+                    )}
+                    {country.slug === "malaysia" && (
+                      <>
+                        Cultural note: Malaysia is a majority-Muslim country, and Islamic law applies to Muslims
+                        alongside civil law in many states. Social norms and some local regulations are conservative
+                        around dating, public affection, and sex outside marriage.
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
               <div className="hidden h-8 w-px bg-zinc-800 sm:block" />
               <div className="grid grid-cols-3 gap-x-3 gap-y-2.5 sm:flex sm:flex-wrap sm:gap-x-6 md:gap-x-8">
@@ -207,7 +227,9 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
                   <div key={key} className="flex items-center gap-1.5 sm:gap-2">
                     <Icon className="h-3 w-3 text-zinc-500 sm:h-3.5 sm:w-3.5" />
                     <span className="text-[10px] text-zinc-500 sm:text-xs">{label}</span>
-                    <span className="text-xs font-bold tabular-nums text-zinc-200 sm:text-sm">{Math.round(scores[key])}</span>
+                    <span className="text-xs font-bold tabular-nums text-zinc-200 sm:text-sm">
+                      {Math.round(scores[key])}
+                    </span>
                     {key === "safety" && <SourceLink sourceKey="safety" className="ml-0.5" />}
                   </div>
                 ))}

@@ -290,7 +290,7 @@ export default function ClientDashboard({ initialCountries }: Props) {
                               {/* Absolute Badges (Stay above overlay) */}
                               <div className="absolute bottom-2 left-3 right-3 z-30 flex items-center justify-between gap-2 transition-transform duration-300 group-hover:-translate-y-1">
                                 <div className="flex min-w-0 items-center gap-2">
-                                  <CountryMark slug={country.slug} name={country.name} compact />
+                                  <CountryMark slug={country.slug} name={country.name} flagEmoji={country.flagEmoji} compact />
                                   <h3 className="truncate text-sm font-bold text-white drop-shadow-lg">
                                     {country.name}
                                   </h3>

@@ -30,16 +30,18 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 const WORLD_AVG_GDP = 13200;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const parseH = (h: string): number => {
-  if (!h) return 0;
+const parseH = (h: string): number | null => {
+  if (!h) return null;
   const m = h.match(/(\d+(?:\.\d+)?)/);
-  if (!m) return 0;
+  if (!m) return null;
   const v = parseFloat(m[1]);
   return v < 3 ? v * 100 : v;
 };
 
-const parseGdp = (g: string): number =>
-  parseInt((g || "0").replace(/[^0-9]/g, ""), 10) || 0;
+const parseGdp = (g: string): number | null => {
+  const n = parseInt((g || "0").replace(/[^0-9]/g, ""), 10) || 0;
+  return n > 0 ? n : null;
+};
 
 const fmtGdp = (n: number): string =>
   n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`;
@@ -411,7 +413,7 @@ function PopulationTab({ country, compare }: { country: Country; compare: Countr
 function EconomyTab({ country, compare }: { country: Country; compare: Country | null }) {
   const entries = useMemo(() => {
     const main       = { label: country.name,   flag: country.flagEmoji,  gdp: parseGdp(country.gdpPerCapita),  barColor: "from-emerald-600 to-emerald-400", textColor: "text-emerald-300" };
-    const worldEntry = { label: "World Avg",    flag: "🌍",               gdp: WORLD_AVG_GDP,                   barColor: "from-zinc-700 to-zinc-600",       textColor: "text-zinc-400"   };
+    const worldEntry = { label: "World Avg",    flag: "🌍",               gdp: WORLD_AVG_GDP as number | null,  barColor: "from-zinc-700 to-zinc-600",       textColor: "text-zinc-400"   };
     if (compare) {
       return [
         main,
@@ -422,7 +424,8 @@ function EconomyTab({ country, compare }: { country: Country; compare: Country |
     return [main, worldEntry];
   }, [country, compare]);
 
-  const maxGdp = Math.max(...entries.map((e) => e.gdp)) * 1.12;
+  const numeric = entries.map((e) => e.gdp).filter((v): v is number => v != null && v > 0);
+  const maxGdp = (numeric.length ? Math.max(...numeric) : WORLD_AVG_GDP) * 1.12;
 
   return (
     <div className="px-4 py-6 sm:px-8">
@@ -436,7 +439,7 @@ function EconomyTab({ country, compare }: { country: Country; compare: Country |
 
       <div className="flex flex-col gap-6">
         {entries.map((entry, i) => {
-          const pct = (entry.gdp / maxGdp) * 100;
+          const pct = entry.gdp ? (entry.gdp / maxGdp) * 100 : 0;
           return (
             <div key={entry.label}>
               <div className="mb-2 flex items-center justify-between">
@@ -445,19 +448,23 @@ function EconomyTab({ country, compare }: { country: Country; compare: Country |
                   <span className="text-sm font-semibold text-zinc-200">{entry.label}</span>
                 </div>
                 <span className={`text-2xl font-black tabular-nums tracking-tight ${entry.textColor}`}>
-                  {fmtGdp(entry.gdp)}
+                  {entry.gdp ? fmtGdp(entry.gdp) : "No data"}
                 </span>
               </div>
               <div className="relative h-10 w-full overflow-hidden rounded-xl bg-zinc-800/50">
-                <motion.div
-                  className={`h-full rounded-xl bg-gradient-to-r ${entry.barColor}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.9, delay: i * 0.18, ease: "easeOut" }}
-                />
+                {entry.gdp ? (
+                  <motion.div
+                    className={`h-full rounded-xl bg-gradient-to-r ${entry.barColor}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.9, delay: i * 0.18, ease: "easeOut" }}
+                  />
+                ) : (
+                  <div className="h-full w-full border border-dashed border-zinc-700/70 rounded-xl" />
+                )}
                 <div className="pointer-events-none absolute inset-0 flex items-center px-4">
                   <span className="text-xs font-semibold text-white/50">
-                    {fmtGdp(entry.gdp)} / person / year
+                    {entry.gdp ? `${fmtGdp(entry.gdp)} / person / year` : "No verified GDP data yet"}
                   </span>
                 </div>
               </div>
@@ -478,14 +485,15 @@ function EconomyTab({ country, compare }: { country: Country; compare: Country |
 
 // ─── TAB: Physical ────────────────────────────────────────────────────────────
 function PhysicalTab({ country, compare }: { country: Country; compare: Country | null }) {
-  const maleA   = parseH(country.avgHeightMale)   || 170;
-  const femaleA = parseH(country.avgHeightFemale) || 160;
-  const maleB   = compare ? parseH(compare.avgHeightMale)   || 170  : null;
-  const femaleB = compare ? parseH(compare.avgHeightFemale) || 160  : null;
+  const maleA   = parseH(country.avgHeightMale);
+  const femaleA = parseH(country.avgHeightFemale);
+  const maleB   = compare ? parseH(compare.avgHeightMale) : null;
+  const femaleB = compare ? parseH(compare.avgHeightFemale) : null;
 
   const allH = [maleA, femaleA, maleB, femaleB].filter((v): v is number => v != null && v > 0);
-  const minH = Math.floor(Math.min(...allH) / 5) * 5 - 5;
-  const maxH = Math.ceil(Math.max(...allH)  / 5) * 5 + 5;
+  const hasHeightData = allH.length > 0;
+  const minH = hasHeightData ? Math.floor(Math.min(...allH) / 5) * 5 - 5 : 140;
+  const maxH = hasHeightData ? Math.ceil(Math.max(...allH)  / 5) * 5 + 5 : 200;
   const hPct = (h: number) => ((h - minH) / (maxH - minH)) * 100;
 
   const bmiColor = (bmi: number | null) => {
@@ -498,7 +506,7 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
   const bmiBarColor = (bmi: number) =>
     bmi < 25 ? "#10b981" : bmi < 27.5 ? "#84cc16" : bmi < 30 ? "#f59e0b" : "#ef4444";
 
-  type HeightEntry = { name: string; flag: string; h: number; barColor: string };
+  type HeightEntry = { name: string; flag: string; h: number | null; barColor: string };
 
   const heightRows: { label: string; icon: string; entries: HeightEntry[] }[] = [
     {
@@ -545,15 +553,19 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
                       <span className="w-5 shrink-0 text-base">{entry.flag}</span>
                       <span className="w-28 shrink-0 truncate text-[11px] text-zinc-400">{entry.name}</span>
                       <div className="relative flex-1 h-6 overflow-hidden rounded-md bg-zinc-800/50">
-                        <motion.div
-                          className={`absolute left-0 top-0 h-full ${entry.barColor} rounded-md`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${hPct(entry.h)}%` }}
-                          transition={{ duration: 0.65, ease: "easeOut" }}
-                        />
+                        {entry.h != null ? (
+                          <motion.div
+                            className={`absolute left-0 top-0 h-full ${entry.barColor} rounded-md`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${hPct(entry.h)}%` }}
+                            transition={{ duration: 0.65, ease: "easeOut" }}
+                          />
+                        ) : (
+                          <div className="h-full w-full border border-dashed border-zinc-700/70 rounded-md" />
+                        )}
                       </div>
                       <span className="w-16 shrink-0 text-right text-[11px] font-bold tabular-nums text-zinc-200">
-                        {entry.h.toFixed(1)} cm
+                        {entry.h != null ? `${entry.h.toFixed(1)} cm` : "No data"}
                       </span>
                     </div>
                   ))}
@@ -561,7 +573,9 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[9px] text-zinc-600">Scale: {minH}–{maxH} cm</p>
+          <p className="mt-3 text-[9px] text-zinc-600">
+            {hasHeightData ? `Scale: ${minH}–${maxH} cm` : "No verified height data yet"}
+          </p>
         </div>
 
         {/* BMI */}

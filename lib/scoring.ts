@@ -2,6 +2,7 @@ import type { Country } from "./countries";
 import { getSafetyScoreBySlug } from "./safetyIndex";
 import { getFriendlinessScoreBySlug } from "./friendlinessIndex";
 import { getAffordabilityScoreBySlug } from "./affordabilityIndex";
+import { getDatingOverride } from "./datingOverrides";
 
 // Single source of truth for all score-based views (leaderboard, country detail, dashboard,
 // globe, charts). Everywhere must use getCountryScores(country) only. Safety = safetyIndex
@@ -66,22 +67,22 @@ export const getSafetyScore = (safety: string) => {
   return 15;
 };
 
-/** Dating score from tier label so leaderboard order matches displayed tier (Normal never above Easy). */
-const DATING_TIER_SCORE: Record<string, number> = {
-  "Very Easy": 95,
-  "Easy": 80,
-  "Normal": 65,
-  "Hard": 45,
-  "Improbable": 25,
-  "N/A": 50,
-};
-
+/** Legacy function kept for backwards compatibility if needed */
 export function getDatingScoreFromTier(datingEase: string): number {
+  const DATING_TIER_SCORE: Record<string, number> = {
+    "Very Easy": 95,
+    "Easy": 80,
+    "Normal": 65,
+    "Hard": 45,
+    "Improbable": 25,
+    "N/A": 50,
+  };
   return DATING_TIER_SCORE[datingEase] ?? 50;
 }
 
 export function getCountryScores(country: Country): ScoreBreakdown {
-  const dating = getDatingScoreFromTier(country.datingEase);
+  // Use the explicit datingEaseScore from country data (which includes overrides and tier-based fallbacks)
+  const dating = country.datingEaseScore;
   const cost = getAffordabilityScoreBySlug(country.slug);   // Numbeo cost-of-living → affordability 0-100
   const internet = getInternetScore(country.internetSpeed, country.internetMbps);
   const friendly = getFriendlinessScoreBySlug(country.slug); // InterNations Ease of Settling In (or Gallup fallback) → 0-100

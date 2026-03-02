@@ -1,14 +1,23 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  Graticule,
+  Marker,
+  Sphere,
+  ZoomableGroup,
+} from "react-simple-maps";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, Wallet, Wifi, Shield, Star } from "lucide-react";
-import { Country, TIER_CONFIG } from "@/lib/countries";
+import { Heart, Wallet, Wifi, Shield } from "lucide-react";
+import type { Country } from "@/lib/countries";
+import { TIER_CONFIG } from "@/lib/countries";
 import { getCountryScores } from "@/lib/scoring";
 
-const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
+/* ── Slug → ISO-3166 alpha-3 ────────────────────────────────────── */
 
 const COUNTRY_ISO_MAP: Record<string, string> = {
   "philippines": "PHL", "thailand": "THA", "indonesia": "IDN", "malaysia": "MYS",
@@ -30,12 +39,15 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   "mauritius": "MUS", "cyprus": "CYP", "malta": "MLT", "montenegro": "MNE",
   "albania": "ALB", "north-macedonia": "MKD", "sri-lanka": "LKA", "laos": "LAO",
   "ecuador": "ECU", "guatemala": "GTM", "paraguay": "PRY", "uruguay": "URY",
-  "cuba": "CUB", "jamaica": "JAM",
+  "cuba": "CUB", "jamaica": "JAM", "singapore": "SGP",
   "netherlands": "NLD", "belgium": "BEL", "austria": "AUT", "switzerland": "CHE",
   "norway": "NOR", "denmark": "DNK", "finland": "FIN", "ireland": "IRL",
   "slovakia": "SVK", "lithuania": "LTU", "latvia": "LVA", "slovenia": "SVN",
   "luxembourg": "LUX", "iceland": "ISL", "bosnia-and-herzegovina": "BIH", "moldova": "MDA",
+  "belarus": "BLR",
 };
+
+/* ── Centroid coords [lat, lng] for pulsing markers ─────────────── */
 
 const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   PHL: [12.8, 121.8], THA: [15.9, 100.9], IDN: [-0.8, 113.9], MYS: [4.2, 101.9],
@@ -57,12 +69,15 @@ const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   MUS: [-20.3, 57.6], CYP: [35.1, 33.4], MLT: [35.9, 14.4], MNE: [42.7, 19.4],
   ALB: [41.2, 20.2], MKD: [41.5, 21.7], LKA: [7.9, 80.8], LAO: [19.9, 102.5],
   ECU: [-1.8, -78.2], GTM: [15.8, -90.2], PRY: [-23.4, -58.4], URY: [-32.5, -55.8],
-  CUB: [21.5, -77.8], JAM: [18.1, -77.3],
+  CUB: [21.5, -77.8], JAM: [18.1, -77.3], SGP: [1.35, 103.8],
   NLD: [52.1, 5.3], BEL: [50.5, 4.5], AUT: [47.5, 14.6], CHE: [46.8, 8.2],
   NOR: [60.5, 8.5], DNK: [56.3, 9.5], FIN: [64.0, 26.0], IRL: [53.4, -8.2],
   SVK: [48.7, 19.7], LTU: [55.2, 24.0], LVA: [56.9, 24.6], SVN: [46.1, 14.8],
   LUX: [49.8, 6.1], ISL: [64.9, -19.0], BIH: [43.9, 17.9], MDA: [47.4, 28.4],
 };
+
+const GEO_URL =
+  "https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson";
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -71,153 +86,94 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-type Props = {
+type Props = { 
   countries: Country[];
+  activeFilter?: string | null;
 };
 
-export default function WorldGlobe({ countries }: Props) {
+export default function WorldGlobe({ countries, activeFilter = null }: Props) {
   const router = useRouter();
-  const globeRef = useRef<any>(null);
-  const [geoJson, setGeoJson] = useState<any>(null);
-  const [hoverD, setHoverD] = useState<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredCountry, setHoveredCountry] = useState<Country | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    fetch("https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson")
-      .then((res) => res.json())
-      .then(setGeoJson);
-  }, []);
-
-  const updateDimensions = useCallback(() => {
-    if (containerRef.current) {
-      const el = containerRef.current;
-      const w = el.offsetWidth || el.clientWidth || 0;
-      const h = el.offsetHeight || el.clientHeight || 0;
-      if (w > 0 && h > 0) {
-        setDimensions({ width: w, height: h });
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    updateDimensions();
-
-    const ro = new ResizeObserver(() => {
-      updateDimensions();
-    });
-    ro.observe(el);
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(updateDimensions);
-        });
-      }
-    };
-    const onOrientationChange = () => {
-      requestAnimationFrame(() => updateDimensions());
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("orientationchange", onOrientationChange);
-    window.addEventListener("resize", updateDimensions);
-    return () => {
-      ro.disconnect();
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("orientationchange", onOrientationChange);
-      window.removeEventListener("resize", updateDimensions);
-    };
-  }, [updateDimensions]);
-
-  // Delayed re-measure after mount (catches layout not yet settled, e.g. after nav-back or orientation change)
-  useEffect(() => {
-    const t = setTimeout(updateDimensions, 100);
-    const t2 = setTimeout(updateDimensions, 400);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(t2);
-    };
-  }, [updateDimensions]);
-
-  const handleGlobeReady = useCallback(() => {
-    if (!globeRef.current) return;
-    const controls = globeRef.current.controls();
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.4;
-    controls.enableZoom = false;
-    controls.enablePan = false;
-    controls.minPolarAngle = Math.PI * 0.25;
-    controls.maxPolarAngle = Math.PI * 0.75;
-    // On mobile: disable touch rotate so page scroll works; globe auto-rotates instead
-    const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-    if (isTouch) {
-      controls.enableRotate = false;
-    }
-    setReady(true);
-  }, []);
-
-  const getCountryFromFeature = useMemo(() => {
-    const isoToCountry = new Map<string, Country>();
+  const isoToCountry = useMemo(() => {
+    const map = new Map<string, Country>();
     for (const c of countries) {
       const iso = COUNTRY_ISO_MAP[c.slug];
-      if (iso) isoToCountry.set(iso, c);
+      if (iso) map.set(iso, c);
     }
-    return (feature: any) => isoToCountry.get(feature?.properties?.ISO_A3) ?? null;
+    return map;
   }, [countries]);
 
-  const glowPoints = useMemo(() => {
+  const nameToCountry = useMemo(() => {
+    const normalize = (v: string) =>
+      v
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    const aliases: Record<string, string> = {
+      "united states of america": "usa",
+      "united states": "usa",
+      "united kingdom": "uk",
+      "russian federation": "russia",
+      "korea south": "south-korea",
+      "south korea": "south-korea",
+      "north macedonia": "north-macedonia",
+      "czechia": "czech-republic",
+      "uae": "united-arab-emirates",
+      "cote divoire": "cote-divoire",
+    };
+    const map = new Map<string, Country>();
+    for (const c of countries) {
+      map.set(normalize(c.name), c);
+      map.set(normalize(c.slug.replace(/-/g, " ")), c);
+    }
+    for (const [alias, slug] of Object.entries(aliases)) {
+      const country = countries.find((c) => c.slug === slug);
+      if (country) map.set(normalize(alias), country);
+    }
+    return { map, normalize };
+  }, [countries]);
+
+  const markerData = useMemo(() => {
     return countries
       .map((c) => {
         const iso = COUNTRY_ISO_MAP[c.slug];
         const coords = iso ? COUNTRY_CENTROIDS[iso] : null;
         if (!coords) return null;
         const hex = TIER_CONFIG[c.datingEase]?.hex || "#71717a";
-        return { lat: coords[0], lng: coords[1], color: hex, country: c, size: 0.35 };
+        const isTopTier = c.datingEase === "Very Easy" || c.datingEase === "Easy";
+        return {
+          slug: c.slug,
+          name: c.name,
+          coordinates: [coords[1], coords[0]] as [number, number],
+          color: hex,
+          isTopTier,
+        };
       })
-      .filter(Boolean) as { lat: number; lng: number; color: string; country: Country; size: number }[];
+      .filter(Boolean) as {
+      slug: string;
+      name: string;
+      coordinates: [number, number];
+      color: string;
+      isTopTier: boolean;
+    }[];
   }, [countries]);
 
-  const ringData = useMemo(() => {
-    return glowPoints.map((p) => ({
-      lat: p.lat,
-      lng: p.lng,
-      maxR: 2.5,
-      propagationSpeed: 1.2,
-      repeatPeriod: 2000,
-      color: p.color,
-    }));
-  }, [glowPoints]);
+  const handleMouseMove = useCallback((event: React.MouseEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMousePos({
+      x: event.clientX - rect.left + 20,
+      y: event.clientY - rect.top + 20,
+    });
+  }, []);
 
-  const handlePolygonHover = useCallback(
-    (d: any) => {
-      setHoverD(d);
-      setHoveredCountry(d ? getCountryFromFeature(d) : null);
-    },
-    [getCountryFromFeature]
-  );
-
-  const handlePolygonClick = useCallback(
-    (d: any) => {
-      const c = getCountryFromFeature(d);
-      if (c) router.push(`/country/${c.slug}`);
-    },
-    [getCountryFromFeature, router]
-  );
-
-  if (!geoJson) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-800 border-t-emerald-500" />
-      </div>
-    );
-  }
-
-  const hoveredScores = hoveredCountry ? getCountryScores(hoveredCountry) : null;
+  const hoveredScores = hoveredCountry
+    ? getCountryScores(hoveredCountry)
+    : null;
 
   const tierBadgeColor: Record<string, string> = {
     "Very Easy": "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
@@ -231,150 +187,287 @@ export default function WorldGlobe({ countries }: Props) {
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
-      onMouseMove={(event) => {
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        setMousePos({
-          x: event.clientX - rect.left + 16,
-          y: event.clientY - rect.top + 16,
-        });
-      }}
+      className="relative w-full cursor-crosshair"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoveredCountry(null)}
     >
-      <motion.div
-        className="absolute inset-0"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: ready ? 1 : 0 }}
-        transition={{ duration: 1.2, ease: "easeOut" }}
+      <ComposableMap
+        projection="geoNaturalEarth1"
+        projectionConfig={{ scale: 200, center: [0, 0] }}
+        width={1000}
+        height={500}
+        style={{
+          width: "100%",
+          height: "auto",
+        }}
       >
-        <Globe
-          ref={globeRef}
-          onGlobeReady={handleGlobeReady}
-          width={dimensions.width}
-          height={dimensions.height}
-          backgroundColor="rgba(0,0,0,0)"
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-          bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-          showAtmosphere={true}
-          atmosphereColor="rgba(120, 180, 255, 1)"
-          atmosphereAltitude={0.2}
-          polygonsData={geoJson.features}
-          polygonsTransitionDuration={400}
-          polygonAltitude={(d: any) => {
-            const c = getCountryFromFeature(d);
-            if (!c) return -0.001;
-            return d === hoverD ? 0.035 : 0.008;
-          }}
-          polygonCapColor={(d: any) => {
-            const c = getCountryFromFeature(d);
-            if (!c) return "rgba(0, 0, 0, 0)";
-            const hex = TIER_CONFIG[c.datingEase]?.hex || "#71717a";
-            if (d === hoverD) return hexToRgba(hex, 0.92);
-            return hexToRgba(hex, 0.55);
-          }}
-          polygonSideColor={(d: any) => {
-            const c = getCountryFromFeature(d);
-            if (!c) return "rgba(0, 0, 0, 0)";
-            const hex = TIER_CONFIG[c.datingEase]?.hex || "#71717a";
-            return d === hoverD ? hexToRgba(hex, 0.7) : hexToRgba(hex, 0.2);
-          }}
-          polygonStrokeColor={(d: any) => {
-            const c = getCountryFromFeature(d);
-            if (!c) return "rgba(0, 0, 0, 0)";
-            return d === hoverD ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.08)";
-          }}
-          onPolygonHover={handlePolygonHover}
-          onPolygonClick={handlePolygonClick}
-          polygonLabel={() => ""}
-          pointsData={glowPoints}
-          pointAltitude={0.01}
-          pointRadius="size"
-          pointColor="color"
-          pointsMerge={false}
-          ringsData={ringData}
-          ringColor="color"
-          ringMaxRadius="maxR"
-          ringPropagationSpeed="propagationSpeed"
-          ringRepeatPeriod="repeatPeriod"
-          ringAltitude={0.015}
+        <ZoomableGroup 
+          center={[0, 0]} 
+          zoom={1}
+          minZoom={1}
+          maxZoom={8}
+          translateExtent={[[-200, -200], [1200, 700]]}
+        >
+          <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <Sphere
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth={0.5}
+          fill="rgba(20,24,30,0.4)"
+          id="sphere"
         />
-      </motion.div>
 
-      {/* Loading shimmer */}
-      {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-800 border-t-cyan-500" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">Loading globe</p>
-          </div>
-        </div>
-      )}
+        <Graticule stroke="rgba(255, 255, 255, 0.04)" strokeWidth={0.5} />
 
-      {/* Tooltip */}
+        <Geographies geography={GEO_URL}>
+          {({ geographies }) =>
+            geographies.map((geo, i) => {
+              const iso = geo.properties?.ISO_A3;
+              const byIso = iso ? isoToCountry.get(iso) : undefined;
+              const geoName =
+                geo.properties?.NAME_LONG ||
+                geo.properties?.NAME ||
+                geo.properties?.ADMIN ||
+                "";
+              const byName = geoName
+                ? nameToCountry.map.get(nameToCountry.normalize(geoName))
+                : undefined;
+              const country = byIso ?? byName;
+              
+              // Determine if this country should be highlighted or greyed out
+              let isActive = true;
+              if (activeFilter && country) {
+                if (activeFilter === "Top Picks") {
+                  isActive = country.datingEase === "Very Easy" || country.datingEase === "Easy";
+                } else {
+                  isActive = country.datingEase === activeFilter;
+                }
+              } else if (activeFilter && !country) {
+                isActive = false;
+              }
+
+              const tierHex = country && isActive
+                ? TIER_CONFIG[country.datingEase]?.hex || "#71717a"
+                : null;
+              const isHovered = hoveredCountry?.slug === country?.slug;
+
+              return (
+                <Geography
+                  key={geo.rsmKey}
+                  geography={geo}
+                  onMouseEnter={() => setHoveredCountry(country || null)}
+                  onMouseLeave={() => setHoveredCountry(null)}
+                  onClick={() => {
+                    if (country) router.push(`/country/${country.slug}`);
+                  }}
+                  className="transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+                  style={{
+                    default: {
+                      fill: tierHex
+                        ? hexToRgba(tierHex, 0.45)
+                        : (activeFilter && country ? "rgba(42, 42, 48, 0.2)" : "rgba(42, 42, 48, 0.5)"),
+                      stroke: tierHex
+                        ? hexToRgba(tierHex, 0.6)
+                        : (activeFilter && country ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.08)"),
+                      strokeWidth: 0.3,
+                      outline: "none",
+                      cursor: country && isActive ? "pointer" : "default",
+                    },
+                    hover: {
+                      fill: tierHex
+                        ? hexToRgba(tierHex, 0.85)
+                        : "rgba(60, 60, 68, 0.7)",
+                      stroke: country && isActive
+                        ? "#ffffff"
+                        : "rgba(255, 255, 255, 0.15)",
+                      strokeWidth: country && isActive ? 0.7 : 0.3,
+                      outline: "none",
+                      cursor: country && isActive ? "pointer" : "default",
+                      filter: country && isActive ? "url(#glow)" : "none",
+                      zIndex: 10,
+                    },
+                    pressed: {
+                      fill: tierHex
+                        ? hexToRgba(tierHex, 1)
+                        : "rgba(80, 80, 88, 0.8)",
+                      stroke: "#ffffff",
+                      strokeWidth: 0.9,
+                      outline: "none",
+                    },
+                  }}
+                />
+              );
+            })
+          }
+        </Geographies>
+
+        {/* High-tech pulsing SVG markers */}
+        {markerData.map((m, i) => {
+          // If filtering is active, only show markers that match the filter
+          if (activeFilter) {
+            if (activeFilter === "Top Picks") {
+              if (m.color !== TIER_CONFIG["Very Easy"]?.hex && m.color !== TIER_CONFIG["Easy"]?.hex) return null;
+            } else {
+              if (m.color !== TIER_CONFIG[activeFilter]?.hex) return null;
+            }
+          }
+          
+          return (
+            <Marker key={m.slug} coordinates={m.coordinates}>
+            <g>
+              {/* Inner dot */}
+              <circle 
+                r={m.isTopTier ? 1.5 : 0.8} 
+                fill={m.color} 
+                opacity={0.9} 
+                filter={m.isTopTier ? "url(#glow)" : ""}
+              />
+              
+              {/* Complex radar ping for top tiers */}
+              {m.isTopTier && (
+                <>
+                  <circle r={1.5} fill="none" stroke={m.color} strokeWidth={0.3} opacity={0}>
+                    <animate
+                      attributeName="r"
+                      from="1.5"
+                      to="8"
+                      dur="3s"
+                      begin={`${i * 0.1}s`}
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      from="0.6"
+                      to="0"
+                      dur="3s"
+                      begin={`${i * 0.1}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <circle r={1.5} fill="none" stroke={m.color} strokeWidth={0.2} opacity={0}>
+                    <animate
+                      attributeName="r"
+                      from="1.5"
+                      to="6"
+                      dur="3s"
+                      begin={`${i * 0.1 + 1.5}s`}
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      from="0.4"
+                      to="0"
+                      dur="3s"
+                      begin={`${i * 0.1 + 1.5}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                </>
+              )}
+            </g>
+          </Marker>
+          );
+        })}
+        </ZoomableGroup>
+      </ComposableMap>
+
+      {/* ── Floating Data Tooltip ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {hoveredCountry && hoveredScores && (
           <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.96 }}
-            transition={{ duration: 0.14, ease: "easeOut" }}
-            className="pointer-events-none absolute z-30 w-[240px] overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-950/85 shadow-[0_24px_80px_rgba(0,0,0,0.9)] backdrop-blur-xl"
-            style={{
-              left: `${mousePos.x}px`,
-              top: `${mousePos.y}px`,
-            }}
+            initial={{ opacity: 0, y: 10, scale: 0.95, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, filter: "blur(4px)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="pointer-events-none absolute z-50 w-[260px] overflow-hidden rounded-2xl border border-white/[0.1] bg-zinc-950/80 shadow-[0_30px_100px_rgba(0,0,0,0.9),_0_0_40px_rgba(255,255,255,0.05)_inset] backdrop-blur-2xl"
+            style={{ left: `${mousePos.x}px`, top: `${mousePos.y}px` }}
           >
-            {/* Top accent bar */}
+            {/* Top gradient glow line */}
             <div
-              className="h-1 w-full"
-              style={{ background: TIER_CONFIG[hoveredCountry.datingEase]?.hex || "#71717a" }}
+              className="h-1 w-full opacity-80"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${TIER_CONFIG[hoveredCountry.datingEase]?.hex || "#71717a"}, transparent)`,
+              }}
             />
-
+            
             <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg">{hoveredCountry.flagEmoji}</span>
-                  <div>
-                    <p className="text-sm font-bold text-white leading-tight">{hoveredCountry.name}</p>
-                    <p className="text-[10px] text-zinc-500">{hoveredCountry.region}</p>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.05] text-lg shadow-inner border border-white/[0.05]">
+                    {hoveredCountry.flagEmoji}
+                  </span>
+                  <div className="flex flex-col">
+                    <p className="text-sm font-bold leading-tight text-white drop-shadow-md">
+                      {hoveredCountry.name}
+                    </p>
+                    <p className="text-[10px] font-medium text-zinc-500">
+                      {hoveredCountry.region}
+                    </p>
                   </div>
                 </div>
                 <span
-                  className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${tierBadgeColor[hoveredCountry.datingEase] || tierBadgeColor["N/A"]}`}
+                  className={`mt-0.5 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                    tierBadgeColor[hoveredCountry.datingEase] ??
+                    tierBadgeColor["N/A"]
+                  }`}
+                  style={{
+                    boxShadow: `0 0 12px ${hexToRgba(TIER_CONFIG[hoveredCountry.datingEase]?.hex || "#71717a", 0.2)}`
+                  }}
                 >
                   {hoveredCountry.datingEase}
                 </span>
               </div>
 
-              {/* Score bar */}
-              <div className="mt-3 flex items-center gap-2">
-                <Star className="h-3 w-3 text-amber-400" />
-                <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
+              {/* Advanced Score Bar */}
+              <div className="mt-4">
+                <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-zinc-400">
+                  <span className="flex items-center gap-1.5">
+                    <Heart className="h-3 w-3 text-rose-500" />
+                    Dating Score
+                  </span>
+                  <span className="text-white">{hoveredScores.dating.toFixed(0)}</span>
+                </div>
+                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80 shadow-inner">
                   <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: TIER_CONFIG[hoveredCountry.datingEase]?.hex || "#71717a" }}
+                    className="absolute bottom-0 left-0 top-0 rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, ${hexToRgba(TIER_CONFIG[hoveredCountry.datingEase]?.hex || "#71717a", 0.5)}, ${TIER_CONFIG[hoveredCountry.datingEase]?.hex || "#71717a"})`,
+                      boxShadow: `0 0 10px ${TIER_CONFIG[hoveredCountry.datingEase]?.hex || "#71717a"}`,
+                    }}
                     initial={{ width: 0 }}
-                    animate={{ width: `${hoveredScores.overall}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    animate={{ width: `${hoveredScores.dating}%` }}
+                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                   />
                 </div>
-                <span className="text-[10px] font-bold text-zinc-300">{hoveredScores.overall.toFixed(0)}</span>
               </div>
 
-              {/* Stats grid */}
-              <div className="mt-3 grid grid-cols-2 gap-1.5">
+              {/* Premium Stats Grid */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
                 {[
-                  { icon: Heart, label: "Dating", value: hoveredCountry.datingEase, score: hoveredScores.friendly },
-                  { icon: Wallet, label: "Budget", value: hoveredCountry.budgetTier, score: hoveredScores.cost },
-                  { icon: Shield, label: "Safety", value: hoveredCountry.safetyLevel, score: hoveredScores.safety },
-                  { icon: Wifi, label: "Internet", value: hoveredCountry.internetSpeed, score: hoveredScores.internet },
+                  { icon: Heart, label: "Friendliness", value: hoveredCountry.receptiveness },
+                  { icon: Wallet, label: "Budget", value: hoveredCountry.budgetTier },
+                  { icon: Shield, label: "Safety", value: hoveredCountry.safetyLevel },
+                  { icon: Wifi, label: "Internet", value: hoveredCountry.internetSpeed },
                 ].map((stat) => (
-                  <div key={stat.label} className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1.5">
-                    <stat.icon className="h-3 w-3 shrink-0 text-zinc-500" />
-                    <div className="min-w-0">
-                      <p className="truncate text-[10px] font-semibold text-zinc-200">{stat.value}</p>
-                      <p className="text-[9px] text-zinc-600">{stat.label}</p>
+                  <div
+                    key={stat.label}
+                    className="group flex flex-col gap-1 rounded-xl border border-white/[0.03] bg-white/[0.02] p-2 transition-colors hover:bg-white/[0.04]"
+                  >
+                    <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
+                      <stat.icon className="h-3 w-3" />
+                      {stat.label}
                     </div>
+                    <p className="pl-4 text-[11px] font-bold text-zinc-200 transition-colors group-hover:text-white">
+                      {stat.value}
+                    </p>
                   </div>
                 ))}
               </div>

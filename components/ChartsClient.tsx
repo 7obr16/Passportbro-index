@@ -7,6 +7,7 @@ import ReactCountryFlag from "react-country-flag";
 import type { Country } from "@/lib/countries";
 import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
 import { getCountryScores } from "@/lib/scoring";
+import { countryCodeFromFlagEmoji } from "@/lib/flagUtils";
 
 type MetricOption = {
   id: string;
@@ -231,7 +232,9 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
             const xEnd = getX(row.value);
             const isUs = row.country.slug === "usa";
             const isHovered = hoveredSlug === row.country.slug;
-            const flagCode = COUNTRY_FLAG_CODE[row.country.slug];
+            const flagCode =
+              COUNTRY_FLAG_CODE[row.country.slug] ??
+              countryCodeFromFlagEmoji(row.country.flagEmoji);
             const y = padding.top + i * rowHeight + rowHeight / 2;
 
             return (
@@ -254,6 +257,10 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
                 >
                   {flagCode ? (
                     <ReactCountryFlag countryCode={flagCode} svg style={{ width: "1.1em", height: "1.1em" }} />
+                  ) : row.country.flagEmoji ? (
+                    <span className="text-[13px] leading-none">
+                      {row.country.flagEmoji}
+                    </span>
                   ) : (
                     <span className="text-[8px] font-bold text-zinc-500">{row.country.name.slice(0, 2).toUpperCase()}</span>
                   )}

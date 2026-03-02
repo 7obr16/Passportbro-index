@@ -1,14 +1,16 @@
 import ReactCountryFlag from "react-country-flag";
 import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
+import { countryCodeFromFlagEmoji } from "@/lib/flagUtils";
 
 type Props = {
   slug: string;
   name: string;
+  flagEmoji?: string;
   compact?: boolean;
 };
 
-export default function CountryMark({ slug, name, compact = false }: Props) {
-  const countryCode = COUNTRY_FLAG_CODE[slug];
+export default function CountryMark({ slug, name, flagEmoji, compact = false }: Props) {
+  const countryCode = COUNTRY_FLAG_CODE[slug] ?? countryCodeFromFlagEmoji(flagEmoji);
   const codeText = countryCode ?? "NA";
 
   return (
@@ -28,6 +30,8 @@ export default function CountryMark({ slug, name, compact = false }: Props) {
               height: compact ? "0.95em" : "1.15em",
             }}
           />
+        ) : flagEmoji ? (
+          <span className="text-sm leading-none">{flagEmoji}</span>
         ) : (
           <span className="text-[10px] font-semibold text-zinc-400">{codeText}</span>
         )}

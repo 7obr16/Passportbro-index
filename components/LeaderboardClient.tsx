@@ -13,6 +13,10 @@ import {
   type LeaderboardCountry,
 } from "@/lib/scoring";
 import SourceLink from "@/components/SourceLink";
+import { countryCodeFromFlagEmoji } from "@/lib/flagUtils";
+import { NUMBEO_COST_INDEX } from "@/lib/affordabilityIndex";
+import { GPI_RANK } from "@/lib/safetyIndex";
+import { GALLUP_ACCEPTANCE, INTERNATIONS_SETTLING_IN_RANK } from "@/lib/friendlinessIndex";
 
 type Props = {
   countries: Country[];
@@ -40,7 +44,36 @@ export default function LeaderboardClient({ countries }: Props) {
   const [selected, setSelected] = useState<LeaderboardSortKey>("overall");
   const [openSlug, setOpenSlug] = useState<string | null>(null);
 
-  const ranked = useMemo(() => sortLeaderboard(countries, selected), [countries, selected]);
+  const ranked = useMemo(() => {
+    const parseHeight = (h: string) => {
+      const m = h?.match(/(\d+(?:\.\d+)?)/);
+      if (!m) return null;
+      const v = parseFloat(m[1]);
+      return v < 3 ? v * 100 : v;
+    };
+    const parseGdp = (g: string) => parseInt((g || "").replace(/[^0-9]/g, ""), 10) || 0;
+
+    const verified = countries.filter((c) => {
+      const hM = parseHeight(c.avgHeightMale);
+      const hF = parseHeight(c.avgHeightFemale);
+      const hasCoreCardData =
+        hM != null &&
+        hF != null &&
+        parseGdp(c.gdpPerCapita) > 0 &&
+        !!c.majorityReligion &&
+        c.majorityReligion !== "N/A";
+
+      // Keep leaderboard objective metrics strictly linked to known source rows.
+      const hasObjectiveIndexes =
+        c.slug in NUMBEO_COST_INDEX &&
+        c.slug in GPI_RANK &&
+        (c.slug in INTERNATIONS_SETTLING_IN_RANK || c.slug in GALLUP_ACCEPTANCE);
+
+      return hasCoreCardData && hasObjectiveIndexes;
+    });
+
+    return sortLeaderboard(verified, selected);
+  }, [countries, selected]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-5 sm:pt-8">
@@ -67,7 +100,7 @@ export default function LeaderboardClient({ countries }: Props) {
         {ranked.map((country, idx) => {
           const score = country.scores[selected];
           const isOpen = openSlug === country.slug;
-          const flagCode = COUNTRY_FLAG_CODE[country.slug];
+          const flagCode = COUNTRY_FLAG_CODE[country.slug] ?? countryCodeFromFlagEmoji(country.flagEmoji);
           const isTop3 = idx < 3;
 
           return (
@@ -103,6 +136,8 @@ export default function LeaderboardClient({ countries }: Props) {
                         svg
                         style={{ width: "1.1em", height: "1.1em" }}
                       />
+                    ) : country.flagEmoji ? (
+                      <span className="text-sm leading-none">{country.flagEmoji}</span>
                     ) : (
                       <span className="text-[9px] text-zinc-600">--</span>
                     )}

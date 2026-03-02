@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local tooling (not needed on Vercel/GitHub artifacts)
+/tools/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

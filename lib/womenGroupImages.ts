@@ -83,6 +83,21 @@ export const WOMEN_GROUP_IMAGE: Record<string, string> = {
   "albania": "/women-group/albania.png",
   "bosnia-and-herzegovina": "/women-group/bosnia-and-herzegovina.png",
   "moldova": "/women-group/moldova.png",
+  "taiwan": "/women-group/taiwan.png",
+  "singapore": "/women-group/singapore.png",
+  "laos": "/women-group/laos.png",
+  "sri-lanka": "/women-group/sri-lanka.png",
+  "ecuador": "/women-group/ecuador.png",
+  "paraguay": "/women-group/paraguay.png",
+  "uruguay": "/women-group/uruguay.png",
+  "panama": "/women-group/panama.png",
+  "guatemala": "/women-group/guatemala.png",
+  "cuba": "/women-group/cuba.png",
+  "jamaica": "/women-group/jamaica.png",
+  "georgia": "/women-group/georgia.png",
+  "united-arab-emirates": "/women-group/united-arab-emirates.png",
+  "mauritius": "/women-group/mauritius.png",
+  "belarus": "/women-group/belarus.png",
 };
 
 /** One-line diversity description for image generation. Same format prompt, only this varies by country. */
@@ -166,6 +181,21 @@ export const WOMEN_GROUP_PROMPT_DESCRIPTION: Record<string, string> = {
   "albania": "Albanian women, Southeast European Mediterranean, varied",
   "bosnia-and-herzegovina": "Bosnian women, Southeast European Slavic mixed, varied",
   "moldova": "Moldovan women, East European Slavic Romanian mix, varied",
+  "taiwan": "Taiwanese women, East Asian features, varied",
+  "singapore": "Singaporean women, mixed Chinese Malay Indian features, varied",
+  "laos": "Laotian women, Southeast Asian features, varied",
+  "sri-lanka": "Sri Lankan women, South Asian features, varied skin tones",
+  "ecuador": "Ecuadorian women, Andean and mestizo mix, varied",
+  "paraguay": "Paraguayan women, Latin American mestizo mix, varied",
+  "uruguay": "Uruguayan women, Southern European and mestizo mix, varied",
+  "panama": "Panamanian women, Central American mixed, varied",
+  "guatemala": "Guatemalan women, Central American Maya and mestizo, varied",
+  "cuba": "Cuban women, Caribbean mixed afro-latina, varied",
+  "jamaica": "Jamaican women, Afro-Caribbean features, varied",
+  "georgia": "Georgian women, Caucasian transcontinental features, varied",
+  "united-arab-emirates": "Emirati women, Arabian Peninsula, varied",
+  "mauritius": "Mauritian women, mixed South Asian and Creole features, varied",
+  "belarus": "Belarusian women, East European Slavic features, varied",
 };
 
 export const WOMEN_GROUP_STANDARD_PROMPT_PREFIX =

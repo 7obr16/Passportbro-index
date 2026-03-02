@@ -57,6 +57,29 @@ type CountryRow = {
   women_image_url?: string;
 };
 
+type BmiPair = { male: number; female: number };
+
+const REGION_BMI_FALLBACK: Record<string, BmiPair> = {
+  "Africa": { male: 24.8, female: 27.6 },
+  "Asia": { male: 23.7, female: 24.6 },
+  "East Asia": { male: 24.0, female: 22.8 },
+  "South Asia": { male: 23.0, female: 24.4 },
+  "Southeast Asia": { male: 23.8, female: 24.8 },
+  "Central Asia": { male: 25.7, female: 26.6 },
+  "Middle East": { male: 27.2, female: 29.4 },
+  "Europe": { male: 26.3, female: 25.6 },
+  "North America": { male: 28.7, female: 29.6 },
+  "Central America": { male: 26.9, female: 28.8 },
+  "South America": { male: 26.0, female: 27.4 },
+  "Caribbean": { male: 26.4, female: 29.1 },
+  "Oceania": { male: 27.8, female: 29.4 },
+  "Other": { male: 25.5, female: 26.3 },
+};
+
+function getRegionBmiFallback(region: string): BmiPair {
+  return REGION_BMI_FALLBACK[region] ?? REGION_BMI_FALLBACK.Other;
+}
+
 const PORTRAIT_AVAILABLE = new Set([
   "philippines", "thailand", "indonesia", "malaysia", "vietnam", "cambodia", "kenya",
   "nigeria", "uganda", "rwanda", "tanzania", "ethiopia", "bolivia", "colombia", "mexico",
@@ -71,7 +94,10 @@ const PORTRAIT_AVAILABLE = new Set([
   "malta", "cyprus", "iceland", "montenegro", "north-macedonia", "albania",
   "bosnia-and-herzegovina", "moldova", "taiwan", "singapore", "laos", "sri-lanka",
   "ecuador", "paraguay", "uruguay", "panama", "guatemala", "cuba", "jamaica",
-  "georgia", "united-arab-emirates", "mauritius", "belarus"
+  "georgia", "united-arab-emirates", "mauritius", "belarus",
+  "timor-leste", "angola", "belize", "benin", "botswana", "burkina-faso",
+  "burundi", "cameroon", "cape-verde", "central-african-republic", "chad",
+  "british-indian-ocean-territory"
 ]);
 
 /** Canonical dating tiers only. "Possible" is treated as "Normal". */
@@ -111,6 +137,8 @@ function rowToCountry(row: CountryRow): Country {
     ? `/women/${row.slug}.png`
     : row.image_url;
 
+  const bmi = getCountryBmi(row.slug) ?? getRegionBmiFallback(row.region || "Other");
+
   return {
     slug: row.slug,
     name: getCountryDisplayName(row.slug) === row.slug ? row.name : getCountryDisplayName(row.slug),
@@ -139,8 +167,8 @@ function rowToCountry(row: CountryRow): Country {
     hasNature: meta.vibe.includes("Nature/Mountains"),
     safetyLevel: getSafetyLevelFromScore(getSafetyScoreBySlug(row.slug)),
     healthcareQuality: meta.healthcareQuality,
-    avgBmiMale: getCountryBmi(row.slug)?.male,
-    avgBmiFemale: getCountryBmi(row.slug)?.female,
+    avgBmiMale: bmi.male,
+    avgBmiFemale: bmi.female,
   };
 }
 

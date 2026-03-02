@@ -8,7 +8,7 @@ import {
   getHomogeneityLabel,
   WORLD_MEDIAN_AGE,
 } from "@/lib/demographicsIndex";
-import { getGallupScore, getGallupLabel } from "@/lib/friendlinessIndex";
+import { getFriendlinessDisplay, getFriendlinessScoreBySlug, hasInterNationsFriendlinessData } from "@/lib/friendlinessIndex";
 import {
   getFertilityRate,
   getFertilityLabel,
@@ -30,11 +30,10 @@ export default function SocietyStats({ slug }: Props) {
   const homogeneity = useMemo(() => getEthnicHomogeneityBySlug(slug), [slug]);
   const homogeneityLabel = useMemo(() => getHomogeneityLabel(homogeneity), [homogeneity]);
 
-  // Foreigner acceptance
-  const gallup = useMemo(() => getGallupScore(slug), [slug]);
-  const gallupLabel = useMemo(() => getGallupLabel(gallup), [gallup]);
-  const US_GALLUP = 7.86;
-  const deltaGallup = gallup - US_GALLUP;
+  // Local friendliness (InterNations Ease of Settling In or Gallup fallback)
+  const friendlyDisplay = useMemo(() => getFriendlinessDisplay(slug), [slug]);
+  const usScore = useMemo(() => getFriendlinessScoreBySlug("usa"), []);
+  const deltaFriendly = friendlyDisplay.score - usScore;
 
   // Fertility
   const tfr = useMemo(() => getFertilityRate(slug), [slug]);
@@ -105,43 +104,42 @@ export default function SocietyStats({ slug }: Props) {
 
         <div className="h-px bg-zinc-800/50" />
 
-        {/* Foreigner Acceptance block */}
+        {/* Local friendliness block */}
         <div>
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-zinc-500" />
-              <span className="text-[11px] font-medium text-zinc-400">Foreigner Acceptance</span>
+              <span className="text-[11px] font-medium text-zinc-400">Local Friendliness</span>
             </div>
-            <SourceLink sourceKey="gallup" />
+            <SourceLink sourceKey={hasInterNationsFriendlinessData(slug) ? "internations" : "gallup"} />
           </div>
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-baseline gap-1.5">
-              <span className={`text-2xl font-black tracking-tight ${gallupLabel.color}`}>
-                {gallup.toFixed(1)}
+              <span className={`text-2xl font-black tracking-tight ${friendlyDisplay.color}`}>
+                {friendlyDisplay.score}
               </span>
-              <span className="text-[10px] text-zinc-500">/ 9</span>
+              <span className="text-[10px] text-zinc-500">/ 100</span>
             </div>
-            <span className={`rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] font-semibold ${gallupLabel.color}`}>
-              {gallupLabel.label}
+            <span className={`rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] font-semibold ${friendlyDisplay.color}`}>
+              {friendlyDisplay.label}
             </span>
           </div>
           <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/60">
             <div
               className="h-full rounded-full"
               style={{
-                width: `${(gallup / 9) * 100}%`,
-                background: gallup >= 6.5 ? "#10b981" : gallup >= 5.0 ? "#f59e0b" : "#ef4444",
+                width: `${friendlyDisplay.score}%`,
+                background: friendlyDisplay.score >= 70 ? "#10b981" : friendlyDisplay.score >= 50 ? "#f59e0b" : "#ef4444",
               }}
             />
-            {/* US reference tick */}
             <div
               className="absolute top-0 h-full w-0.5 rounded-full bg-zinc-400"
-              style={{ left: `${(US_GALLUP / 9) * 100}%` }}
-              title={`US: ${US_GALLUP}`}
+              style={{ left: `${usScore}%` }}
+              title={`US: ${usScore}`}
             />
           </div>
           <p className="mt-1.5 text-[10px] text-zinc-500">
-            {deltaGallup >= 0 ? `+${deltaGallup.toFixed(1)}` : deltaGallup.toFixed(1)} vs US · Gallup Migrant Acceptance Index (0–9)
+            {deltaFriendly >= 0 ? `+${deltaFriendly}` : deltaFriendly} vs US · {friendlyDisplay.source === "internations" ? "InterNations Ease of Settling In" : "Gallup (fallback)"}
           </p>
         </div>
 

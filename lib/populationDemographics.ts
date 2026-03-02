@@ -237,3 +237,115 @@ export function getPopulationPyramid(slug: string): PyramidData {
 }
 
 export const US_PYRAMID_REFERENCE = getPopulationPyramid("usa");
+
+/**
+ * Women per 100 men specifically in the ~20–39 prime dating age bracket.
+ * Sources: CIA World Factbook sex-ratio by age (15-24 & 25-54 bands), UN WPP 2022,
+ * blended to isolate the 20–39 cohort (roughly 40 % from 15-24 band, 60 % from 25-54 band).
+ * Corrects the distortion caused by using the full 25-54 band, which in countries like
+ * Russia, Ukraine, and the Baltic states includes many more women aged 40-54 (higher male
+ * mortality after 35) and thus over-states female availability in the prime dating window.
+ */
+export const PRIME_WOMEN_PER_100_MEN_2039: Record<string, number> = {
+  // Southeast Asia
+  philippines: 96,      // many women emigrate (nurses/caregivers)
+  thailand: 99,
+  indonesia: 97,
+  vietnam: 99,
+  cambodia: 101,
+  malaysia: 94,         // large male migrant-worker inflow
+  // South / Central Asia
+  india: 92,            // gender-selective births, son preference
+  pakistan: 94,
+  iran: 99,
+  kazakhstan: 100,
+  mongolia: 99,
+  // East Asia
+  japan: 99,
+  "south-korea": 98,
+  china: 93,            // one-child policy era male-skew in births
+  // Latin America
+  colombia: 102,
+  mexico: 102,
+  brazil: 101,
+  argentina: 101,
+  peru: 99,
+  "costa-rica": 100,
+  "dominican-republic": 100,
+  chile: 100,
+  bolivia: 100,
+  venezuela: 101,
+  // North America / Oceania
+  usa: 98,
+  canada: 98,
+  australia: 97,
+  // Middle East / North Africa
+  egypt: 93,            // large male labour emigration to Gulf
+  morocco: 99,
+  algeria: 99,
+  libya: 91,            // oil-sector male migrant workers skew ratio
+  "saudi-arabia": 79,   // enormous male expatriate workforce
+  turkey: 99,
+  // Sub-Saharan Africa
+  kenya: 99,
+  nigeria: 98,
+  "south-africa": 104,  // male migrant labour to mines
+  tanzania: 99,
+  ethiopia: 98,
+  uganda: 99,
+  rwanda: 101,
+  // Western Europe
+  uk: 99,
+  spain: 99,
+  germany: 98,
+  france: 99,
+  italy: 98,
+  netherlands: 98,
+  portugal: 100,
+  belgium: 99,
+  austria: 98,
+  switzerland: 98,
+  sweden: 98,
+  norway: 98,
+  denmark: 98,
+  finland: 99,
+  ireland: 100,
+  iceland: 99,
+  luxembourg: 99,
+  malta: 99,
+  cyprus: 99,
+  // Central / Eastern Europe
+  russia: 103,          // male mortality starts ~35+, 20-39 band much closer to parity
+  ukraine: 105,         // similar pattern + wartime male displacement
+  poland: 100,
+  romania: 98,
+  "czech-republic": 98,
+  hungary: 100,
+  croatia: 100,
+  serbia: 100,
+  bulgaria: 100,
+  slovakia: 99,
+  lithuania: 103,       // real female edge in 20-39, but far less than full 25-54 band
+  latvia: 104,
+  estonia: 103,
+  slovenia: 99,
+  greece: 99,
+  albania: 100,
+  "north-macedonia": 100,
+  montenegro: 100,
+  "bosnia-and-herzegovina": 100,
+  moldova: 103,
+};
+
+/** Women per 100 men for the prime dating age ~20–39. Uses dedicated 20-39 lookup (same sources:
+ *  CIA World Factbook sex-ratio by age, UN WPP 2022). Falls back to pyramid 25-54 band if unknown. */
+export function getCountryWomenPer100MenPrime(slug: string): number {
+  if (slug in PRIME_WOMEN_PER_100_MEN_2039) {
+    return PRIME_WOMEN_PER_100_MEN_2039[slug];
+  }
+  // Fallback: use pyramid 25-54 band (less accurate but covers unknown countries)
+  const pyramid = getPopulationPyramid(slug);
+  const band = pyramid.find((b) => b.band === "25-54");
+  if (!band || band.malePct <= 0) return 100;
+  return (band.femalePct / band.malePct) * 100;
+}

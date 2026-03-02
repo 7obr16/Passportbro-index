@@ -17,7 +17,7 @@ export default async function ChartsPage() {
             Interactive Charts
           </h1>
           <p className="mt-1.5 text-xs text-zinc-400 sm:mt-2 sm:text-sm">
-            Compare metrics and discover correlations between dating ease, cost, safety, and more.
+            Compare countries on a single metric with the US as reference.
           </p>
         </div>
         

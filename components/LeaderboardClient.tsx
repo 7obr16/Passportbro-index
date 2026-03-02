@@ -12,6 +12,7 @@ import {
   sortLeaderboard,
   type LeaderboardCountry,
 } from "@/lib/scoring";
+import SourceLink from "@/components/SourceLink";
 
 type Props = {
   countries: Country[];
@@ -175,6 +176,44 @@ export default function LeaderboardClient({ countries }: Props) {
             </motion.div>
           );
         })}
+      </div>
+
+      {/* Data sources — same reference as country detail, dashboard, globe; getCountryScores only */}
+      <div className="mt-8 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Data sources</p>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-400">
+          Leaderboard scores use the same reference data and the same scoring function (<code className="rounded bg-zinc-800/80 px-1 text-[10px]">getCountryScores</code>) as country profiles, the dashboard, and the globe. Safety = safetyIndex (Numbeo), Cost = affordabilityIndex (Numbeo), Friendly = friendlinessIndex (InterNations / Gallup), Internet = Speedtest, Dating = curated. No separate dataset.
+        </p>
+        <ul className="mt-4 space-y-2 text-[11px] text-zinc-500">
+          <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <span className="font-medium text-zinc-400">Safety</span>
+            <span className="text-zinc-600">·</span>
+            <SourceLink sourceKey="safety" className="text-zinc-500 hover:text-zinc-300" />
+            <span className="text-zinc-600">(Safety Index: crime / day-to-day)</span>
+          </li>
+          <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <span className="font-medium text-zinc-400">Cost (affordability)</span>
+            <span className="text-zinc-600">·</span>
+            <SourceLink sourceKey="affordability" className="text-zinc-500 hover:text-zinc-300" />
+          </li>
+          <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <span className="font-medium text-zinc-400">Friendly (local friendliness)</span>
+            <span className="text-zinc-600">·</span>
+            <SourceLink sourceKey="internations" className="text-zinc-500 hover:text-zinc-300" />
+            <span className="text-zinc-600">(Ease of Settling In; Gallup fallback)</span>
+          </li>
+          <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <span className="font-medium text-zinc-400">Internet</span>
+            <span className="text-zinc-600">·</span>
+            <SourceLink sourceKey="internet" className="text-zinc-500 hover:text-zinc-300" />
+            <span className="text-zinc-600">(Speedtest Global Index)</span>
+          </li>
+          <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <span className="font-medium text-zinc-400">Dating</span>
+            <span className="text-zinc-600">·</span>
+            <span className="text-zinc-500">Curated score (same as country profile and dashboard).</span>
+          </li>
+        </ul>
       </div>
     </div>
   );

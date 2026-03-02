@@ -1,14 +1,44 @@
 /**
- * Friendliness / receptiveness to foreigners, derived from Gallup Migrant Acceptance Index.
- * Scale 0–9 (Gallup): "Would you accept migrants as neighbors / living in your country / in your family?"
- * We convert to 0–100 for scoring. Higher = more welcoming.
- * Sources: Gallup Migrant Acceptance Index (2017–2019; most recent published).
+ * Friendliness / receptiveness to foreigners (expats & visitors).
+ * Primary source: InterNations Expat Insider "Ease of Settling In" (2024) – how welcome
+ * expats feel, local friendliness, ease of making friends. Countries like Philippines,
+ * Mexico, Costa Rica rank at the top. Fallback: Gallup Migrant Acceptance Index for
+ * countries not in the InterNations survey.
+ * @see https://www.internations.org/expat-insider/2024/ease-of-settling-in-index-40452
  * @see https://news.gallup.com/poll/216377/new-index-shows-least-accepting-countries-migrants.aspx
- * @see https://news.gallup.com/opinion/gallup/245528/revisiting-least-accepting-countries-migrants.aspx
  */
 
+/** InterNations Ease of Settling In rank (1 = friendliest, 53 = least). Only countries in survey. */
+const INTERNATIONS_SETTLING_IN_RANK: Record<string, number> = {
+  "costa-rica": 1,
+  "mexico": 2,
+  "philippines": 3,
+  "indonesia": 4,
+  "brazil": 5,
+  "thailand": 6,
+  "colombia": 8,
+  "kenya": 9,
+  "greece": 10,
+  "spain": 11,
+  "vietnam": 13,
+  "south-korea": 36,
+  "canada": 39,
+  "turkey": 40,
+  "hungary": 44,
+  "denmark": 45,
+  "switzerland": 46,
+  "czech-republic": 47,
+  "sweden": 48,
+  "austria": 49,
+  "finland": 50,
+  "germany": 51,
+  "norway": 52,
+};
+
+const INTERNATIONS_MAX_RANK = 53;
+
+/** Gallup 0–9 (migration acceptance). Fallback for countries not in InterNations. */
 const GALLUP_ACCEPTANCE: Record<string, number> = {
-  // Gallup 0–9 scale (published or region-consistent estimates)
   "philippines": 6.9,
   "thailand": 7.0,
   "indonesia": 6.8,
@@ -16,9 +46,9 @@ const GALLUP_ACCEPTANCE: Record<string, number> = {
   "vietnam": 6.2,
   "cambodia": 6.6,
   "kenya": 7.4,
-  "nigeria": 7.76,  // Gallup
+  "nigeria": 7.76,
   "uganda": 7.2,
-  "rwanda": 8.16,   // Gallup (top tier)
+  "rwanda": 8.16,
   "tanzania": 7.1,
   "ethiopia": 6.9,
   "bolivia": 6.5,
@@ -28,38 +58,37 @@ const GALLUP_ACCEPTANCE: Record<string, number> = {
   "venezuela": 6.0,
   "dominican-republic": 6.2,
   "costa-rica": 7.2,
-  "india": 5.97,    // Gallup
+  "india": 5.97,
   "pakistan": 5.2,
   "morocco": 5.8,
-  "brazil": 6.95,   // Gallup
+  "brazil": 6.95,
   "argentina": 6.5,
   "chile": 6.2,
   "china": 5.4,
   "mongolia": 5.8,
-  "south-africa": 6.63, // Gallup
-  "russia": 4.3,    // Gallup (low)
+  "south-africa": 6.63,
+  "russia": 4.3,
   "ukraine": 4.0,
   "poland": 3.8,
   "romania": 3.5,
-  "turkey": 4.73,   // Gallup
+  "turkey": 4.73,
   "kazakhstan": 5.0,
   "algeria": 5.2,
   "libya": 5.0,
-  "usa": 7.86,      // Gallup
-  "canada": 8.14,   // Gallup (top)
-  "australia": 7.98, // Gallup
+  "usa": 7.86,
+  "canada": 8.14,
+  "australia": 7.98,
   "uk": 7.5,
   "france": 6.8,
-  "germany": 7.48,  // Gallup
-  "spain": 7.73,    // Gallup
+  "germany": 7.48,
+  "spain": 7.73,
   "italy": 6.2,
-  "sweden": 7.92,   // Gallup
+  "sweden": 7.92,
   "japan": 5.6,
   "south-korea": 5.4,
   "saudi-arabia": 4.8,
   "egypt": 5.5,
   "iran": 3.8,
-  // European (Gallup Migrant Acceptance Index)
   "portugal": 6.8,
   "netherlands": 7.6,
   "belgium": 7.2,
@@ -94,7 +123,15 @@ const GALLUP_ACCEPTANCE: Record<string, number> = {
 const GALLUP_MAX = 9;
 
 /**
- * Convert Gallup 0–9 score to 0–100 (100 = most welcoming).
+ * Convert InterNations rank (1 = best) to 0–100 score.
+ */
+function scoreFromInterNationsRank(rank: number): number {
+  const r = Math.max(1, Math.min(INTERNATIONS_MAX_RANK, rank));
+  return Math.round((100 * (INTERNATIONS_MAX_RANK - r)) / (INTERNATIONS_MAX_RANK - 1));
+}
+
+/**
+ * Convert Gallup 0–9 to 0–100 (fallback).
  */
 export function getFriendlinessScoreFromGallup(gallup: number): number {
   const clamped = Math.max(0, Math.min(GALLUP_MAX, gallup));
@@ -102,12 +139,21 @@ export function getFriendlinessScoreFromGallup(gallup: number): number {
 }
 
 /**
- * Get numeric friendliness score (0–100) for a country slug.
- * Uses Gallup Migrant Acceptance Index; unknown slugs get default 55.
+ * Get numeric friendliness score (0–100). Uses InterNations Ease of Settling In
+ * where available; otherwise Gallup Migrant Acceptance. Higher = more welcoming.
  */
 export function getFriendlinessScoreBySlug(slug: string): number {
+  const rank = INTERNATIONS_SETTLING_IN_RANK[slug];
+  if (rank != null) return scoreFromInterNationsRank(rank);
   const gallup = GALLUP_ACCEPTANCE[slug] ?? 5.0;
   return getFriendlinessScoreFromGallup(gallup);
+}
+
+/**
+ * Whether the country has InterNations Ease of Settling In data (vs Gallup fallback).
+ */
+export function hasInterNationsFriendlinessData(slug: string): boolean {
+  return slug in INTERNATIONS_SETTLING_IN_RANK;
 }
 
 /**
@@ -119,18 +165,39 @@ export function getFriendlinessLabelFromScore(score: number): "High" | "Medium" 
   return "Low";
 }
 
-/** Raw Gallup Migrant Acceptance Index score (0–9) for a slug. Default 5.0 for unknown. */
+/**
+ * Display value for UI: 0–100 score and optional InterNations rank.
+ * Use for "Local friendliness" / "Foreigner acceptance" sections.
+ */
+export function getFriendlinessDisplay(slug: string): {
+  score: number;
+  source: "internations" | "gallup";
+  rank?: number;
+  label: string;
+  color: string;
+} {
+  const score = getFriendlinessScoreBySlug(slug);
+  const rank = INTERNATIONS_SETTLING_IN_RANK[slug];
+  const source = rank != null ? "internations" : "gallup";
+  if (score >= 85) return { score, source, rank, label: "Very welcoming", color: "text-emerald-400" };
+  if (score >= 70) return { score, source, rank, label: "Welcoming", color: "text-lime-400" };
+  if (score >= 50) return { score, source, rank, label: "Moderate", color: "text-amber-400" };
+  if (score >= 30) return { score, source, rank, label: "Cautious", color: "text-orange-400" };
+  return { score, source, rank, label: "Unwelcoming", color: "text-red-400" };
+}
+
+/** Raw Gallup score (0–9). Only meaningful when source is gallup; used for fallback display. */
 export function getGallupScore(slug: string): number {
   return GALLUP_ACCEPTANCE[slug] ?? 5.0;
 }
 
-/** Human-readable label for a Gallup 0–9 score. */
+/** Human-readable label for a 0–9 Gallup score (used when showing Gallup fallback). */
 export function getGallupLabel(score: number): { label: string; color: string } {
-  if (score >= 8.0) return { label: "Very Welcoming",  color: "text-emerald-400" };
-  if (score >= 6.5) return { label: "Welcoming",       color: "text-lime-400"    };
-  if (score >= 5.0) return { label: "Moderate",        color: "text-amber-400"   };
-  if (score >= 3.5) return { label: "Cautious",        color: "text-orange-400"  };
-  return                    { label: "Unwelcoming",    color: "text-red-400"     };
+  if (score >= 8.0) return { label: "Very Welcoming", color: "text-emerald-400" };
+  if (score >= 6.5) return { label: "Welcoming", color: "text-lime-400" };
+  if (score >= 5.0) return { label: "Moderate", color: "text-amber-400" };
+  if (score >= 3.5) return { label: "Cautious", color: "text-orange-400" };
+  return { label: "Unwelcoming", color: "text-red-400" };
 }
 
-export { GALLUP_ACCEPTANCE };
+export { GALLUP_ACCEPTANCE, INTERNATIONS_SETTLING_IN_RANK };

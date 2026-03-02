@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Users, DollarSign, Cross, Filter, Star, Wifi, Heart, Shield } from "lucide-react";
@@ -35,9 +35,30 @@ type Props = {
   initialCountries: Country[];
 };
 
+const FILTERS_STORAGE_KEY = "passport-filters-v1";
+
 export default function ClientDashboard({ initialCountries }: Props) {
-  const [filters, setFilters] = useState<FiltersState>(() => createDefaultFilters());
+  // Always start with defaults (SSR-safe). The useEffect below restores from
+  // sessionStorage on the first client render without overwriting anything.
+  const [filters, setFilters] = useState<FiltersState>(createDefaultFilters);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isFirstRun = useRef(true);
+
+  // First invocation: load saved filters from sessionStorage.
+  // Every subsequent invocation (when filters actually change): persist them.
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      try {
+        const raw = sessionStorage.getItem(FILTERS_STORAGE_KEY);
+        if (raw) setFilters(prev => ({ ...prev, ...JSON.parse(raw) }));
+      } catch { /* ignore */ }
+      return; // don't save on the first run — we just loaded
+    }
+    try {
+      sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+    } catch { /* ignore */ }
+  }, [filters]);
 
   const filteredCountries = useMemo(() => {
     return initialCountries.filter((c) => {
@@ -71,9 +92,9 @@ export default function ClientDashboard({ initialCountries }: Props) {
       }
       if (filters.monthlyBudget.length) {
         // Treat budget as "Max Budget" (inclusive of cheaper options)
-        const budgetLevels = { "<$1k": 1, "$1k-$2k": 2, "$2k-$3k": 3, "$3k+": 4 };
+        const budgetLevels = { "<$1k": 1, "$1k-$2k": 2, "$2k-$3k": 3, "$3k-$5k": 4, "$5k+": 5 };
         const maxSelectedLevel = Math.max(...filters.monthlyBudget.map(b => budgetLevels[b as keyof typeof budgetLevels] || 0));
-        const countryLevel = budgetLevels[c.budgetTier as keyof typeof budgetLevels] || 4;
+        const countryLevel = budgetLevels[c.budgetTier as keyof typeof budgetLevels] || 5;
         
         if (countryLevel > maxSelectedLevel) return false;
       }

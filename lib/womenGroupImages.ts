@@ -171,9 +171,9 @@ export const WOMEN_GROUP_PROMPT_DESCRIPTION: Record<string, string> = {
 export const WOMEN_GROUP_STANDARD_PROMPT_PREFIX =
   "Hyper realistic photograph, 8 women standing in a row side by side, full body visible from head to knees, equal spacing between each person, clean pure white background, even studio lighting, no shadows on background, all women facing camera, neutral friendly expression, women appear 24-26 years old, beautiful as you would see on the street, ";
 
-/** Single portrait (one woman, white background). Same style as group; use with WOMEN_GROUP_PROMPT_DESCRIPTION for consistency. */
+/** Single portrait for main page card: close-up head-and-shoulders only (same format as Romania card). */
 export const SINGLE_PORTRAIT_STANDARD_PROMPT_PREFIX =
-  "Hyper realistic photograph, one woman standing, full body visible from head to knees, clean pure white background, even studio lighting, no shadows on background, facing camera, neutral friendly expression, woman appears 24-26 years old, beautiful as you would see on the street, ";
+  "Hyper realistic photograph, close-up portrait of one woman, head and shoulders only, face and shoulders filling the frame, plain light grey or white background, even studio lighting, no shadows on background, facing camera, neutral friendly expression, woman appears 24-26 years old, beautiful as you would see on the street, ";
 
 /** Full prompt for single portrait. Output path: public/women/{slug}.png */
 export function getSinglePortraitPrompt(slug: string): string {

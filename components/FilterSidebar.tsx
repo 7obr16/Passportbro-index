@@ -54,7 +54,7 @@ const FILTER_CONFIG: { id: ArrayFilterKey; label: string; options: string[] }[] 
   {
     id: "monthlyBudget",
     label: "Max Monthly Budget",
-    options: ["<$1k", "$1k-$2k", "$2k-$3k", "$3k+"],
+    options: ["<$1k", "$1k-$2k", "$2k-$3k", "$3k-$5k", "$5k+"],
   },
   {
     id: "internetSpeed",
@@ -64,7 +64,7 @@ const FILTER_CONFIG: { id: ArrayFilterKey; label: string; options: string[] }[] 
   {
     id: "climate",
     label: "Climate",
-    options: ["Tropical", "Temperate", "Cold"],
+    options: ["Tropical", "Temperate", "Arid", "Cold"],
   },
   {
     id: "safetyLevel",

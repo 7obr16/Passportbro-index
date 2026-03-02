@@ -329,12 +329,15 @@ async function searchUnsplash(query, perPage = 3) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+const LIMIT = parseInt(process.env.LIMIT || "0", 10) || undefined; // e.g. LIMIT=3 for first 3 countries
+
 async function main() {
   const gallery = {};
   const slugs = Object.keys(QUERIES);
+  const toProcess = LIMIT ? slugs.slice(0, LIMIT) : slugs;
 
-  for (let i = 0; i < slugs.length; i++) {
-    const slug = slugs[i];
+  for (let i = 0; i < toProcess.length; i++) {
+    const slug = toProcess[i];
     const cats = QUERIES[slug];
     gallery[slug] = {};
 
@@ -356,7 +359,7 @@ async function main() {
     process.stderr.write(`[${i+1}/${slugs.length}] ${slug}\n`);
   }
 
-  let ts = `// Country visuals: nightlife (bars/clubs/night markets), food (national dishes), city (landmarks), beaches (iconic spots). ~5 per category, category-specific Unsplash.\nexport type CountryGalleryEntry = {\n  nightlife: string[];\n  food: string[];\n  city: string[];\n  beaches: string[];\n};\n\nexport const COUNTRY_GALLERY: Record<string, CountryGalleryEntry> = {\n`;
+  let ts = `// Country visuals: nightlife (bars/clubs/night markets), food (national dishes), city (landmarks), beaches (iconic spots). ~5 per category.\nexport type CountryGalleryEntry = {\n  nightlife: string[];\n  food: string[];\n  city: string[];\n  beaches: string[];\n};\n\nexport const COUNTRY_GALLERY: Record<string, CountryGalleryEntry> = {\n`;
 
   for (const [slug, cats] of Object.entries(gallery)) {
     ts += `  "${slug}": {\n`;
@@ -367,7 +370,24 @@ async function main() {
     }
     ts += `  },\n`;
   }
+  ts += `};\n\n`;
+
+  ts += `/** Slugs that use the default European gallery when not in COUNTRY_GALLERY. */\nexport const EUROPEAN_DEFAULT_GALLERY_SLUGS = [\n  "portugal", "netherlands", "belgium", "austria", "switzerland", "norway", "denmark",\n  "finland", "ireland", "greece", "czech-republic", "hungary", "croatia", "serbia",\n  "bulgaria", "slovakia", "lithuania", "latvia", "estonia", "slovenia", "luxembourg",\n  "malta", "cyprus", "iceland", "montenegro", "north-macedonia", "albania",\n  "bosnia-and-herzegovina", "moldova",\n] as const;\n\n`;
+
+  const defaultUrls = {
+    city: ["https://images.unsplash.com/photo-1497942692462-38dc3c3bff1a?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1568495596776-9e13fe33471a?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1665482955116-8226c353a5f1?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=1600&q=80"],
+    beaches: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1449452198679-05c7fd30f416?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1543169108-32ac15a21e05?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1506260408121-e353d10b87c7?auto=format&fit=crop&w=1600&q=80"],
+    food: ["https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1645975735133-74cc184a9584?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1572345859911-f5cb90c337f3?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1560523335-8104a0465471?auto=format&fit=crop&w=1600&q=80"],
+    nightlife: ["https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1566555374250-e99b902bcdbc?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1583228370699-8406fb3f5771?auto=format&fit=crop&w=1600&q=80"],
+  };
+  ts += `/** Default European gallery (same format as COUNTRY_GALLERY entries). */\nexport const DEFAULT_EUROPEAN_GALLERY: CountryGalleryEntry = {\n`;
+  for (const [k, urls] of Object.entries(defaultUrls)) {
+    ts += `  ${k}: [\n`;
+    for (const url of urls) ts += `    "${url}",\n`;
+    ts += `  ],\n`;
+  }
   ts += `};\n`;
+
   console.log(ts);
 }
 

@@ -29,6 +29,7 @@ import CountryMark from "@/components/CountryMark";
 import ClimateInsights from "@/components/ClimateInsights";
 import AirQualityMap from "@/components/AirQualityMap";
 import CountryStatsSection from "@/components/CountryStatsSection";
+import BodyComparison from "@/components/BodyComparison";
 import SourceLink from "@/components/SourceLink";
 import SiteNav from "@/components/SiteNav";
 import CountryGlobe from "@/components/CountryGlobe";
@@ -618,7 +619,7 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
         </motion.div>
 
         {/* Full-width tabbed stats section */}
-        <motion.div variants={itemVariants}>
+        <motion.div variants={itemVariants} className="mt-6">
           <CountryStatsSection country={country} allCountries={allCountries} />
         </motion.div>
 

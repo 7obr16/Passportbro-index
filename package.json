@@ -7,9 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "print-image-prompts": "tsx scripts/print-image-prompts.ts"
+    "print-image-prompts": "tsx scripts/print-image-prompts.ts",
+    "generate-bmi-images": "tsx scripts/generate-bmi-images.ts",
+    "generate-all-missing-images": "tsx scripts/generate-all-missing-images.ts",
+    "sync-european-core": "tsx scripts/sync-european-core-data.ts"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.9.4",
     "@supabase/supabase-js": "^2.98.0",
     "cheerio": "^1.2.0",
     "csv-parse": "^6.1.0",
@@ -33,7 +37,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
     "tsx": "^4.7.0",
     "typescript": "^5"
   }

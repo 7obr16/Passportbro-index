@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { CloudRain, Sun, Moon, ChevronDown, Thermometer } from "lucide-react";
+import SourceLink from "@/components/SourceLink";
 
 type Props = {
   slug: string;
@@ -76,22 +77,24 @@ function buildClimateSeries(climate: string, slug: string, hasBeach: boolean, ha
   const base =
     profile === "tropical"
       ? { mean: 27, amp: 3.2, nightDelta: 6.0, rainBase: 70, rainAmp: 90 }
-      : profile === "cold"
-        ? { mean: 8, amp: 14, nightDelta: 8.5, rainBase: 45, rainAmp: 35 }
-        : { mean: 16, amp: 10, nightDelta: 7.0, rainBase: 65, rainAmp: 30 };
+      : profile === "arid"
+        ? { mean: 28, amp: 12, nightDelta: 9.0, rainBase: 4, rainAmp: 6 }
+        : profile === "cold"
+          ? { mean: 8, amp: 14, nightDelta: 8.5, rainBase: 45, rainAmp: 35 }
+          : { mean: 16, amp: 10, nightDelta: 7.0, rainBase: 65, rainAmp: 30 };
 
-  const mean = base.mean + (r1 - 0.5) * (profile === "tropical" ? 2 : 4);
-  const amp  = base.amp  + (r2 - 0.5) * (profile === "tropical" ? 1.2 : 2.5);
+  const mean = base.mean + (r1 - 0.5) * (profile === "tropical" ? 2 : profile === "arid" ? 2 : 4);
+  const amp  = base.amp  + (r2 - 0.5) * (profile === "tropical" ? 1.2 : profile === "arid" ? 1.5 : 2.5);
   const nightDelta = base.nightDelta + (r3 - 0.5) * 1.8;
 
-  const seasonShift = profile === "tropical" ? 0.5 : 0;
+  const seasonShift = profile === "tropical" ? 0.5 : profile === "arid" ? 0 : 0;
   const avg = Array.from({ length: 12 }, (_, i) => {
     const t = (i / 12) * Math.PI * 2;
     return Math.round((mean - Math.cos(t + seasonShift) * amp) * 10) / 10;
   });
 
   const day = avg.map((v, i) => {
-    const swing = profile === "tropical" ? 3.2 : profile === "cold" ? 5.0 : 4.2;
+    const swing = profile === "tropical" ? 3.2 : profile === "arid" ? 4.5 : profile === "cold" ? 5.0 : 4.2;
     const wobble = Math.sin((i / 12) * Math.PI * 2 + r2) * 0.6;
     return Math.round((v + swing / 2 + wobble) * 10) / 10;
   });
@@ -102,11 +105,15 @@ function buildClimateSeries(climate: string, slug: string, hasBeach: boolean, ha
 
   const rain = Array.from({ length: 12 }, (_, i) => {
     const t = (i / 12) * Math.PI * 2;
-    const monsoon = profile === "tropical" ? Math.max(0, Math.sin(t - 0.6)) : 0.25 + 0.25 * Math.sin(t + 1.2);
+    const monsoon = profile === "tropical"
+      ? Math.max(0, Math.sin(t - 0.6))
+      : profile === "arid"
+        ? 0.1 + 0.15 * Math.sin(t + 0.5)
+        : 0.25 + 0.25 * Math.sin(t + 1.2);
     let v = (base.rainBase + base.rainAmp * monsoon) * (0.85 + r1 * 0.3);
-    if (hasBeach) v += profile === "tropical" ? 20 : 10;
-    if (hasNature) v += profile === "tropical" ? 15 : 8;
-    return Math.round(v);
+    if (hasBeach && profile !== "arid") v += profile === "tropical" ? 20 : 10;
+    if (hasNature && profile !== "arid") v += profile === "tropical" ? 15 : 8;
+    return Math.round(Math.max(0, v));
   });
 
   const rot = (arr: number[]) => SOUTHERN_HEMISPHERE.has(slug) ? rotateByHalfYear(arr) : arr;
@@ -208,7 +215,9 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
       >
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold text-zinc-100 sm:text-base">Climate & Weather</h2>
-          <p className="mt-0.5 text-[10px] text-zinc-500 sm:text-[11px]">Monthly temperature and rainfall for {countryName}</p>
+          <p className="mt-0.5 text-[10px] text-zinc-500 sm:text-[11px]">
+            Monthly temperature and rainfall for {countryName} · <SourceLink sourceKey="climate" className="text-zinc-500" />
+          </p>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
@@ -259,8 +268,12 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
           </div>
 
           {/* Chart */}
-          <div className="overflow-x-auto rounded-xl border border-zinc-800/50 bg-[#080809]">
-            <svg viewBox={`0 0 ${w} ${h}`} className="h-[320px] w-full min-w-[600px]">
+          <div className="relative overflow-x-auto rounded-xl border border-zinc-800/50 bg-[#080809]">
+            <svg
+              viewBox={`0 0 ${w} ${h}`}
+              className="h-[320px] w-full min-w-[600px]"
+              onMouseLeave={() => setHoverMonth(null)}
+            >
               <defs>
                 <linearGradient id="rainBarGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
@@ -410,16 +423,18 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
                   />
                 ))}
 
-              {/* Month labels + hover hitboxes */}
+              {/* Month labels + full-column hover hitboxes (drawn last so they capture pointer) */}
               {MONTHS.map((m, i) => {
                 const x = toX(i);
                 const isH = hoverMonth === i;
+                const hitX = padLeft + (i / 12) * plotW;
                 return (
-                  <g key={m} onMouseEnter={() => setHoverMonth(i)} onMouseLeave={() => setHoverMonth(null)}>
-                    <rect x={x - 20} y={padTop} width={40} height={plotH + padBottom} fill="transparent" />
-                    {isH && (
-                      <line x1={x} y1={padTop} x2={x} y2={padTop + plotH} stroke="#3f3f46" strokeWidth="0.8" strokeDasharray="3 3" />
-                    )}
+                  <g
+                    key={m}
+                    onMouseEnter={() => setHoverMonth(i)}
+                    onMouseLeave={() => setHoverMonth(null)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <text
                       x={x}
                       y={h - 12}
@@ -428,9 +443,22 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
                       fontSize="10"
                       fontWeight={isH ? "700" : "400"}
                       fontFamily="system-ui"
+                      pointerEvents="none"
                     >
                       {m}
                     </text>
+                    {isH && (
+                      <line x1={x} y1={padTop} x2={x} y2={padTop + plotH} stroke="#3f3f46" strokeWidth="0.8" strokeDasharray="3 3" pointerEvents="none" />
+                    )}
+                    <rect
+                      x={hitX}
+                      y={padTop}
+                      width={colW}
+                      height={plotH + padBottom}
+                      fill="transparent"
+                      style={{ pointerEvents: "all" }}
+                      aria-label={`${MONTHS_FULL[i]} – Avg ${avg[i]}°, Day ${day[i]}°, Night ${night[i]}°, Rain ${rain[i]} mm`}
+                    />
                   </g>
                 );
               })}
@@ -487,6 +515,27 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
                 );
               })()}
             </svg>
+
+            {/* HTML tooltip for hovered month — always visible, not clipped by SVG */}
+            {hoverMonth != null && (
+              <div
+                className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-zinc-700/80 bg-zinc-900/95 px-4 py-3 shadow-xl backdrop-blur-sm"
+                style={{ borderLeftWidth: 3, borderLeftColor: tempColor(avg[hoverMonth]) }}
+              >
+                <p className="mb-1.5 text-xs font-bold text-zinc-100">
+                  {MONTHS_FULL[hoverMonth]}
+                  <span className="ml-2 font-semibold" style={{ color: tempColor(avg[hoverMonth]) }}>
+                    {tempLabel(avg[hoverMonth])}
+                  </span>
+                </p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-zinc-400">
+                  <span>Avg <span className="font-semibold text-zinc-200">{avg[hoverMonth]}°C</span></span>
+                  <span>Day <span className="font-semibold text-orange-400">{day[hoverMonth]}°C</span></span>
+                  <span>Night <span className="font-semibold text-sky-400">{night[hoverMonth]}°C</span></span>
+                  <span>Rain <span className="font-semibold text-blue-400">{rain[hoverMonth]} mm</span></span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Summary row */}

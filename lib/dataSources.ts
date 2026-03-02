@@ -4,10 +4,10 @@
  */
 
 export const DATA_SOURCES = {
-  /** Global Peace Index – safety/peace rankings */
+  /** Numbeo Safety Index – day-to-day safety, crime, feeling safe (not peace/conflict) */
   safety: {
-    label: "GPI",
-    url: "https://www.visionofhumanity.org/",
+    label: "Numbeo",
+    url: "https://www.numbeo.com/crime/rankings_by_country.jsp?displayColumn=1&title=2024",
   },
   /** NCD-RisC – mean height by country */
   height: {
@@ -54,10 +54,30 @@ export const DATA_SOURCES = {
     label: "World Bank",
     url: "https://data.worldbank.org/indicator/SP.DYN.TFRT.IN",
   },
-  /** Gallup Migrant Acceptance Index – perception of foreigners */
+  /** InterNations Expat Insider – Ease of Settling In (local friendliness, welcome, making friends) */
+  internations: {
+    label: "InterNations",
+    url: "https://www.internations.org/expat-insider/2024/ease-of-settling-in-index-40452",
+  },
+  /** Gallup Migrant Acceptance Index – fallback for countries not in InterNations survey */
   gallup: {
     label: "Gallup",
     url: "https://news.gallup.com/poll/216377/new-index-shows-least-accepting-countries-migrants.aspx",
+  },
+  /** Numbeo Cost of Living – affordability / cost score */
+  affordability: {
+    label: "Numbeo",
+    url: "https://www.numbeo.com/cost-of-living/rankings_by_country.jsp",
+  },
+  /** Speedtest Global Index – median fixed broadband (internet score) */
+  internet: {
+    label: "Speedtest",
+    url: "https://www.speedtest.net/global-index",
+  },
+  /** Climate / weather – temperature and precipitation patterns by country */
+  climate: {
+    label: "World Bank Climate",
+    url: "https://climateknowledgeportal.worldbank.org/",
   },
 } as const;
 

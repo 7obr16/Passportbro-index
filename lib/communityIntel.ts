@@ -14,6 +14,28 @@ function splitFallback(s: string): string[] {
     .filter(Boolean);
 }
 
+/** Placeholder text from DB to strip so we never show "add your input" etc. */
+const PLACEHOLDER_PHRASES = [
+  "add your input",
+  "dating: add your input",
+  "Add your input",
+  "Dating: add your input",
+  "no data",
+  "No data",
+  "tbd",
+  "TBD",
+  "coming soon",
+];
+
+function isPlaceholder(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return PLACEHOLDER_PHRASES.some((p) => lower.includes(p.toLowerCase()) || lower === p.toLowerCase());
+}
+
+function filterPlaceholders(items: string[]): string[] {
+  return items.filter((item) => !isPlaceholder(item));
+}
+
 export const COMMUNITY_INTEL: Record<string, CommunityIntel> = {
   philippines: {
     pros: [
@@ -592,53 +614,140 @@ export const COMMUNITY_INTEL: Record<string, CommunityIntel> = {
       "Safety and conservative culture; not a typical dating destination.",
     ],
   },
-  // European countries — data from standard sources; dating left for manual input
-  portugal: { pros: ["Safe; Schengen; good infrastructure and beaches."], cons: ["Dating: add your input."] },
-  netherlands: { pros: ["Very safe; excellent English; strong infrastructure."], cons: ["Expensive; dating: add your input."] },
-  belgium: { pros: ["Central EU; multilingual; safe."], cons: ["Dating: add your input."] },
-  austria: { pros: ["Very safe; Alps; high quality of life."], cons: ["Expensive; dating: add your input."] },
-  switzerland: { pros: ["Very safe; nature; high quality of life."], cons: ["Very expensive; dating: add your input."] },
-  norway: { pros: ["Very safe; nature; English widely spoken."], cons: ["Very expensive; dating: add your input."] },
-  denmark: { pros: ["Very safe; English widely spoken; bike-friendly."], cons: ["Expensive; dating: add your input."] },
-  finland: { pros: ["Very safe; nature; good English."], cons: ["Reserved culture; expensive; dating: add your input."] },
-  ireland: { pros: ["Very safe; English; friendly culture."], cons: ["Expensive; dating: add your input."] },
-  greece: { pros: ["Schengen; beaches; history; affordable by EU standards."], cons: ["Dating: add your input."] },
-  "czech-republic": { pros: ["Affordable; safe; good nightlife in Prague."], cons: ["Dating: add your input."] },
-  hungary: { pros: ["Affordable; Budapest nightlife; safe."], cons: ["Dating: add your input."] },
-  croatia: { pros: ["Coast; Schengen; relatively affordable."], cons: ["Dating: add your input."] },
-  serbia: { pros: ["Affordable; Belgrade nightlife; visa-free for many."], cons: ["Dating: add your input."] },
-  bulgaria: { pros: ["Very affordable; Black Sea; EU."], cons: ["Dating: add your input."] },
-  slovakia: { pros: ["Affordable; safe; nature."], cons: ["Dating: add your input."] },
-  lithuania: { pros: ["Affordable; safe; EU."], cons: ["Dating: add your input."] },
-  latvia: { pros: ["Affordable; Riga; EU."], cons: ["Dating: add your input."] },
-  estonia: { pros: ["Digital nomad friendly; safe; EU."], cons: ["Dating: add your input."] },
-  slovenia: { pros: ["Very safe; nature; small and tidy."], cons: ["Dating: add your input."] },
-  luxembourg: { pros: ["Very safe; multilingual; high income."], cons: ["Very expensive; dating: add your input."] },
-  malta: { pros: ["English official; Schengen; sun and sea."], cons: ["Small; dating: add your input."] },
-  cyprus: { pros: ["English widely used; EU; beaches."], cons: ["Dating: add your input."] },
-  iceland: { pros: ["Very safe; nature; English spoken."], cons: ["Very expensive; small population; dating: add your input."] },
-  montenegro: { pros: ["Coast; affordable; euro used."], cons: ["Dating: add your input."] },
-  "north-macedonia": { pros: ["Affordable; visa-free for many."], cons: ["Dating: add your input."] },
-  albania: { pros: ["Affordable; coast; visa-free for many."], cons: ["Dating: add your input."] },
-  "bosnia-and-herzegovina": { pros: ["Affordable; nature; visa-free for many."], cons: ["Dating: add your input."] },
-  moldova: { pros: ["Very affordable; visa-free for EU."], cons: ["Dating: add your input."] },
+  // European and neighboring countries — pros/cons from passport bro forum perspective
+  portugal: {
+    pros: ["Safe; Schengen; good infrastructure and beaches; Lisbon and Porto popular with nomads.", "Relatively affordable for Western Europe; good weather."],
+    cons: ["Dating culture is Western; women independent and less traditional than in Latin or Asian hubs.", "Smaller passport bro scene; less community intel than Medellín or Bangkok."],
+  },
+  netherlands: {
+    pros: ["Very safe; excellent English; strong infrastructure; Amsterdam has nightlife and expats."],
+    cons: ["Expensive; Dutch dating norms are progressive and competitive; not a typical passport bro destination.", "Women generally independent; less interest in foreign men as a category."],
+  },
+  belgium: {
+    pros: ["Central EU; multilingual; safe; Brussels has international crowd."],
+    cons: ["Dating scene is Western European; reserved; not a go-to for passport bros.", "Split culture (Flemish/French) can make socializing niche."],
+  },
+  austria: {
+    pros: ["Very safe; Alps; high quality of life; Vienna is clean and cultured."],
+    cons: ["Expensive; dating culture formal and reserved; women less approachable than in Southern Europe or Asia.", "German-speaking; English only gets you so far socially."],
+  },
+  switzerland: {
+    pros: ["Very safe; nature; high quality of life; good for hiking and skiing."],
+    cons: ["Very expensive; Swiss are private and dating is slow; not a dating-focused destination.", "Small; tight-knit; hard to break into local circles."],
+  },
+  norway: {
+    pros: ["Very safe; nature; English widely spoken; high standard of living."],
+    cons: ["Very expensive; Nordic dating culture is egalitarian and reserved; women not seeking foreign men.", "Long dark winters; small population in cities."],
+  },
+  denmark: {
+    pros: ["Very safe; English widely spoken; bike-friendly; Copenhagen has expats and nightlife."],
+    cons: ["Expensive; Danish women independent and direct; dating is Western-style and competitive.", "Not a classic passport bro destination; fewer shared trip reports."],
+  },
+  finland: {
+    pros: ["Very safe; nature; good English; Helsinki is orderly and tech-friendly."],
+    cons: ["Reserved culture; Finns are famously introverted; dating and making friends take time.", "Expensive; cold and dark in winter; small dating pool."],
+  },
+  ireland: {
+    pros: ["Very safe; English; friendly pub culture; Dublin has young population and tech scene."],
+    cons: ["Expensive; dating is Western; women not looking for foreigners specifically.", "Weather can be grim; housing in Dublin is costly."],
+  },
+  greece: {
+    pros: ["Schengen; beaches; history; affordable by EU standards; islands and Athens both popular."],
+    cons: ["Dating is Mediterranean but more traditional; Greek women often family-focused and less open to short-term.", "Economy and bureaucracy can be frustrating; English outside tourism is limited."],
+  },
+  "czech-republic": {
+    pros: ["Affordable; safe; good nightlife in Prague; Central European vibe; many tourists and expats."],
+    cons: ["Czech women can be reserved with foreigners; some see Western men as tourists only.", "Prague can feel tourist-saturated; smaller cities have smaller dating pools."],
+  },
+  hungary: {
+    pros: ["Affordable; Budapest nightlife is famous; thermal baths; safe; visa-free for many."],
+    cons: ["Hungarian women often traditional; language barrier outside Budapest; dating can feel transactional in tourist areas.", "Less passport bro coverage than Prague or Poland."],
+  },
+  croatia: {
+    pros: ["Coast; Schengen; relatively affordable; Dubrovnik and Split popular; good weather."],
+    cons: ["Dating is Mediterranean but small pool; many women in coastal towns used to tourists.", "Peak season crowded and pricier; off-season quieter and fewer options."],
+  },
+  serbia: {
+    pros: ["Affordable; Belgrade nightlife is strong; visa-free for many; friendly locals; good food."],
+    cons: ["Dating culture is mixed; some women open to foreigners, others traditional; Serbian language helps a lot.", "Infrastructure and bureaucracy less smooth than EU; safety fine in main cities."],
+  },
+  bulgaria: {
+    pros: ["Very affordable; Black Sea; EU; Sofia and coast have expat presence; low cost of living."],
+    cons: ["Smaller dating scene; Bulgarian women can be reserved; less English outside Sofia.", "Not a major passport bro hub; fewer trip reports and community intel."],
+  },
+  slovakia: {
+    pros: ["Affordable; safe; nature; Bratislava close to Vienna; EU."],
+    cons: ["Small country; dating pool limited; Slovak women often traditional; less English than Czech Republic.", "Not a typical passport bro destination; little forum discussion."],
+  },
+  lithuania: {
+    pros: ["Affordable; safe; EU; Vilnius has bars and digital nomads; Baltic vibe."],
+    cons: ["Lithuanian women can be cold initially; small population; dating is European/Western.", "Cold winters; less coverage in passport bro communities."],
+  },
+  latvia: {
+    pros: ["Affordable; Riga has nightlife and old town; EU; visa-free for many."],
+    cons: ["Small population; Latvian women reserved; dating culture not geared to foreign men.", "Riga can feel small; limited long-term trip reports."],
+  },
+  estonia: {
+    pros: ["Digital nomad friendly; safe; EU; Tallinn is techy and English-speaking; e-residency."],
+    cons: ["Estonians are reserved; dating is Nordic-style and slow; very small population.", "Cold and dark in winter; not a dating-focused destination."],
+  },
+  slovenia: {
+    pros: ["Very safe; nature; small and tidy; Ljubljana is charming; Schengen; good for outdoor types."],
+    cons: ["Tiny country; small dating pool; Slovenes reserved; not a passport bro hotspot.", "Few trip reports; English okay in capital only."],
+  },
+  luxembourg: {
+    pros: ["Very safe; multilingual; high income; central in Europe; good for finance and EU workers."],
+    cons: ["Very expensive; tiny population; dating pool is small and international rather than local.", "Not a dating destination; more for career and stability."],
+  },
+  malta: {
+    pros: ["English official; Schengen; sun and sea; small and easy; low tax options for nomads."],
+    cons: ["Small island; dating pool limited; many expats and tourists; locals can be insular.", "Summer crowded and hot; not a major passport bro destination."],
+  },
+  cyprus: {
+    pros: ["English widely used; EU; beaches; good weather; Paphos and Limassol have expats."],
+    cons: ["Split island (Greek/Turkish); dating is Mediterranean but small pool; can feel transient.", "Less community intel than Spain or Greece for dating."],
+  },
+  iceland: {
+    pros: ["Very safe; nature; English spoken; unique landscape; Reykjavík has nightlife."],
+    cons: ["Very expensive; small population; Icelandic women independent; dating is Nordic and competitive.", "Dark and cold in winter; not a typical passport bro destination."],
+  },
+  montenegro: {
+    pros: ["Coast; affordable; euro used; Budva and Kotor popular; visa-free for many; scenic."],
+    cons: ["Small country; dating pool limited; seasonal tourism; Montenegrin women often traditional.", "Less passport bro coverage; good for nature and cost, not primarily for dating."],
+  },
+  "north-macedonia": {
+    pros: ["Affordable; visa-free for many; Ohrid and Skopje; emerging nomad spot."],
+    cons: ["Small; conservative in places; Macedonian women reserved; limited English and dating scene.", "Few trip reports; infrastructure and bureaucracy less polished."],
+  },
+  albania: {
+    pros: ["Affordable; coast; visa-free for many; Tirana and coast getting more popular; raw and cheap."],
+    cons: ["Albanian women often very traditional; conservative in rural areas; small expat dating pool.", "Infrastructure and driving chaotic; less English than Balkans hotspots."],
+  },
+  "bosnia-and-herzegovina": {
+    pros: ["Affordable; nature; visa-free for many; Sarajevo and Mostar unique; low cost."],
+    cons: ["Conservative and divided society; dating scene small; Bosnian women often traditional.", "Less tourism and expat scene; limited passport bro intel."],
+  },
+  moldova: {
+    pros: ["Very affordable; visa-free for EU; Chișinău has bars; low cost of living."],
+    cons: ["Poor infrastructure; many young women leave for EU; dating pool affected by emigration.", "Corruption and weak economy; not a mainstream passport bro destination."],
+  },
 };
 
-/** Get pros list: prefer our intel, merge DB string as first item if provided. */
+/** Get pros list: forum intel first; DB merged only if real (no placeholders). */
 export function getPros(slug: string, dbPros: string): string[] {
   const intel = COMMUNITY_INTEL[slug];
   const fromIntel = intel?.pros ?? [];
-  const fromDb = splitFallback(dbPros);
+  const fromDb = filterPlaceholders(splitFallback(dbPros));
   if (fromDb.length && !fromIntel.length) return fromDb;
   const combined = fromDb.length ? [...fromDb, ...fromIntel.filter((p) => !fromDb.includes(p))] : fromIntel;
   return combined.length ? combined : ["No community pros listed yet. Check Reddit r/passportbros for more."];
 }
 
-/** Get cons list: prefer our intel, merge DB string as first item if provided. */
+/** Get cons list: forum intel first; DB merged only if real (no placeholders). */
 export function getCons(slug: string, dbCons: string): string[] {
   const intel = COMMUNITY_INTEL[slug];
   const fromIntel = intel?.cons ?? [];
-  const fromDb = splitFallback(dbCons);
+  const fromDb = filterPlaceholders(splitFallback(dbCons));
   if (fromDb.length && !fromIntel.length) return fromDb;
   const combined = fromDb.length ? [...fromDb, ...fromIntel.filter((c) => !fromDb.includes(c))] : fromIntel;
   return combined.length ? combined : ["No community cons listed yet. Check Reddit r/passportbros for more."];

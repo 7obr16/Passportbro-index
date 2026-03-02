@@ -8,10 +8,14 @@ import {
 } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { getPopulationPyramid } from "@/lib/populationDemographics";
+import { getCitySexRatio } from "@/lib/citySexRatio";
+import { getCitiesForCountry } from "@/lib/citiesPrimeAge";
+import CitiesPrimeAgeMap from "@/components/CitiesPrimeAgeMap";
 import { getMedianAgeBySlug, getEthnicHomogeneityBySlug, getHomogeneityLabel, WORLD_MEDIAN_AGE } from "@/lib/demographicsIndex";
-import { getGallupScore, getGallupLabel } from "@/lib/friendlinessIndex";
+import { getFriendlinessScoreBySlug, getFriendlinessDisplay, hasInterNationsFriendlinessData } from "@/lib/friendlinessIndex";
 import { getFertilityRate, getFertilityLabel, US_FERTILITY_RATE, REPLACEMENT_RATE } from "@/lib/fertilityData";
 import SourceLink from "@/components/SourceLink";
+import BodyComparison from "@/components/BodyComparison";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 type TabId = "population" | "economy" | "physical" | "society";
@@ -47,6 +51,31 @@ const DATING_BANDS = new Set<DerivedBand>(["25-39"]);
 
 type BandRow = { band: DerivedBand; malePct: number; femalePct: number };
 
+/** Female vs male ratio in this age group. Positive = more females (good); negative = more males (bad). */
+function getRatioSeverity(malePct: number, femalePct: number): {
+  label: string;
+  isFavorable: boolean;
+  className: string;
+} {
+  const diff = femalePct - malePct; // positive = more women
+  const abs = Math.abs(diff);
+  if (abs < 0.3) {
+    return { label: "Balanced", isFavorable: true, className: "text-zinc-400" };
+  }
+  if (diff > 0) {
+    // More females than males — favorable
+    if (abs >= 3) return { label: "Highly favorable ♀", isFavorable: true, className: "text-emerald-400" };
+    if (abs >= 1.5) return { label: "Very favorable ♀", isFavorable: true, className: "text-emerald-500/90" };
+    if (abs >= 0.5) return { label: "Favorable ♀", isFavorable: true, className: "text-lime-500/90" };
+    return { label: "Slightly favorable ♀", isFavorable: true, className: "text-lime-600/80" };
+  }
+  // More males than females — unfavorable
+  if (abs >= 4) return { label: "Severely unfavorable", isFavorable: false, className: "text-red-400" };
+  if (abs >= 2.5) return { label: "Very unfavorable", isFavorable: false, className: "text-orange-400" };
+  if (abs >= 1) return { label: "Unfavorable", isFavorable: false, className: "text-amber-400" };
+  return { label: "Slightly unfavorable", isFavorable: false, className: "text-amber-500/80" };
+}
+
 function deriveBands(raw: { band: string; malePct: number; femalePct: number }[]): BandRow[] {
   const g = (band: string) => raw.find((r) => r.band === band) ?? { malePct: 0, femalePct: 0 };
   const b = g("25-54");
@@ -62,6 +91,7 @@ function deriveBands(raw: { band: string; malePct: number; femalePct: number }[]
 
 // ─── TAB: Population ─────────────────────────────────────────────────────────
 function PopulationTab({ country, compare }: { country: Country; compare: Country | null }) {
+  const cityRatio = getCitySexRatio(country.slug);
   const pyrA = useMemo(() => deriveBands(getPopulationPyramid(country.slug)), [country.slug]);
   const pyrB = useMemo(
     () => (compare ? deriveBands(getPopulationPyramid(compare.slug)) : null),
@@ -72,128 +102,189 @@ function PopulationTab({ country, compare }: { country: Country; compare: Countr
     let max = 0;
     for (const b of pyrA) { max = Math.max(max, b.malePct, b.femalePct); }
     if (pyrB) for (const b of pyrB) { max = Math.max(max, b.malePct, b.femalePct); }
-    return Math.ceil(max / 2) * 2;
+    return Math.ceil((max + 1) / 2) * 2;
   }, [pyrA, pyrB]);
+
+  const hasCompare = pyrB !== null && compare !== null;
+  const gridCols = "grid-cols-[1fr_3.5rem_1fr]";
 
   return (
     <div className="px-4 py-6 sm:px-6">
+
       {/* Legend */}
-      <div className="mb-5 flex flex-wrap items-center gap-4 text-xs">
-        <div className="flex items-center gap-1.5">
-          <div className="flex gap-0.5">
-            <div className="h-3 w-3 rounded-sm bg-sky-500" />
-            <div className="h-3 w-3 rounded-sm bg-pink-500" />
+      <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+        {/* Main country */}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-0.5">
+            <div className="h-2 w-10 rounded-sm bg-sky-500" />
+            <div className="h-2 w-10 rounded-sm bg-pink-500" />
           </div>
-          <span className="font-semibold text-zinc-200">{country.name}</span>
+          <div className="leading-none">
+            <div className="text-[10px] text-sky-400">♂ Male</div>
+            <div className="text-[10px] text-pink-400">♀ Female</div>
+          </div>
+          <span className="ml-1 text-xs font-bold text-zinc-200">{country.name}</span>
         </div>
-        {pyrB && compare && (
-          <div className="flex items-center gap-1.5">
-            <div className="flex gap-0.5">
-              <div className="h-3 w-3 rounded-sm bg-sky-300/40 border border-sky-400/40" />
-              <div className="h-3 w-3 rounded-sm bg-pink-300/40 border border-pink-400/40" />
+
+        {/* Compare country */}
+        {hasCompare && compare && (
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-0.5">
+              <div className="h-2 w-10 rounded-sm bg-teal-500" />
+              <div className="h-2 w-10 rounded-sm bg-amber-500" />
             </div>
-            <span className="text-zinc-400">{compare.name}</span>
+            <div className="leading-none">
+              <div className="text-[10px] text-teal-400">♂ Male</div>
+              <div className="text-[10px] text-amber-400">♀ Female</div>
+            </div>
+            <span className="ml-1 text-xs font-bold text-zinc-400">{compare.name}</span>
           </div>
         )}
-        <div className="ml-auto flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/8 px-2.5 py-1">
+
+        <div className="ml-auto flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/[0.07] px-3 py-1">
           <div className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-          <span className="font-semibold text-amber-300 text-[10px]">25–39 Prime Dating Age</span>
+          <span className="text-[10px] font-semibold text-amber-300">20–39 Prime Dating Window</span>
         </div>
       </div>
 
       {/* Column headers */}
-      <div className="mb-1 flex items-center">
-        <div className="flex flex-1 justify-end pr-3">
-          <span className="mr-10 text-[10px] font-bold uppercase tracking-widest text-sky-400">Male ♂</span>
+      <div className={`mb-1.5 grid ${gridCols} items-center`}>
+        <div className="text-right pr-2">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-sky-400">♂ Male</span>
         </div>
-        <div className="w-14 shrink-0" />
-        <div className="flex flex-1 pl-3">
-          <span className="ml-10 text-[10px] font-bold uppercase tracking-widest text-pink-400">Female ♀</span>
+        <div className="text-center">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-600">Age</span>
+        </div>
+        <div className="pl-2">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-pink-400">Female ♀</span>
         </div>
       </div>
 
-      {/* Chart rows */}
-      <div className="flex flex-col gap-2">
+      {/* Pyramid rows */}
+      <div className="flex flex-col gap-1.5">
         {[...DERIVED_BANDS].reverse().map((band, i) => {
-          const rowA   = pyrA.find((p) => p.band === band)!;
-          const rowB   = pyrB?.find((p) => p.band === band);
+          const rowA     = pyrA.find((p) => p.band === band)!;
+          const rowB     = pyrB?.find((p) => p.band === band);
           const isDating = DATING_BANDS.has(band);
-          const cM  = (rowA.malePct   / maxVal) * 100;
-          const cF  = (rowA.femalePct / maxVal) * 100;
-          const bM  = rowB ? (rowB.malePct   / maxVal) * 100 : 0;
-          const bF  = rowB ? (rowB.femalePct / maxVal) * 100 : 0;
+
+          const mPct  = (rowA.malePct   / maxVal) * 100;
+          const fPct  = (rowA.femalePct / maxVal) * 100;
+          const bMPct = rowB ? (rowB.malePct   / maxVal) * 100 : 0;
+          const bFPct = rowB ? (rowB.femalePct / maxVal) * 100 : 0;
+          const ratio = getRatioSeverity(rowA.malePct, rowA.femalePct);
 
           return (
             <div
               key={band}
-              className={`relative flex items-center rounded-xl px-2 py-2 transition-colors ${
+              className={`grid ${gridCols} items-center rounded-xl px-1.5 py-1.5 transition-colors ${
                 isDating
                   ? "bg-amber-400/[0.07] ring-1 ring-inset ring-amber-400/25"
-                  : "bg-zinc-900/40"
+                  : "bg-zinc-900/30 hover:bg-zinc-900/50"
               }`}
             >
-              {/* Male side */}
-              <div className="flex flex-1 items-center justify-end gap-2 pr-2">
-                <span className="w-10 text-right text-[11px] font-semibold tabular-nums text-zinc-100">
-                  {rowA.malePct.toFixed(1)}%
-                </span>
-                <div className="relative flex h-9 flex-1 items-center justify-end overflow-hidden rounded-l-md bg-zinc-800/30">
-                  {/* Compare shadow bar */}
+              {/* ── Male side ── */}
+              <div className="flex items-center justify-end gap-2 pr-1.5">
+                {/* Value labels — stacked if compare active */}
+                <div className="flex w-[3.75rem] shrink-0 flex-col items-end gap-0.5 leading-none">
+                  <span className={`text-xs font-bold tabular-nums ${isDating ? "text-sky-300" : "text-zinc-200"}`}>
+                    {rowA.malePct.toFixed(1)}%
+                  </span>
                   {rowB && (
-                    <div
-                      className="absolute right-0 h-full rounded-l-md border border-sky-400/30 bg-sky-400/15"
-                      style={{ width: `${bM}%` }}
-                    />
+                    <span className="text-[9px] font-semibold tabular-nums text-teal-400">
+                      {rowB.malePct.toFixed(1)}%
+                    </span>
                   )}
-                  {/* Main bar */}
-                  <motion.div
-                    className={`absolute right-0 h-full rounded-l-md ${
-                      isDating
-                        ? "bg-gradient-to-l from-sky-400 to-sky-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-                        : "bg-sky-700/90"
-                    }`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${cM}%` }}
-                    transition={{ duration: 0.7, delay: i * 0.06, ease: "easeOut" }}
-                  />
                 </div>
-              </div>
-
-              {/* Age label */}
-              <div className="w-14 shrink-0 text-center">
-                <div className={`text-xs font-black ${isDating ? "text-amber-300" : "text-zinc-300"}`}>
-                  {band}
-                </div>
-                {isDating && (
-                  <div className="text-[8px] font-semibold uppercase tracking-wider text-amber-500/70">
-                    ★ dating
+                {/* Stacked bar tracks — grows right-to-left */}
+                <div className={`flex flex-1 flex-col gap-0.5 ${hasCompare ? "h-12" : "h-9"}`}>
+                  {/* Main country bar */}
+                  <div className="relative flex-1 overflow-hidden rounded-l-md bg-zinc-800/40">
+                    <motion.div
+                      className={`absolute right-0 h-full rounded-l-md ${
+                        isDating
+                          ? "bg-gradient-to-l from-sky-400 to-sky-600 shadow-[0_0_10px_rgba(56,189,248,0.4)]"
+                          : "bg-sky-600"
+                      }`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${mPct}%` }}
+                      transition={{ duration: 0.75, delay: i * 0.07, ease: "easeOut" }}
+                    />
                   </div>
-                )}
+                  {/* Compare bar — teal, clearly different from sky */}
+                  {hasCompare && (
+                    <div className="relative flex-1 overflow-hidden rounded-l-md bg-zinc-800/40">
+                      <motion.div
+                        className={`absolute right-0 h-full rounded-l-md ${
+                          isDating
+                            ? "bg-gradient-to-l from-teal-400 to-teal-600 shadow-[0_0_8px_rgba(45,212,191,0.35)]"
+                            : "bg-teal-600/90"
+                        }`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${bMPct}%` }}
+                        transition={{ duration: 0.75, delay: i * 0.07, ease: "easeOut" }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Female side */}
-              <div className="flex flex-1 items-center gap-2 pl-2">
-                <div className="relative flex h-9 flex-1 items-center overflow-hidden rounded-r-md bg-zinc-800/30">
-                  {rowB && (
-                    <div
-                      className="absolute left-0 h-full rounded-r-md border border-pink-400/30 bg-pink-400/15"
-                      style={{ width: `${bF}%` }}
-                    />
-                  )}
-                  <motion.div
-                    className={`absolute left-0 h-full rounded-r-md ${
-                      isDating
-                        ? "bg-gradient-to-r from-pink-400 to-pink-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-                        : "bg-pink-700/90"
-                    }`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${cF}%` }}
-                    transition={{ duration: 0.7, delay: i * 0.06, ease: "easeOut" }}
-                  />
-                </div>
-                <span className="w-10 text-left text-[11px] font-semibold tabular-nums text-zinc-100">
-                  {rowA.femalePct.toFixed(1)}%
+              {/* ── Age label + ratio severity ── */}
+              <div className="flex flex-col items-center justify-center gap-0.5 px-1">
+                <span className={`text-[11px] font-black leading-none ${isDating ? "text-amber-300" : "text-zinc-300"}`}>
+                  {band}
                 </span>
+                {isDating && (
+                  <span className="text-[7px] font-bold uppercase tracking-wide text-amber-500/70">★ prime</span>
+                )}
+                <span className={`text-[9px] font-medium leading-tight text-center ${ratio.className}`} title={ratio.isFavorable ? "More women than men in this age group" : "More men than women in this age group"}>
+                  {ratio.label}
+                </span>
+              </div>
+
+              {/* ── Female side ── */}
+              <div className="flex items-center gap-2 pl-1.5">
+                {/* Stacked bar tracks — grows left-to-right */}
+                <div className={`flex flex-1 flex-col gap-0.5 ${hasCompare ? "h-12" : "h-9"}`}>
+                  {/* Main country bar */}
+                  <div className="relative flex-1 overflow-hidden rounded-r-md bg-zinc-800/40">
+                    <motion.div
+                      className={`absolute left-0 h-full rounded-r-md ${
+                        isDating
+                          ? "bg-gradient-to-r from-pink-400 to-pink-600 shadow-[0_0_10px_rgba(244,114,182,0.4)]"
+                          : "bg-pink-600"
+                      }`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${fPct}%` }}
+                      transition={{ duration: 0.75, delay: i * 0.07, ease: "easeOut" }}
+                    />
+                  </div>
+                  {/* Compare bar — amber, clearly different from pink */}
+                  {hasCompare && (
+                    <div className="relative flex-1 overflow-hidden rounded-r-md bg-zinc-800/40">
+                      <motion.div
+                        className={`absolute left-0 h-full rounded-r-md ${
+                          isDating
+                            ? "bg-gradient-to-r from-amber-400 to-amber-600 shadow-[0_0_8px_rgba(251,191,36,0.35)]"
+                            : "bg-amber-600/90"
+                        }`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${bFPct}%` }}
+                        transition={{ duration: 0.75, delay: i * 0.07, ease: "easeOut" }}
+                      />
+                    </div>
+                  )}
+                </div>
+                {/* Value labels */}
+                <div className="flex w-[3.75rem] shrink-0 flex-col items-start gap-0.5 leading-none">
+                  <span className={`text-xs font-bold tabular-nums ${isDating ? "text-pink-300" : "text-zinc-200"}`}>
+                    {rowA.femalePct.toFixed(1)}%
+                  </span>
+                  {rowB && (
+                    <span className="text-[9px] font-semibold tabular-nums text-amber-400">
+                      {rowB.femalePct.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -201,27 +292,117 @@ function PopulationTab({ country, compare }: { country: Country; compare: Countr
       </div>
 
       {/* X-axis scale */}
-      <div className="mt-2 flex items-center">
-        <div className="flex flex-1 justify-end pr-2">
-          <div className="flex w-[calc(100%-3.5rem)] justify-between px-0.5">
-            {[maxVal, maxVal / 2, 0].map((t) => (
-              <span key={t} className="text-[9px] text-zinc-600">{t}%</span>
-            ))}
-          </div>
+      <div className={`mt-1.5 grid ${gridCols}`}>
+        <div className="flex justify-between pr-1.5 pl-16 text-[9px] text-zinc-600">
+          <span>{maxVal}%</span>
+          <span>{maxVal / 2}%</span>
+          <span>0</span>
         </div>
-        <div className="w-14" />
-        <div className="flex flex-1 pl-2">
-          <div className="flex w-[calc(100%-3.5rem)] justify-between px-0.5">
-            {[0, maxVal / 2, maxVal].map((t) => (
-              <span key={t} className="text-[9px] text-zinc-600">{t}%</span>
-            ))}
-          </div>
+        <div />
+        <div className="flex justify-between pl-1.5 pr-16 text-[9px] text-zinc-600">
+          <span>0</span>
+          <span>{maxVal / 2}%</span>
+          <span>{maxVal}%</span>
         </div>
       </div>
 
-      <p className="mt-4 text-center text-[10px] text-zinc-600">
-        % of total population per age group split by sex · <SourceLink sourceKey="demographicsPopulation" />
+      <p className="mt-3 text-center text-[10px] text-zinc-600">
+        % of total population per age group · <SourceLink sourceKey="demographicsPopulation" />
       </p>
+      <p className="mt-1.5 text-center text-[9px] text-zinc-600">
+        Ratio: more ♀ than ♂ in an age group is favorable; more ♂ than ♀ is unfavorable (severity shown).
+      </p>
+
+      {/* Cities map & list (25–39 ratio + population) — show when we have city ratio and/or city list */}
+      {(cityRatio || getCitiesForCountry(country.slug).length > 0) && (() => {
+        const cities = getCitiesForCountry(country.slug);
+        const hasMapAndList = cities.length > 0;
+        const best = hasMapAndList ? cities[0] : null;
+        const worst = hasMapAndList ? cities[cities.length - 1] : null;
+        return (
+          <div className="mt-6 space-y-4">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-500/90">
+              Best & worst cities (20–39 prime age)
+            </p>
+            <p className="mb-4 text-[11px] text-zinc-500">
+              Cities with the best and worst female-to-male ratio in the prime dating window (ages 20–39). More women = larger dating pool and better competitive edge.
+              {hasMapAndList && " Map: circle size = population; color = ratio."}
+            </p>
+            {hasMapAndList && (
+              <div>
+                <CitiesPrimeAgeMap countrySlug={country.slug} countryName={country.name} />
+              </div>
+            )}
+            {hasMapAndList ? (
+              <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                  All cities ({cities.length}) — sorted by ratio (best first)
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {cities.map((c) => (
+                    <div
+                      key={c.name}
+                      className="flex items-center justify-between rounded-lg border border-zinc-800/50 bg-zinc-950/40 px-3 py-2"
+                    >
+                      <span className="text-xs font-medium text-zinc-200">{c.name}</span>
+                      <div className="flex items-center gap-2 text-[10px]">
+                        <span
+                          className={
+                            c.womenPer100Men >= 102
+                              ? "text-emerald-400 font-semibold"
+                              : c.womenPer100Men >= 98
+                                ? "text-amber-400"
+                                : "text-zinc-500"
+                          }
+                        >
+                          {c.womenPer100Men} ♀/100♂
+                        </span>
+                        <span className="text-zinc-600">
+                          {c.population >= 1000 ? (c.population / 1000).toFixed(1) + "M" : c.population + "k"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {best && worst && (
+                  <p className="mt-4 flex flex-wrap gap-4 justify-center text-[10px] text-zinc-500">
+                    <span className="rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-emerald-400/90">
+                      Best: {best.name} ({best.womenPer100Men} ♀/100♂)
+                    </span>
+                    <span className="rounded border border-zinc-700/60 bg-zinc-800/30 px-2 py-1 text-zinc-400">
+                      Worst: {worst.name} ({worst.womenPer100Men} ♀/100♂)
+                    </span>
+                  </p>
+                )}
+              </div>
+            ) : cityRatio ? (
+              <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-500/80">Best for ratio</p>
+                    <p className="mt-1 text-sm font-bold text-zinc-100">{cityRatio.best.name}</p>
+                    {cityRatio.best.note && (
+                      <p className="mt-0.5 text-[11px] text-zinc-500">{cityRatio.best.note}</p>
+                    )}
+                    <p className="mt-2 text-[10px] text-emerald-400/90">More women in 20–39 → better dating odds</p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/50 px-4 py-3">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Worst for ratio</p>
+                    <p className="mt-1 text-sm font-bold text-zinc-300">{cityRatio.worst.name}</p>
+                    {cityRatio.worst.note && (
+                      <p className="mt-0.5 text-[11px] text-zinc-500">{cityRatio.worst.note}</p>
+                    )}
+                    <p className="mt-2 text-[10px] text-zinc-500">More men in 20–39 → harder competition</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-center text-[10px] text-zinc-500">
+                  Prefer the best city when possible — you get a larger pool of single women and a better competitive edge.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -307,9 +488,6 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
   const maxH = Math.ceil(Math.max(...allH)  / 5) * 5 + 5;
   const hPct = (h: number) => ((h - minH) / (maxH - minH)) * 100;
 
-  const bmiA = country.avgBmi ?? null;
-  const bmiB = compare?.avgBmi ?? null;
-
   const bmiColor = (bmi: number | null) => {
     if (!bmi) return "text-zinc-500";
     if (bmi < 25)   return "text-emerald-400";
@@ -339,11 +517,11 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
     },
   ];
 
-  type BmiEntry = { name: string; flag: string; bmi: number | null };
+  type BmiEntry = { name: string; flag: string; male: number | null; female: number | null };
 
   const bmiRows: BmiEntry[] = [
-    { name: country.name, flag: country.flagEmoji, bmi: bmiA },
-    ...(compare ? [{ name: compare.name, flag: compare.flagEmoji, bmi: bmiB }] : []),
+    { name: country.name, flag: country.flagEmoji, male: country.avgBmiMale ?? null, female: country.avgBmiFemale ?? null },
+    ...(compare ? [{ name: compare.name, flag: compare.flagEmoji, male: compare.avgBmiMale ?? null, female: compare.avgBmiFemale ?? null }] : []),
   ];
 
   return (
@@ -409,32 +587,54 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
 
           <div className="space-y-5">
             {bmiRows.map((entry) => (
-              <div key={entry.name} className="flex items-center gap-4">
-                <span className="w-5 shrink-0 text-base">{entry.flag}</span>
-                <span className="w-28 shrink-0 truncate text-[11px] text-zinc-400">{entry.name}</span>
-                {entry.bmi != null ? (
-                  <>
-                    <div className="relative flex-1 h-7 overflow-hidden rounded-lg bg-zinc-800/50">
-                      <motion.div
-                        className="absolute left-0 top-0 h-full rounded-lg"
-                        style={{ background: bmiBarColor(entry.bmi) }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((entry.bmi / 40) * 100, 100)}%` }}
-                        transition={{ duration: 0.65, ease: "easeOut" }}
-                      />
-                    </div>
-                    <span className={`w-12 shrink-0 text-right text-lg font-black tabular-nums ${bmiColor(entry.bmi)}`}>
-                      {entry.bmi.toFixed(1)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-xs text-zinc-600 flex-1">No data</span>
-                )}
+              <div key={entry.name} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{entry.flag}</span>
+                  <span className="text-[11px] text-zinc-400 font-medium">{entry.name}</span>
+                </div>
+                {[
+                  { label: "♂ Male",   bmi: entry.male,   barClass: "bg-sky-500" },
+                  { label: "♀ Female", bmi: entry.female, barClass: "bg-pink-500" },
+                ].map(({ label, bmi, barClass }) => (
+                  <div key={label} className="flex items-center gap-3 pl-6">
+                    <span className="w-16 shrink-0 text-[10px] text-zinc-500">{label}</span>
+                    {bmi != null ? (
+                      <>
+                        <div className="relative flex-1 h-5 overflow-hidden rounded-md bg-zinc-800/50">
+                          <motion.div
+                            className={`absolute left-0 top-0 h-full rounded-md ${barClass}`}
+                            style={{ opacity: 0.8 }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min((bmi / 40) * 100, 100)}%` }}
+                            transition={{ duration: 0.65, ease: "easeOut" }}
+                          />
+                        </div>
+                        <span className={`w-10 shrink-0 text-right text-sm font-bold tabular-nums ${bmiColor(bmi)}`}>
+                          {bmi.toFixed(1)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-zinc-600 flex-1">No data</span>
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Body type reference: US vs country */}
+      {country.avgBmiMale != null && country.avgBmiFemale != null && (
+        <div className="mt-10">
+          <BodyComparison
+            countrySlug={country.slug}
+            countryName={country.name}
+            bmiMale={country.avgBmiMale}
+            bmiFemale={country.avgBmiFemale}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -450,14 +650,14 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
   const ageB  = bSlug ? getMedianAgeBySlug(bSlug) : null;
   const homoA = getEthnicHomogeneityBySlug(aSlug);
   const homoB = bSlug ? getEthnicHomogeneityBySlug(bSlug) : null;
-  const gallupA = getGallupScore(aSlug);
-  const gallupB = bSlug ? getGallupScore(bSlug) : null;
-  const US_GALLUP = 7.86;
+  const friendlyA = getFriendlinessDisplay(aSlug);
+  const friendlyB = bSlug ? getFriendlinessDisplay(bSlug) : null;
+  const usFriendly = getFriendlinessDisplay("usa");
 
   type FRow = { name: string; flag: string; tfr: number };
   type ARow = { name: string; flag: string; age: number };
   type HRow = { name: string; flag: string; homo: number };
-  type GRow = { name: string; flag: string; score: number };
+  type FriendlyRow = { name: string; flag: string; score: number; label: string; color: string };
 
   const fertilityRows: FRow[] = [
     { name: country.name,    flag: country.flagEmoji, tfr: tfrA           },
@@ -473,10 +673,10 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
     { name: country.name, flag: country.flagEmoji, homo: homoA },
     ...(compare && homoB != null ? [{ name: compare.name, flag: compare.flagEmoji, homo: homoB }] : []),
   ];
-  const gallupRows: GRow[] = [
-    { name: country.name,    flag: country.flagEmoji,  score: gallupA         },
-    ...(compare && gallupB != null ? [{ name: compare.name, flag: compare.flagEmoji, score: gallupB }] : []),
-    { name: "US ref",        flag: "🇺🇸",             score: US_GALLUP       },
+  const friendlinessRows: FriendlyRow[] = [
+    { name: country.name, flag: country.flagEmoji, score: friendlyA.score, label: friendlyA.label, color: friendlyA.color },
+    ...(compare && friendlyB != null ? [{ name: compare.name, flag: compare.flagEmoji, score: friendlyB.score, label: friendlyB.label, color: friendlyB.color }] : []),
+    { name: "US ref", flag: "🇺🇸", score: usFriendly.score, label: usFriendly.label, color: usFriendly.color },
   ];
 
   return (
@@ -589,47 +789,44 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
           </div>
         </div>
 
-        {/* Foreigner Acceptance */}
+        {/* Local Friendliness */}
         <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-zinc-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Foreigner Acceptance</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Local Friendliness</span>
             </div>
-            <SourceLink sourceKey="gallup" />
+            <SourceLink sourceKey={hasInterNationsFriendlinessData(aSlug) ? "internations" : "gallup"} />
           </div>
           <div className="space-y-3.5">
-            {gallupRows.map((entry) => {
-              const lbl = getGallupLabel(entry.score);
-              return (
-                <div key={entry.name}>
-                  <div className="mb-1 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm">{entry.flag}</span>
-                      <span className="text-[11px] text-zinc-400">{entry.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-sm font-black tabular-nums ${lbl.color}`}>
-                        {entry.score.toFixed(1)}
-                      </span>
-                      <span className={`text-[9px] ${lbl.color} opacity-70`}>{lbl.label}</span>
-                    </div>
+            {friendlinessRows.map((entry) => (
+              <div key={entry.name}>
+                <div className="mb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">{entry.flag}</span>
+                    <span className="text-[11px] text-zinc-400">{entry.name}</span>
                   </div>
-                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-zinc-800/60">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${(entry.score / 9) * 100}%`,
-                        background: entry.score >= 6.5 ? "#10b981" : entry.score >= 5.0 ? "#f59e0b" : "#ef4444",
-                      }}
-                    />
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-sm font-black tabular-nums ${entry.color}`}>
+                      {entry.score}
+                    </span>
+                    <span className={`text-[9px] ${entry.color} opacity-70`}>{entry.label}</span>
                   </div>
                 </div>
-              );
-            })}
+                <div className="relative h-2 w-full overflow-hidden rounded-full bg-zinc-800/60">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${entry.score}%`,
+                      background: entry.score >= 70 ? "#10b981" : entry.score >= 50 ? "#f59e0b" : "#ef4444",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
           <p className="mt-3 text-[9px] text-zinc-600">
-            Gallup Migrant Acceptance Index (0–9). How willing locals are to accept immigrants as neighbors, co-workers, and family.
+            InterNations Ease of Settling In (0–100). How welcome expats feel, local friendliness, ease of making friends. Gallup used where InterNations has no data.
           </p>
         </div>
       </div>
@@ -645,8 +842,10 @@ type Props = {
 
 export default function CountryStatsSection({ country, allCountries }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("population");
-  // Default to no comparison (empty string = off)
-  const [compareSlug, setCompareSlug] = useState<string>("");
+  // Default to US comparison unless we're already on the US page
+  const [compareSlug, setCompareSlug] = useState<string>(() =>
+    country.slug === "usa" ? "" : "usa"
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const sortedCountries = useMemo(

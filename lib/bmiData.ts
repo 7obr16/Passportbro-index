@@ -107,17 +107,20 @@ export function getCountryBmi(slug: string): BmiByGender | undefined {
   return COUNTRY_BMI[slug];
 }
 
-/** Slugs that have ethnicity- and BMI-accurate reference images in /bmi/country/ */
-export const COUNTRY_BMI_IMAGE_SLUGS = [
-  "philippines",
-  "thailand",
-  "japan",
-  "mexico",
-  "indonesia",
-  "vietnam",
-  "colombia",
-] as const;
+/** Age used for all BMI images (same for every image: 25). */
+export const BMI_REFERENCE_AGE = 25;
 
-export function hasCountryBmiImage(slug: string): boolean {
-  return (COUNTRY_BMI_IMAGE_SLUGS as readonly string[]).includes(slug);
+/** Path to the fixed US reference image (same image for all comparisons, left side). */
+export function getUsRefImagePath(gender: "male" | "female"): string {
+  return `/bmi/us-${gender}.png`;
+}
+
+/** Path to the country-specific BMI image (ethnicity + body at that country's average BMI). Same format as US: white background, standing, same distance. */
+export function getBmiCountryImagePath(slug: string, gender: "male" | "female"): string {
+  return `/bmi/country/${slug}-${gender}.png`;
+}
+
+/** All country slugs that have BMI data (for image generation manifest). */
+export function getAllBmiCountrySlugs(): string[] {
+  return Object.keys(COUNTRY_BMI);
 }

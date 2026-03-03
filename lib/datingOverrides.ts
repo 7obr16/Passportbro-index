@@ -28,6 +28,7 @@ export const DATING_OVERRIDES: Record<string, DatingOverride> = {
   venezuela: { ease: "Very Easy", score: 83 },
   peru: { ease: "Very Easy", score: 80 },
   colombia: { ease: "Very Easy", score: 80 },
+  ethiopia: { ease: "Very Easy", score: 81 },
 
   // Easy tier (65-79)
   "costa-rica": { ease: "Easy", score: 77 },
@@ -89,7 +90,6 @@ export const DATING_OVERRIDES: Record<string, DatingOverride> = {
   canada: { ease: "Improbable", score: 30 },
   usa: { ease: "Improbable", score: 25 },
   uk: { ease: "Improbable", score: 20 },
-  ethiopia: { ease: "Very Easy", score: 80 },
   cuba: { ease: "Improbable", score: 40 },
   jamaica: { ease: "Hard", score: 50 },
   "united-arab-emirates": { ease: "Improbable", score: 20 },

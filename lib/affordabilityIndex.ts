@@ -103,7 +103,6 @@ const NUMBEO_COST_INDEX: Record<string, number> = {
   "denmark":     92,   // ~$4.5k/mo
   "luxembourg":  98,   // ~$5.0k/mo
   "switzerland": 120,  // ~$6.0k/mo; most expensive country in Europe
-  "iceland":     108,  // ~$5.5k/mo
   // ── Other anglosphere / developed ───────────────────────────────────────────
   "usa":         75,   // ~$3.5k/mo avg; NYC/LA/SF much higher
   "canada":      70,   // ~$3.0k/mo; Toronto/Vancouver pricier

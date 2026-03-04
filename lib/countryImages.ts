@@ -1511,7 +1511,7 @@ export const EUROPEAN_DEFAULT_GALLERY_SLUGS = [
   "portugal", "netherlands", "belgium", "austria", "switzerland", "norway", "denmark",
   "finland", "ireland", "greece", "czech-republic", "hungary", "croatia", "serbia",
   "bulgaria", "slovakia", "lithuania", "latvia", "estonia", "slovenia", "luxembourg",
-  "malta", "cyprus", "iceland", "montenegro", "north-macedonia", "albania",
+  "malta", "cyprus", "montenegro", "north-macedonia", "albania",
   "bosnia-and-herzegovina", "moldova",
 ] as const;
 

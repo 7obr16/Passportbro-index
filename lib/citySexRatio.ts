@@ -91,7 +91,6 @@ export const CITY_SEX_RATIO_BEST_WORST: Record<string, CountryCityRatio> = {
   luxembourg: { best: { name: "Luxembourg City", note: "Capital" }, worst: { name: "Esch-sur-Alzette", note: "Industrial" } },
   malta: { best: { name: "Valletta", note: "Capital" }, worst: { name: "Sliema", note: "Commercial" } },
   cyprus: { best: { name: "Limassol", note: "Coastal, business" }, worst: { name: "Nicosia", note: "Capital" } },
-  iceland: { best: { name: "Reykjavík", note: "Capital" }, worst: { name: "Akureyri", note: "North" } },
   montenegro: { best: { name: "Podgorica", note: "Capital" }, worst: { name: "Nikšić", note: "Industrial" } },
   "north-macedonia": { best: { name: "Skopje", note: "Capital" }, worst: { name: "Bitola", note: "Second city" } },
   albania: { best: { name: "Tirana", note: "Capital" }, worst: { name: "Durrës", note: "Port" } },

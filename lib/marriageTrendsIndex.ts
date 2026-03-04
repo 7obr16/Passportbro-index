@@ -47,7 +47,6 @@ export const OUT_GROUP_MARRIAGE_PCT: Record<string, number | null> = {
   denmark: 8,
   finland: 6,
   norway: 10,
-  iceland: 11,
   // Non-European: no Eurostat metric; null
   philippines: null,
   thailand: null,

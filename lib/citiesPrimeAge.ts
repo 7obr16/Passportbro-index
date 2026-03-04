@@ -421,9 +421,6 @@ export const CITIES_PRIME_AGE: CityPrimeAge[] = [
   { countrySlug: "slovenia", name: "Ljubljana", lat: 46.0569, lng: 14.5058, population: 295, ratioTier: "better" },
   { countrySlug: "slovenia", name: "Maribor", lat: 46.5547, lng: 15.6459, population: 96, ratioTier: "worse" },
   { countrySlug: "slovenia", name: "Celje", lat: 46.2361, lng: 15.2675, population: 38, ratioTier: "same" },
-  // Iceland
-  { countrySlug: "iceland", name: "Reykjavík", lat: 64.1466, lng: -21.9426, population: 139, ratioTier: "better" },
-  { countrySlug: "iceland", name: "Akureyri", lat: 65.6835, lng: -18.0878, population: 19, ratioTier: "worse" },
   // Malta
   { countrySlug: "malta", name: "Valletta", lat: 35.8989, lng: 14.5146, population: 6, ratioTier: "better" },
   { countrySlug: "malta", name: "Sliema", lat: 35.9125, lng: 14.5019, population: 22, ratioTier: "worse" },

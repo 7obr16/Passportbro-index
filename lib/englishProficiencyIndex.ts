@@ -90,7 +90,6 @@ const EF_EPI_SCORE: Record<string, number> = {
   luxembourg: 616,
   malta: 562,
   cyprus: 578,
-  iceland: 593,
   montenegro: 532,
   "north-macedonia": 512,
   albania: 498,

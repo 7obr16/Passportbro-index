@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plane, X, ChevronDown, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 
@@ -18,10 +18,12 @@ export default function VisaCheckerModal({ isOpen, onClose }: Props) {
   const [data, setData] = useState<VisaData | null>(null);
   const [passport, setPassport] = useState<string>("United States");
   const [destination, setDestination] = useState<string>("Japan");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    if (isOpen && !data) {
+    if (isOpen && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       setIsLoading(true);
       fetch("/visa-matrix.json")
         .then((res) => res.json())
@@ -34,7 +36,7 @@ export default function VisaCheckerModal({ isOpen, onClose }: Props) {
           setIsLoading(false);
         });
     }
-  }, [isOpen, data]);
+  }, [isOpen]);
 
   const visaStatus = data?.matrix?.[passport]?.[destination] || "unknown";
 

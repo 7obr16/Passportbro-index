@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,7 +20,11 @@ import {
   Mountain,
   ChevronDown,
   Star,
+  Lock,
+  ArrowRight,
 } from "lucide-react";
+import { hasAccess } from "@/lib/access";
+import SignupModal from "@/components/SignupModal";
 import type { Country } from "@/lib/countries";
 import { getCountryScores } from "@/lib/scoring";
 import { getPros, getCons } from "@/lib/communityIntel";
@@ -34,6 +38,8 @@ import SourceLink from "@/components/SourceLink";
 import SiteNav from "@/components/SiteNav";
 import CountryGlobe from "@/components/CountryGlobe";
 import { TIER_CONFIG } from "@/lib/countries";
+import RateCountryModal from "@/components/RateCountryModal";
+import { supabase } from "@/lib/supabase";
 
 type Props = {
   country: Country;
@@ -81,6 +87,15 @@ const SCORE_ITEMS: { key: "dating" | "cost" | "internet" | "friendly" | "safety"
   { key: "safety", label: "Safety", icon: Shield },
 ];
 
+type CommunityStats = {
+  count: number;
+  avgSafety: number;
+  avgCost: number;
+  avgFriendliness: number;
+};
+
+const COST_DISPLAY = ["Very Cheap", "Cheap", "Moderate", "Expensive", "Very Expensive"];
+
 export default function CountryDetailClient({ country, allCountries, gallery, womenGroupImageUrl }: Props) {
   const [isIntelOpen, setIsIntelOpen] = useState(true);
   const [expandPros, setExpandPros] = useState(false);
@@ -88,6 +103,58 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
   const [activeGalleryKey, setActiveGalleryKey] = useState<null | Props["gallery"][number]["key"]>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const tierHex = TIER_CONFIG[country.datingEase]?.hex ?? "#71717a";
+
+  // Auth + community rating state
+  const [userId, setUserId] = useState<string | null>(null);
+  const [hasPaid, setHasPaid] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
+
+  const fetchProfile = async (uid: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("has_paid")
+      .eq("id", uid)
+      .single();
+    setHasPaid(data?.has_paid ?? false);
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id ?? null;
+      setUserId(uid);
+      if (uid) fetchProfile(uid);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user.id ?? null;
+      setUserId(uid);
+      if (uid) fetchProfile(uid);
+      else setHasPaid(false);
+    });
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    supabase
+      .from("country_ratings")
+      .select("safety_rating, cost_rating, friendliness_rating")
+      .eq("country_slug", country.slug)
+      .then(({ data }) => {
+        if (!data || data.length === 0) {
+          setCommunityStats({ count: 0, avgSafety: 0, avgCost: 0, avgFriendliness: 0 });
+          return;
+        }
+        const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+        setCommunityStats({
+          count: data.length,
+          avgSafety: avg(data.map((d) => d.safety_rating)),
+          avgCost: avg(data.map((d) => d.cost_rating)),
+          avgFriendliness: avg(data.map((d) => d.friendliness_rating)),
+        });
+      });
+  }, [country.slug]);
 
   const scores = getCountryScores(country);
   const prosList = getPros(country.slug, country.redditPros);
@@ -124,6 +191,8 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
       return `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`;
     })
     .join(" ") + " Z";
+
+  const canAccess = hasAccess({ has_paid: hasPaid }, country.slug);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
@@ -191,9 +260,30 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
         {/* Passport Bro Score — always visible so you don't have to go back to menu */}
         <motion.div variants={itemVariants} className="mb-6 sm:mb-8">
           <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500 sm:mb-4">
-              Passport Bro score
-            </p>
+            {/* Header row: label + Rate button */}
+            <div className="mb-3 flex items-center justify-between sm:mb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                Passport Bro score
+              </p>
+              <div className="group/rate relative">
+                <button
+                  onClick={() => userId && setIsRatingModalOpen(true)}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+                    userId
+                      ? "cursor-pointer border-emerald-600/40 bg-emerald-500/10 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/20"
+                      : "cursor-default border-zinc-700/50 bg-zinc-800/40 text-zinc-600"
+                  }`}
+                >
+                  <Star className="h-3 w-3" />
+                  Rate this Country
+                </button>
+                {!userId && (
+                  <div className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 w-40 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-[10px] leading-snug text-zinc-400 opacity-0 shadow-xl transition-opacity group-hover/rate:opacity-100">
+                    Log in to rate this country
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6 md:gap-8">
               <div className="flex flex-col gap-1">
                 <div className="flex items-baseline gap-2">
@@ -235,8 +325,40 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
                 ))}
               </div>
             </div>
+
+            {/* Community ratings summary strip */}
+            {communityStats !== null && (
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-zinc-800/50 pt-3 text-[10px] text-zinc-500">
+                {communityStats.count > 0 ? (
+                  <>
+                    <span className="font-semibold text-zinc-400">
+                      {communityStats.count} member{communityStats.count !== 1 ? "s" : ""} rated
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Safety {communityStats.avgSafety.toFixed(1)}★
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      Friendly {communityStats.avgFriendliness.toFixed(1)}★
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="h-3 w-3" />
+                      {COST_DISPLAY[Math.round(communityStats.avgCost) - 1] ?? ""}
+                    </span>
+                  </>
+                ) : (
+                  <span>No community ratings yet — be the first to rate {country.name}!</span>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
+
+        {/* ── PREMIUM CONTENT — locked behind paywall ── */}
+        <div className="relative">
+          {/* Blurred layer */}
+          <div className={!canAccess ? "pointer-events-none select-none blur-[3px] opacity-50" : ""}>
 
         {/* Country Visual Gallery */}
         <motion.div variants={itemVariants} className="mb-8">
@@ -650,7 +772,83 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
           All opinions are sourced from community forums and represent consensus, not professional advice.
           Always do your own research before traveling.
         </motion.div>
+
+          {/* ── end blurred layer ── */}
+          </div>
+
+          {/* Top-fade to smooth transition from free → locked content */}
+          {!canAccess && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-zinc-950 to-transparent" />
+          )}
+
+          {/* Paywall overlay card */}
+          {!canAccess && (
+            <div className="pointer-events-none absolute inset-0 z-20 flex justify-center px-4 pt-16">
+              <div className="pointer-events-auto sticky top-24 h-fit w-full max-w-sm rounded-2xl border border-emerald-500/20 bg-zinc-900/95 p-8 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.06]"
+                style={{ boxShadow: "0 0 60px -15px rgba(16,185,129,0.2), 0 32px 64px -16px rgba(0,0,0,0.8)" }}
+              >
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20">
+                  <Lock className="h-6 w-6 text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-bold tracking-tight text-white">
+                  Unlock Full{" "}
+                  <span className="text-emerald-400">{country.name}</span>{" "}
+                  Breakdown
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  Get detailed stats, community intel, climate data, and everything the brotherhood says about {country.name}.
+                </p>
+                <ul className="mt-5 space-y-2 text-left">
+                  {[
+                    "Full score radar & stat breakdown",
+                    "Community intel — pros & cons",
+                    "Climate insights & air quality",
+                    "Cost of living deep-dive",
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-2.5 text-sm text-zinc-300">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+                        <svg className="h-2.5 w-2.5 text-emerald-400" fill="none" viewBox="0 0 12 12">
+                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => setPaywallOpen(true)}
+                  className="group mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3.5 text-sm font-bold text-black transition-all hover:bg-emerald-400 active:scale-[0.98]"
+                >
+                  Unlock Full Access
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </button>
+                <p className="mt-3 text-[11px] text-zinc-600">
+                  🇵🇭 Philippines is always free — it&apos;s our sample country
+                </p>
+              </div>
+            </div>
+          )}
+        </div>{/* end paywall wrapper */}
+
       </motion.div>
+
+      {/* Community rating modal — only mounted when user is logged in */}
+      {userId && (
+        <RateCountryModal
+          isOpen={isRatingModalOpen}
+          onClose={() => setIsRatingModalOpen(false)}
+          countrySlug={country.slug}
+          countryName={country.name}
+          userId={userId}
+        />
+      )}
+
+      {/* Paywall signup modal */}
+      <SignupModal
+        isOpen={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        countryName={country.name}
+      />
     </div>
   );
 }

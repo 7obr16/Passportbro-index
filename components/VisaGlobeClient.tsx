@@ -5,8 +5,10 @@ import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown, Search, Plane, CheckCircle2, ShieldAlert, Clock,
-  Globe2, FileText, Trophy, BarChart3, Globe,
+  Globe2, FileText, Trophy, BarChart3, Globe, Lock, ArrowRight, X,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import SignupModal from "@/components/SignupModal";
 
 const GlobeGL = dynamic(() => import("react-globe.gl"), { ssr: false });
 
@@ -215,13 +217,18 @@ function PassportRankingTable({
   rankings,
   passport,
   onSelect,
+  hasPaid,
+  onUnlock,
 }: {
   rankings: PassportScore[];
   passport: string;
   onSelect: (country: string) => void;
+  hasPaid: boolean;
+  onUnlock: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [showCount, setShowCount] = useState(50);
+  const FREE_ROWS = 10;
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -276,69 +283,100 @@ function PassportRankingTable({
 
       {/* Rows */}
       <div className="space-y-0.5">
-        {visible.map((r) => {
+        {visible.map((r, idx) => {
           const flag = COUNTRY_FLAGS[r.country] ?? "🌐";
           const isSelected = r.country === passport;
           const isTop3 = r.rank <= 3;
+          const isLocked = !hasPaid && idx >= FREE_ROWS;
 
           return (
-            <motion.button
-              key={r.country}
-              onClick={() => onSelect(r.country)}
-              className={`grid w-full grid-cols-[40px_1fr_80px_1fr] items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
-                isSelected
-                  ? "bg-amber-500/10 ring-1 ring-amber-500/30"
-                  : isTop3
+            <div key={r.country} className={isLocked ? "relative" : ""}>
+              {/* Paywall banner injected once at the lock boundary */}
+              {idx === FREE_ROWS && !hasPaid && (
+                <div className="mb-1 flex items-center gap-3 rounded-xl border border-amber-500/15 bg-zinc-900/80 px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
+                    <Lock className="h-4 w-4 text-amber-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white">Unlock full passport rankings</p>
+                    <p className="text-[11px] text-zinc-500">Rows {FREE_ROWS + 1}–{rankings.length} require an account.</p>
+                  </div>
+                  <button
+                    onClick={onUnlock}
+                    className="group flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-amber-400"
+                  >
+                    Unlock
+                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                </div>
+              )}
+
+              {isLocked && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[4px]">
+                  <Lock className="h-3.5 w-3.5 text-zinc-700" />
+                </div>
+              )}
+
+              <motion.button
+                onClick={() => !isLocked && onSelect(r.country)}
+                disabled={isLocked}
+                className={`grid w-full grid-cols-[40px_1fr_80px_1fr] items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+                  isLocked
+                    ? "cursor-default select-none opacity-30"
+                    : isSelected
+                    ? "bg-amber-500/10 ring-1 ring-amber-500/30"
+                    : isTop3
                     ? "bg-zinc-900/60 hover:bg-zinc-900"
                     : "hover:bg-zinc-900/40"
-              }`}
-              whileHover={{ x: 2 }}
-              transition={{ duration: 0.1 }}
-            >
-              {/* Rank */}
-              <div className="flex items-center justify-center">
-                <MedalBadge rank={r.rank} />
-              </div>
-
-              {/* Country */}
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="text-base leading-none">{flag}</span>
-                <span className={`truncate text-xs font-semibold ${isSelected ? "text-amber-300" : "text-zinc-200"}`}>
-                  {r.country}
-                </span>
-              </div>
-
-              {/* Score */}
-              <div className="text-right">
-                <span className={`text-sm font-black ${isTop3 ? "text-white" : "text-zinc-300"}`}>
-                  {r.mobilityScore}
-                </span>
-                <p className="text-[8px] text-zinc-600">countries</p>
-              </div>
-
-              {/* Breakdown bar + mini stats */}
-              <div className="space-y-1">
-                <ScoreBar
-                  free={r.free}
-                  arrival={r.arrival}
-                  eta={r.eta}
-                  required={r.required}
-                  total={r.total}
-                />
-                <div className="flex items-center gap-2 text-[8px] text-zinc-600">
-                  <span className="text-emerald-500">{r.free}F</span>
-                  <span className="text-sky-500">{r.arrival}A</span>
-                  <span className="text-amber-500">{r.eta}E</span>
-                  <span className="text-red-500">{r.required}R</span>
+                }`}
+                whileHover={isLocked ? {} : { x: 2 }}
+                transition={{ duration: 0.1 }}
+              >
+                {/* Rank */}
+                <div className="flex items-center justify-center">
+                  <MedalBadge rank={r.rank} />
                 </div>
-              </div>
-            </motion.button>
+
+                {/* Country */}
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="text-base leading-none">{flag}</span>
+                  <span className={`truncate text-xs font-semibold ${isSelected ? "text-amber-300" : "text-zinc-200"}`}>
+                    {r.country}
+                  </span>
+                </div>
+
+                {/* Score */}
+                <div className="text-right">
+                  <span className={`text-sm font-black ${isTop3 ? "text-white" : "text-zinc-300"}`}>
+                    {r.mobilityScore}
+                  </span>
+                  <p className="text-[8px] text-zinc-600">countries</p>
+                </div>
+
+                {/* Breakdown bar + mini stats */}
+                <div className="space-y-1">
+                  <ScoreBar
+                    free={r.free}
+                    arrival={r.arrival}
+                    eta={r.eta}
+                    required={r.required}
+                    total={r.total}
+                  />
+                  <div className="flex items-center gap-2 text-[8px] text-zinc-600">
+                    <span className="text-emerald-500">{r.free}F</span>
+                    <span className="text-sky-500">{r.arrival}A</span>
+                    <span className="text-amber-500">{r.eta}E</span>
+                    <span className="text-red-500">{r.required}R</span>
+                  </div>
+                </div>
+              </motion.button>
+            </div>
           );
         })}
       </div>
 
-      {/* Load more */}
-      {filtered.length > showCount && (
+      {/* Load more — only for paid users or within the free window */}
+      {filtered.length > showCount && hasPaid && (
         <button
           onClick={() => setShowCount((n) => n + 50)}
           className="mt-4 w-full rounded-xl border border-zinc-800 py-2.5 text-xs font-semibold text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-200"
@@ -351,6 +389,13 @@ function PassportRankingTable({
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
+
+type ClickedCountry = {
+  name: string;
+  flag: string;
+  status: string;
+  cat: VisaCategory;
+};
 
 export default function VisaGlobeClient() {
   const globeRef = useRef<any>(null);
@@ -365,6 +410,27 @@ export default function VisaGlobeClient() {
   const [dimensions, setDimensions] = useState({ width: 900, height: 600 });
   const [ready, setReady] = useState(false);
   const [activeTab, setActiveTab] = useState<"globe" | "ranking">("globe");
+
+  // Auth / paywall state
+  const [hasPaid, setHasPaid] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallCountry, setPaywallCountry] = useState<string | undefined>();
+  const [clickedCountry, setClickedCountry] = useState<ClickedCountry | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async (uid: string) => {
+      const { data } = await supabase.from("profiles").select("has_paid").eq("id", uid).single();
+      setHasPaid(data?.has_paid ?? false);
+    };
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user.id) fetchProfile(data.session.user.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session?.user.id) fetchProfile(session.user.id);
+      else setHasPaid(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     fetch(GEOJSON_URL).then((r) => r.json()).then(setGeoJson);
@@ -455,6 +521,24 @@ export default function VisaGlobeClient() {
   const [catSearch, setCatSearch] = useState("");
 
   const handlePolygonHover = useCallback((d: any) => setHoverD(d), []);
+
+  const handlePolygonClick = useCallback(
+    (d: any) => {
+      const name = getCountryName(d);
+      if (!name || name === passport) return;
+
+      if (!hasPaid) {
+        setPaywallCountry(name);
+        setPaywallOpen(true);
+        return;
+      }
+
+      const status = passportMatrix[name] ?? "Unknown";
+      const cat = classifyVisa(status, false);
+      setClickedCountry({ name, flag: COUNTRY_FLAGS[name] ?? "🌐", status, cat });
+    },
+    [getCountryName, passport, hasPaid, passportMatrix]
+  );
 
   const hoveredName = hoverD ? getCountryName(hoverD) : null;
   const hoveredStatus = hoveredName ? passportMatrix[hoveredName] : null;
@@ -712,6 +796,7 @@ export default function VisaGlobeClient() {
                       return "rgba(255,255,255,0.06)";
                     }}
                     onPolygonHover={handlePolygonHover}
+                    onPolygonClick={handlePolygonClick}
                     polygonLabel={() => ""}
                   />
                 )}
@@ -759,6 +844,12 @@ export default function VisaGlobeClient() {
                                 {hoveredStatus && hoveredCat !== "self" && (
                                   <p className="text-[9px] text-zinc-500 capitalize">{hoveredStatus}</p>
                                 )}
+                                {!hasPaid && hoveredCat !== "self" && (
+                                  <p className="mt-1 flex items-center gap-1 text-[9px] text-amber-500/80">
+                                    <Lock className="h-2.5 w-2.5" />
+                                    Click to unlock details
+                                  </p>
+                                )}
                               </div>
                             </>
                           );
@@ -768,6 +859,88 @@ export default function VisaGlobeClient() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Click-detail panel — shown when a paid user clicks a country */}
+              <AnimatePresence>
+                {clickedCountry && hasPaid && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                    transition={{ type: "spring", damping: 28, stiffness: 360 }}
+                    className="absolute bottom-4 left-4 z-40 w-72 overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-950/95 shadow-[0_24px_64px_rgba(0,0,0,0.9)] backdrop-blur-xl"
+                  >
+                    <div className="h-1 w-full" style={{ background: VISA_CATEGORIES[clickedCountry.cat].hex }} />
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl leading-none">{clickedCountry.flag}</span>
+                          <div>
+                            <p className="font-bold text-white">{clickedCountry.name}</p>
+                            <p className="text-[10px] uppercase tracking-widest text-zinc-500">
+                              Visa requirement for {passport}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setClickedCountry(null)}
+                          className="mt-0.5 rounded-md p-1 text-zinc-600 transition hover:text-zinc-300"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div
+                        className="mt-3 flex items-center gap-2.5 rounded-xl p-3"
+                        style={{ background: hexToRgba(VISA_CATEGORIES[clickedCountry.cat].hex, 0.10) }}
+                      >
+                        {(() => {
+                          const cfg = VISA_CATEGORIES[clickedCountry.cat];
+                          const Icon = cfg.icon;
+                          return (
+                            <>
+                              <div
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                style={{ background: hexToRgba(cfg.hex, 0.18) }}
+                              >
+                                <Icon className="h-4 w-4" style={{ color: cfg.hex }} />
+                              </div>
+                              <div>
+                                <p className={`text-sm font-bold ${cfg.color}`}>{cfg.label}</p>
+                                <p className="mt-0.5 text-[11px] capitalize text-zinc-400">
+                                  {clickedCountry.status}
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-2 border-t border-zinc-800/60 pt-3">
+                        <Plane className="h-3.5 w-3.5 text-zinc-500" />
+                        <p className="text-[11px] text-zinc-500">
+                          Mobility score: {passport} has{" "}
+                          <span className="font-semibold text-zinc-300">
+                            {stats.free + stats.arrival}
+                          </span>{" "}
+                          visa-free + on-arrival destinations
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Bottom-right badge — nudges non-paid users to click a country */}
+              {!hasPaid && ready && (
+                <button
+                  onClick={() => setPaywallOpen(true)}
+                  className="absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-zinc-950/90 px-3 py-2 text-[11px] font-semibold text-amber-400/80 backdrop-blur-xl transition hover:border-amber-500/40 hover:text-amber-300"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  Click a country to unlock visa details
+                </button>
+              )}
             </div>
           </motion.div>
         ) : (
@@ -784,6 +957,8 @@ export default function VisaGlobeClient() {
                 rankings={rankings}
                 passport={passport}
                 onSelect={handleRankSelect}
+                hasPaid={hasPaid}
+                onUnlock={() => setPaywallOpen(true)}
               />
             ) : (
               <div className="flex h-40 items-center justify-center">
@@ -810,6 +985,12 @@ export default function VisaGlobeClient() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SignupModal
+        isOpen={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        countryName={paywallCountry}
+      />
     </div>
   );
 }

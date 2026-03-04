@@ -98,7 +98,6 @@ export const COUNTRY_BMI: Record<string, BmiByGender> = {
   "latvia":               { male: 26.6, female: 26.2 },
   "slovenia":             { male: 26.8, female: 25.0 },
   "luxembourg":           { male: 26.4, female: 24.5 },
-  "iceland":              { male: 27.0, female: 25.5 },
   "bosnia-and-herzegovina": { male: 26.5, female: 26.0 },
   "moldova":              { male: 26.0, female: 27.2 },
 };
@@ -124,3 +123,33 @@ export function getBmiCountryImagePath(slug: string, gender: "male" | "female"):
 export function getAllBmiCountrySlugs(): string[] {
   return Object.keys(COUNTRY_BMI);
 }
+
+// ─── New helpers for ref-image based comparison UI ────────────────────────────
+
+/**
+ * Returns true when we have BMI data (and therefore are likely to have
+ * generated comparison imagery) for this country. We don't hit the filesystem
+ * at runtime — this is a conservative proxy based on the data table.
+ */
+export function hasCountryBmiImage(slug: string): boolean {
+  return Boolean(COUNTRY_BMI[slug]);
+}
+
+/**
+ * Path to a generic BMI reference image for a given gender and BMI value.
+ *
+ * The UI only cares that similar BMI values map to similar-looking images, so
+ * we snap to 0.5 BMI steps and clamp to a sane range. The underlying image
+ * generator (and file presence) can evolve independently of this helper.
+ */
+export function getBmiRefImagePath(
+  gender: "male" | "female",
+  bmi: number,
+): string {
+  // Clamp to a typical adult BMI range to avoid absurd filenames.
+  const clamped = Math.max(16, Math.min(40, bmi));
+  const snapped = Math.round(clamped * 2) / 2; // nearest 0.5
+  const label = snapped.toFixed(1).replace(".", "-"); // e.g. 27.5 -> "27-5"
+  return `/bmi/ref/${gender}-${label}.png`;
+}
+

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactCountryFlag from "react-country-flag";
-import { ChevronDown, ExternalLink, Heart, DollarSign, Wifi, Users, Shield, Star } from "lucide-react";
+import { ChevronDown, ExternalLink, Heart, DollarSign, Wifi, Users, Shield, Star, Lock, ArrowRight } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
 import {
@@ -17,6 +17,9 @@ import { countryCodeFromFlagEmoji } from "@/lib/flagUtils";
 import { NUMBEO_COST_INDEX } from "@/lib/affordabilityIndex";
 import { GPI_RANK } from "@/lib/safetyIndex";
 import { GALLUP_ACCEPTANCE, INTERNATIONS_SETTLING_IN_RANK } from "@/lib/friendlinessIndex";
+import { hasAccess } from "@/lib/access";
+import { supabase } from "@/lib/supabase";
+import SignupModal from "@/components/SignupModal";
 
 type Props = {
   countries: Country[];
@@ -43,6 +46,27 @@ const BREAKDOWN: { key: keyof LeaderboardCountry["scores"]; label: string; icon:
 export default function LeaderboardClient({ countries }: Props) {
   const [selected, setSelected] = useState<LeaderboardSortKey>("overall");
   const [openSlug, setOpenSlug] = useState<string | null>(null);
+  const [hasPaid, setHasPaid] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id;
+      if (!uid) return;
+      supabase.from("profiles").select("has_paid").eq("id", uid).single()
+        .then(({ data: p }) => setHasPaid(p?.has_paid ?? false));
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      const uid = session?.user.id;
+      if (!uid) { setHasPaid(false); return; }
+      supabase.from("profiles").select("has_paid").eq("id", uid).single()
+        .then(({ data: p }) => setHasPaid(p?.has_paid ?? false));
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Leaderboard uses "overall" as the slug sentinel — no country-specific free sample
+  const canAccess = hasAccess({ has_paid: hasPaid }, "__leaderboard__");
 
   const ranked = useMemo(() => {
     const parseHeight = (h: string) => {
@@ -102,6 +126,7 @@ export default function LeaderboardClient({ countries }: Props) {
           const isOpen = openSlug === country.slug;
           const flagCode = COUNTRY_FLAG_CODE[country.slug] ?? countryCodeFromFlagEmoji(country.flagEmoji);
           const isTop3 = idx < 3;
+          const isLocked = !canAccess && idx >= 3;
 
           return (
             <motion.div
@@ -110,15 +135,49 @@ export default function LeaderboardClient({ countries }: Props) {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.15, delay: Math.min(idx * 0.02, 0.3) }}
+            >
+              {/* Paywall banner — injected once between row 3 and row 4 */}
+              {idx === 3 && !canAccess && (
+                <div className="mb-2 flex items-center gap-4 rounded-xl border border-emerald-500/20 bg-zinc-900/80 px-4 py-4 shadow-lg ring-1 ring-white/[0.04]">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20">
+                    <Lock className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white">Unlock the Full Ranking</p>
+                    <p className="text-xs text-zinc-500">Rows 4–{ranked.length} are locked. Get full access to see every country ranked.</p>
+                  </div>
+                  <button
+                    onClick={() => setPaywallOpen(true)}
+                    className="group flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-bold text-black transition hover:bg-emerald-400"
+                  >
+                    Unlock
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                </div>
+              )}
+
+            <div
               className={`overflow-hidden rounded-xl border transition-colors ${
                 isTop3
                   ? "border-emerald-500/20 bg-zinc-900/70"
+                  : isLocked
+                  ? "border-zinc-800/40 bg-zinc-900/20"
                   : "border-zinc-800/60 bg-zinc-900/40"
-              }`}
+              } ${isLocked ? "relative" : ""}`}
             >
+              {/* Blur overlay for locked rows */}
+              {isLocked && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[3px]">
+                  <Lock className="h-4 w-4 text-zinc-700" />
+                </div>
+              )}
+
               <button
-                onClick={() => setOpenSlug(isOpen ? null : country.slug)}
-                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-zinc-800/30 sm:gap-4 sm:px-4 sm:py-3"
+                disabled={isLocked}
+                onClick={() => !isLocked && setOpenSlug(isOpen ? null : country.slug)}
+                className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition sm:gap-4 sm:px-4 sm:py-3 ${
+                  isLocked ? "cursor-default opacity-40 select-none" : "hover:bg-zinc-800/30"
+                }`}
               >
                 <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold sm:h-8 sm:w-8 sm:text-xs ${
                   isTop3
@@ -165,7 +224,7 @@ export default function LeaderboardClient({ countries }: Props) {
               </button>
 
               <AnimatePresence>
-                {isOpen && (
+                {isOpen && !isLocked && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
@@ -208,10 +267,13 @@ export default function LeaderboardClient({ countries }: Props) {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>{/* end row card */}
             </motion.div>
           );
         })}
       </div>
+
+      <SignupModal isOpen={paywallOpen} onClose={() => setPaywallOpen(false)} />
 
       {/* Data sources — same reference as country detail, dashboard, globe; getCountryScores only */}
       <div className="mt-8 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">

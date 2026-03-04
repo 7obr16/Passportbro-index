@@ -98,7 +98,6 @@ const GPI_RANK: Record<string, number> = {
   "luxembourg": 21,
   "malta": 23,
   "cyprus": 44,
-  "iceland": 1,
   "montenegro": 52,
   "north-macedonia": 60,
   "albania": 51,

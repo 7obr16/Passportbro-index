@@ -91,7 +91,6 @@ export const COUNTRY_DISPLAY_NAMES: Record<string, string> = {
   "luxembourg": "Luxembourg",
   "malta": "Malta",
   "cyprus": "Cyprus",
-  "iceland": "Iceland",
   "montenegro": "Montenegro",
   "north-macedonia": "North Macedonia",
   "albania": "Albania",

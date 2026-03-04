@@ -112,7 +112,6 @@ const GALLUP_ACCEPTANCE: Record<string, number> = {
   "luxembourg": 7.6,
   "malta": 6.2,
   "cyprus": 5.8,
-  "iceland": 7.8,
   "montenegro": 4.5,
   "north-macedonia": 4.2,
   "albania": 4.5,

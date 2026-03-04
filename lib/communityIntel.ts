@@ -707,10 +707,6 @@ export const COMMUNITY_INTEL: Record<string, CommunityIntel> = {
     pros: ["English widely used; EU; beaches; good weather; Paphos and Limassol have expats."],
     cons: ["Split island (Greek/Turkish); dating is Mediterranean but small pool; can feel transient.", "Less community intel than Spain or Greece for dating."],
   },
-  iceland: {
-    pros: ["Very safe; nature; English spoken; unique landscape; Reykjavík has nightlife."],
-    cons: ["Very expensive; small population; Icelandic women independent; dating is Nordic and competitive.", "Dark and cold in winter; not a typical passport bro destination."],
-  },
   montenegro: {
     pros: ["Coast; affordable; euro used; Budva and Kotor popular; visa-free for many; scenic."],
     cons: ["Small country; dating pool limited; seasonal tourism; Montenegrin women often traditional.", "Less passport bro coverage; good for nature and cost, not primarily for dating."],

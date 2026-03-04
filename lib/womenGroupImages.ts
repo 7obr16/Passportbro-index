@@ -104,7 +104,6 @@ export const WOMEN_GROUP_IMAGE: Record<string, string> = {
   honduras: "/women-group/honduras.png",
   "hong-kong": "/women-group/hong-kong.png",
   hungary: "/women-group/hungary.png",
-  iceland: "/women-group/iceland.png",
   india: "/women-group/india.png",
   indonesia: "/women-group/indonesia.png",
   iran: "/women-group/iran.png",

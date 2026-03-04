@@ -71,7 +71,6 @@ export const FERTILITY_RATE: Record<string, number> = {
   denmark: 1.55,
   finland: 1.32,
   ireland: 1.54,
-  iceland: 1.589,
   greece: 1.32,
   malta: 1.08,
   cyprus: 1.393,

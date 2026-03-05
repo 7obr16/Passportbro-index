@@ -1,9 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { CloudRain, Sun, Moon, ChevronDown, Thermometer } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CloudRain, Sun, Moon, ChevronDown, Thermometer, MapPin } from "lucide-react";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  Marker,
+} from "react-simple-maps";
 import SourceLink from "@/components/SourceLink";
+import { getCitiesForCountry, type CityClimate } from "@/lib/cityClimateData";
+
+const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 type Props = {
   slug: string;
@@ -20,25 +29,47 @@ const MONTHS_FULL = ["January","February","March","April","May","June","July","A
 
 const SOUTHERN_HEMISPHERE = new Set([
   "argentina","brazil","chile","australia","south-africa","tanzania","indonesia",
+  "peru","new-zealand","uruguay","paraguay","bolivia","ecuador",
 ]);
 
-// Temperature → color scale (cold blue → warm amber → hot red)
+const MAP_VIEW: Record<string, { center: [number, number]; zoom: number }> = {
+  philippines:          { center: [122, 12],    zoom: 4.5 },
+  thailand:             { center: [101, 13],    zoom: 5 },
+  indonesia:            { center: [118, -2],    zoom: 3 },
+  vietnam:              { center: [107, 16],    zoom: 4 },
+  colombia:             { center: [-74, 4.5],   zoom: 4 },
+  mexico:               { center: [-102, 23],   zoom: 3.5 },
+  brazil:               { center: [-52, -14],   zoom: 2.5 },
+  argentina:            { center: [-64, -38],   zoom: 2.5 },
+  peru:                 { center: [-76, -10],   zoom: 4 },
+  "costa-rica":         { center: [-84, 10],    zoom: 9 },
+  "dominican-republic": { center: [-70, 19],    zoom: 10 },
+  cambodia:             { center: [105, 12.5],  zoom: 7 },
+  malaysia:             { center: [109, 4],     zoom: 4 },
+  india:                { center: [79, 22],     zoom: 3.5 },
+  japan:                { center: [138, 37],    zoom: 5 },
+  "south-korea":        { center: [128, 36],    zoom: 8 },
+  "south-africa":       { center: [25, -29],    zoom: 4 },
+  morocco:              { center: [-6.5, 32],   zoom: 5 },
+  turkey:               { center: [35, 39],     zoom: 5 },
+  spain:                { center: [-3.5, 37],   zoom: 5 },
+};
+
 function tempColor(c: number): string {
-  if (c <= 0)  return "#93c5fd"; // light blue
-  if (c <= 5)  return "#60a5fa"; // blue
-  if (c <= 10) return "#38bdf8"; // sky
-  if (c <= 15) return "#34d399"; // teal-green
-  if (c <= 20) return "#86efac"; // light green
-  if (c <= 24) return "#fde68a"; // pale yellow
-  if (c <= 27) return "#fbbf24"; // amber
-  if (c <= 30) return "#f97316"; // orange
-  if (c <= 34) return "#ef4444"; // red
-  return "#dc2626"; // deep red
+  if (c <= 0)  return "#93c5fd";
+  if (c <= 5)  return "#60a5fa";
+  if (c <= 10) return "#38bdf8";
+  if (c <= 15) return "#34d399";
+  if (c <= 20) return "#86efac";
+  if (c <= 24) return "#fde68a";
+  if (c <= 27) return "#fbbf24";
+  if (c <= 30) return "#f97316";
+  if (c <= 34) return "#ef4444";
+  return "#dc2626";
 }
 
 function tempColorOpaque(c: number, opacity = 0.18): string {
   const hex = tempColor(c);
-  // Convert hex to rgba
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
@@ -145,15 +176,33 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
+function cityToSeries(city: CityClimate) {
+  return {
+    avg:   city.months.map((m) => m.avg),
+    day:   city.months.map((m) => m.high),
+    night: city.months.map((m) => m.low),
+    rain:  city.months.map((m) => m.rain),
+  };
+}
+
 export default function ClimateInsights({ slug, countryName, climate, hasBeach, hasNature }: Props) {
+  const cities = useMemo(() => getCitiesForCountry(slug), [slug]);
+  const [selectedCity, setSelectedCity] = useState<string | null>(cities[0]?.name ?? null);
   const [tempView, setTempView] = useState<TempView>("all");
   const [hoverMonth, setHoverMonth] = useState<number | null>(null);
   const [isOpen, setIsOpen] = useState(true);
 
-  const { day, night, avg, rain } = useMemo(
-    () => buildClimateSeries(climate, slug, hasBeach, hasNature),
-    [climate, slug, hasBeach, hasNature],
+  const activeCity = useMemo(
+    () => cities.find((c) => c.name === selectedCity) ?? null,
+    [cities, selectedCity],
   );
+
+  const series = useMemo(() => {
+    if (activeCity) return cityToSeries(activeCity);
+    return buildClimateSeries(climate, slug, hasBeach, hasNature);
+  }, [activeCity, climate, slug, hasBeach, hasNature]);
+
+  const { day, night, avg, rain } = series;
 
   const topMonths = useMemo(() => bestMonths(avg, rain), [avg, rain]);
   const tempMin = Math.min(...night) - 4;
@@ -207,6 +256,9 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
     { id: "night", label: "Night",   icon: Moon },
   ];
 
+  const mapView = MAP_VIEW[slug] ?? { center: [0, 20] as [number, number], zoom: 1 };
+  const hasCities = cities.length > 0;
+
   return (
     <section className="mb-6 rounded-2xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden sm:mb-8">
       <button
@@ -216,7 +268,9 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold text-zinc-100 sm:text-base">Climate & Weather</h2>
           <p className="mt-0.5 text-[10px] text-zinc-500 sm:text-[11px]">
-            Monthly temperature and rainfall for {countryName} · <SourceLink sourceKey="climate" className="text-zinc-500" />
+            Monthly temperature and rainfall
+            {activeCity ? ` · ${activeCity.name}` : ` · ${countryName}`}
+            {" · "}<SourceLink sourceKey="climate" className="text-zinc-500" />
           </p>
         </div>
         <motion.div
@@ -235,7 +289,102 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
         className="overflow-hidden"
       >
         <div className="px-3 pb-4 pt-0 sm:px-5 sm:pb-5 md:px-6 md:pb-6">
-          {/* Controls */}
+
+          {/* City selector: map + pills */}
+          {hasCities && (
+            <div className="mb-5 grid gap-3 lg:grid-cols-[auto_1fr]">
+              {/* Geographic mini-map */}
+              <div className="relative overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950/80"
+                   style={{ width: "100%", maxWidth: 260, minHeight: 160 }}>
+                <ComposableMap
+                  projection="geoMercator"
+                  projectionConfig={{ center: mapView.center, scale: mapView.zoom * 80 }}
+                  style={{ width: "100%", height: 160 }}
+                >
+                  <Geographies geography={GEO_URL}>
+                    {({ geographies }) =>
+                      geographies.map((geo) => (
+                        <Geography
+                          key={geo.rsmKey}
+                          geography={geo}
+                          style={{
+                            default: { fill: "#1c1c1e", stroke: "#3f3f46", strokeWidth: 0.3, outline: "none" },
+                            hover:   { fill: "#1c1c1e", stroke: "#3f3f46", strokeWidth: 0.3, outline: "none" },
+                            pressed: { fill: "#1c1c1e", stroke: "#3f3f46", strokeWidth: 0.3, outline: "none" },
+                          }}
+                        />
+                      ))
+                    }
+                  </Geographies>
+
+                  {cities.map((city) => {
+                    const isActive = city.name === selectedCity;
+                    const avgAnnual = city.months.reduce((s, m) => s + m.avg, 0) / 12;
+                    return (
+                      <Marker key={city.name} coordinates={[city.lng, city.lat]}>
+                        <circle
+                          r={isActive ? 6 : 4}
+                          fill={isActive ? tempColor(avgAnnual) : "#52525b"}
+                          stroke={isActive ? "#ffffff" : "#3f3f46"}
+                          strokeWidth={isActive ? 1.5 : 0.8}
+                          style={{ cursor: "pointer", transition: "all 0.15s" }}
+                          onClick={() => setSelectedCity(city.name)}
+                        />
+                        {isActive && (
+                          <text
+                            textAnchor="middle"
+                            y={-10}
+                            style={{
+                              fontSize: 8,
+                              fill: "#e4e4e7",
+                              fontFamily: "system-ui",
+                              fontWeight: 600,
+                              pointerEvents: "none",
+                            }}
+                          >
+                            {city.name}
+                          </text>
+                        )}
+                      </Marker>
+                    );
+                  })}
+                </ComposableMap>
+
+                <div className="absolute bottom-1.5 left-2 flex items-center gap-1 text-[8px] text-zinc-600">
+                  <MapPin className="h-2.5 w-2.5" />
+                  <span>Click a city</span>
+                </div>
+              </div>
+
+              {/* City pill buttons */}
+              <div className="flex flex-wrap items-start gap-1.5 pt-1">
+                {cities.map((city) => {
+                  const isActive = city.name === selectedCity;
+                  const avgAnnual = city.months.reduce((s, m) => s + m.avg, 0) / 12;
+                  return (
+                    <button
+                      key={city.name}
+                      onClick={() => setSelectedCity(city.name)}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
+                        isActive
+                          ? "border-transparent text-zinc-900"
+                          : "border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
+                      }`}
+                      style={isActive ? { backgroundColor: tempColor(avgAnnual) } : {}}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: isActive ? "rgba(0,0,0,0.3)" : tempColor(avgAnnual) }}
+                      />
+                      {city.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Temp view controls */}
           <div className="mb-4 flex flex-wrap items-center gap-1.5">
             {TEMP_VIEWS.map((t) => (
               <button
@@ -252,7 +401,6 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
               </button>
             ))}
 
-            {/* Temperature color legend */}
             <div className="ml-auto hidden items-center gap-2 sm:flex">
               <Thermometer className="h-3 w-3 text-zinc-600" />
               <div className="flex h-2.5 w-28 overflow-hidden rounded-full">
@@ -268,275 +416,174 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
           </div>
 
           {/* Chart */}
-          <div className="relative overflow-x-auto rounded-xl border border-zinc-800/50 bg-[#080809]">
-            <svg
-              viewBox={`0 0 ${w} ${h}`}
-              className="h-[320px] w-full min-w-[600px]"
-              onMouseLeave={() => setHoverMonth(null)}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedCity ?? "country"}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.25 }}
+              className="relative overflow-x-auto rounded-xl border border-zinc-800/50 bg-[#080809]"
             >
-              <defs>
-                <linearGradient id="rainBarGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.04" />
-                </linearGradient>
-              </defs>
-
-              {/* Vertical gradient defs per month — warm color fades from top to transparent */}
-              <defs>
-                {avg.map((v, i) => (
-                  <linearGradient key={`cgrad-${i}`} id={`cgrad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor={tempColor(v)} stopOpacity="0.28" />
-                    <stop offset="100%" stopColor={tempColor(v)} stopOpacity="0.03" />
-                  </linearGradient>
-                ))}
-              </defs>
-
-              {/* Colored temperature column backgrounds per month */}
-              {avg.map((v, i) => {
-                const x = padLeft + (i / 12) * plotW;
-                const isH = hoverMonth === i;
-                return (
-                  <motion.rect
-                    key={`col-${i}`}
-                    x={x}
-                    y={padTop}
-                    width={colW}
-                    height={plotH}
-                    fill={isH ? tempColor(v) : `url(#cgrad-${i})`}
-                    fillOpacity={isH ? 0.22 : 1}
-                    className="transition-all duration-200"
-                  />
-                );
-              })}
-
-              {/* Grid lines */}
-              {tempTicks.map((v) => {
-                const y = tempToY(v);
-                return (
-                  <g key={`grid-${v}`}>
-                    <line x1={padLeft} y1={y} x2={w - padRight} y2={y} stroke="#27272a" strokeWidth="0.5" />
-                    <text
-                      x={padLeft - 8}
-                      y={y + 3.5}
-                      textAnchor="end"
-                      fill={tempColor(v)}
-                      fontSize="9"
-                      fontFamily="system-ui"
-                      opacity={0.8}
-                    >
-                      {v}°
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* Rainfall bars */}
-              {rain.map((v, i) => {
-                const x = toX(i);
-                const barW = Math.min(plotW / 14, 34);
-                const barH = (v / rainMax) * plotH;
-                const isH = hoverMonth === i;
-                return (
-                  <motion.rect
-                    key={`rain-${i}`}
-                    x={x - barW / 2}
-                    y={padTop + plotH - barH}
-                    width={barW}
-                    height={barH}
-                    rx={3}
-                    fill={isH ? "#60a5fa" : "url(#rainBarGrad)"}
-                    fillOpacity={isH ? 0.5 : 1}
-                    initial={{ height: 0, y: padTop + plotH }}
-                    animate={{ height: isOpen ? barH : 0, y: isOpen ? padTop + plotH - barH : padTop + plotH }}
-                    transition={{ duration: 0.5, delay: i * 0.025, ease: "easeOut" }}
-                  />
-                );
-              })}
-
-              {/* Day/Night band fill */}
-              {tempView === "all" && (
-                <motion.path
-                  d={bandPath}
-                  fill="#ffffff"
-                  fillOpacity={0.03}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: isOpen ? 1 : 0 }}
-                  transition={{ duration: 0.5 }}
-                />
-              )}
-
-              {/* Night line */}
-              {(tempView === "all" || tempView === "night") && (
-                <motion.path
-                  d={pathNight}
-                  fill="none"
-                  stroke="#60a5fa"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeDasharray="5 4"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: isOpen ? 1 : 0, opacity: isOpen ? 0.65 : 0 }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                />
-              )}
-
-              {/* Day line */}
-              {(tempView === "all" || tempView === "day") && (
-                <motion.path
-                  d={pathDay}
-                  fill="none"
-                  stroke="#f97316"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: isOpen ? 1 : 0, opacity: isOpen ? 0.7 : 0 }}
-                  transition={{ duration: 1, ease: "easeOut", delay: 0.05 }}
-                />
-              )}
-
-              {/* Average line */}
-              {(tempView === "avg" || tempView === "all") && (
-                <motion.path
-                  d={pathAvg}
-                  fill="none"
-                  stroke="#fbbf24"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: isOpen ? 1 : 0, opacity: isOpen ? 1 : 0 }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                />
-              )}
-
-              {/* Colored dots on avg line — colored per temperature */}
-              {(tempView === "avg" || tempView === "all") &&
-                ptsAvg.map((p, i) => (
-                  <circle
-                    key={`dot-${i}`}
-                    cx={p.x}
-                    cy={p.y}
-                    r={hoverMonth === i ? 6 : 3.5}
-                    fill={tempColor(p.v)}
-                    stroke="#080809"
-                    strokeWidth={hoverMonth === i ? 1.5 : 0.5}
-                    className="transition-all duration-150"
-                  />
-                ))}
-
-              {/* Month labels + full-column hover hitboxes (drawn last so they capture pointer) */}
-              {MONTHS.map((m, i) => {
-                const x = toX(i);
-                const isH = hoverMonth === i;
-                const hitX = padLeft + (i / 12) * plotW;
-                return (
-                  <g
-                    key={m}
-                    onMouseEnter={() => setHoverMonth(i)}
-                    onMouseLeave={() => setHoverMonth(null)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <text
-                      x={x}
-                      y={h - 12}
-                      textAnchor="middle"
-                      fill={isH ? tempColor(avg[i]) : "#3f3f46"}
-                      fontSize="10"
-                      fontWeight={isH ? "700" : "400"}
-                      fontFamily="system-ui"
-                      pointerEvents="none"
-                    >
-                      {m}
-                    </text>
-                    {isH && (
-                      <line x1={x} y1={padTop} x2={x} y2={padTop + plotH} stroke="#3f3f46" strokeWidth="0.8" strokeDasharray="3 3" pointerEvents="none" />
-                    )}
-                    <rect
-                      x={hitX}
-                      y={padTop}
-                      width={colW}
-                      height={plotH + padBottom}
-                      fill="transparent"
-                      style={{ pointerEvents: "all" }}
-                      aria-label={`${MONTHS_FULL[i]} – Avg ${avg[i]}°, Day ${day[i]}°, Night ${night[i]}°, Rain ${rain[i]} mm`}
-                    />
-                  </g>
-                );
-              })}
-
-              {/* Rain axis label */}
-              <text x={w - padRight + 8} y={padTop + 4} textAnchor="start" fill="#27272a" fontSize="8" fontFamily="system-ui">mm</text>
-
-              {/* Hover tooltip */}
-              {hoverMonth != null && (() => {
-                const avgT = avg[hoverMonth];
-                const col = tempColor(avgT);
-                const tx = Math.min(w - padRight - 180, Math.max(padLeft, toX(hoverMonth) - 80));
-                const ty = padTop + 4;
-                return (
-                  <g>
-                    <rect x={tx} y={ty} width={172} height={92} rx={8} fill="#0a0a0c" fillOpacity={0.95} stroke={col} strokeWidth="0.4" strokeOpacity="0.4" />
-                    {/* Month + temp label */}
-                    <text x={tx + 12} y={ty + 18} fill="#e4e4e7" fontSize="11" fontWeight="700" fontFamily="system-ui">
-                      {MONTHS_FULL[hoverMonth]}
-                    </text>
-                    <text x={tx + 120} y={ty + 18} fill={col} fontSize="9" fontWeight="600" fontFamily="system-ui" textAnchor="middle">
-                      {tempLabel(avgT)}
-                    </text>
-                    {/* Avg */}
-                    <text x={tx + 12} y={ty + 36} fill={col} fontSize="10" fontFamily="system-ui">
-                      Avg {avgT}°
-                    </text>
-                    {/* Day */}
-                    <text x={tx + 72} y={ty + 36} fill="#f97316" fontSize="10" fontFamily="system-ui">
-                      Day {day[hoverMonth]}°
-                    </text>
-                    {/* Night */}
-                    <text x={tx + 12} y={ty + 52} fill="#60a5fa" fontSize="10" fontFamily="system-ui">
-                      Night {night[hoverMonth]}°
-                    </text>
-                    {/* Rain */}
-                    <text x={tx + 72} y={ty + 52} fill="#3b82f6" fontSize="10" fontFamily="system-ui">
-                      Rain {rain[hoverMonth]} mm
-                    </text>
-                    {/* Mini temp bar */}
-                    <rect x={tx + 12} y={ty + 64} width={148} height={6} rx={3} fill="#1a1a1c" />
-                    <motion.rect
-                      x={tx + 12}
-                      y={ty + 64}
-                      width={Math.max(4, ((avgT - tempMin) / (tempMax - tempMin)) * 148)}
-                      height={6}
-                      rx={3}
-                      fill={col}
-                      fillOpacity={0.7}
-                    />
-                    <text x={tx + 12} y={ty + 82} fill="#3f3f46" fontSize="8" fontFamily="system-ui">cold</text>
-                    <text x={tx + 148} y={ty + 82} fill="#3f3f46" fontSize="8" fontFamily="system-ui" textAnchor="end">hot</text>
-                  </g>
-                );
-              })()}
-            </svg>
-
-            {/* HTML tooltip for hovered month — always visible, not clipped by SVG */}
-            {hoverMonth != null && (
-              <div
-                className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-zinc-700/80 bg-zinc-900/95 px-4 py-3 shadow-xl backdrop-blur-sm"
-                style={{ borderLeftWidth: 3, borderLeftColor: tempColor(avg[hoverMonth]) }}
+              <svg
+                viewBox={`0 0 ${w} ${h}`}
+                className="h-[320px] w-full min-w-[600px]"
+                onMouseLeave={() => setHoverMonth(null)}
               >
-                <p className="mb-1.5 text-xs font-bold text-zinc-100">
-                  {MONTHS_FULL[hoverMonth]}
-                  <span className="ml-2 font-semibold" style={{ color: tempColor(avg[hoverMonth]) }}>
-                    {tempLabel(avg[hoverMonth])}
-                  </span>
-                </p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-zinc-400">
-                  <span>Avg <span className="font-semibold text-zinc-200">{avg[hoverMonth]}°C</span></span>
-                  <span>Day <span className="font-semibold text-orange-400">{day[hoverMonth]}°C</span></span>
-                  <span>Night <span className="font-semibold text-sky-400">{night[hoverMonth]}°C</span></span>
-                  <span>Rain <span className="font-semibold text-blue-400">{rain[hoverMonth]} mm</span></span>
+                <defs>
+                  <linearGradient id="rainBarGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.04" />
+                  </linearGradient>
+                </defs>
+
+                <defs>
+                  {avg.map((v, i) => (
+                    <linearGradient key={`cgrad-${i}`} id={`cgrad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"   stopColor={tempColor(v)} stopOpacity="0.28" />
+                      <stop offset="100%" stopColor={tempColor(v)} stopOpacity="0.03" />
+                    </linearGradient>
+                  ))}
+                </defs>
+
+                {avg.map((v, i) => {
+                  const x = padLeft + (i / 12) * plotW;
+                  const isH = hoverMonth === i;
+                  return (
+                    <motion.rect
+                      key={`col-${i}`}
+                      x={x} y={padTop} width={colW} height={plotH}
+                      fill={isH ? tempColor(v) : `url(#cgrad-${i})`}
+                      fillOpacity={isH ? 0.22 : 1}
+                      className="transition-all duration-200"
+                    />
+                  );
+                })}
+
+                {tempTicks.map((v) => {
+                  const y = tempToY(v);
+                  return (
+                    <g key={`grid-${v}`}>
+                      <line x1={padLeft} y1={y} x2={w - padRight} y2={y} stroke="#27272a" strokeWidth="0.5" />
+                      <text x={padLeft - 8} y={y + 3.5} textAnchor="end" fill={tempColor(v)} fontSize="9" fontFamily="system-ui" opacity={0.8}>{v}°</text>
+                    </g>
+                  );
+                })}
+
+                {rain.map((v, i) => {
+                  const x = toX(i);
+                  const barW = Math.min(plotW / 14, 34);
+                  const barH = (v / rainMax) * plotH;
+                  const isH = hoverMonth === i;
+                  return (
+                    <motion.rect
+                      key={`rain-${i}`}
+                      x={x - barW / 2} y={padTop + plotH - barH} width={barW} height={barH} rx={3}
+                      fill={isH ? "#60a5fa" : "url(#rainBarGrad)"} fillOpacity={isH ? 0.5 : 1}
+                      initial={{ height: 0, y: padTop + plotH }}
+                      animate={{ height: isOpen ? barH : 0, y: isOpen ? padTop + plotH - barH : padTop + plotH }}
+                      transition={{ duration: 0.5, delay: i * 0.025, ease: "easeOut" }}
+                    />
+                  );
+                })}
+
+                {tempView === "all" && (
+                  <motion.path d={bandPath} fill="#ffffff" fillOpacity={0.03}
+                    initial={{ opacity: 0 }} animate={{ opacity: isOpen ? 1 : 0 }} transition={{ duration: 0.5 }} />
+                )}
+
+                {(tempView === "all" || tempView === "night") && (
+                  <motion.path d={pathNight} fill="none" stroke="#60a5fa" strokeWidth="1.5"
+                    strokeLinecap="round" strokeDasharray="5 4"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: isOpen ? 1 : 0, opacity: isOpen ? 0.65 : 0 }}
+                    transition={{ duration: 1, ease: "easeOut" }} />
+                )}
+
+                {(tempView === "all" || tempView === "day") && (
+                  <motion.path d={pathDay} fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: isOpen ? 1 : 0, opacity: isOpen ? 0.7 : 0 }}
+                    transition={{ duration: 1, ease: "easeOut", delay: 0.05 }} />
+                )}
+
+                {(tempView === "avg" || tempView === "all") && (
+                  <motion.path d={pathAvg} fill="none" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: isOpen ? 1 : 0, opacity: isOpen ? 1 : 0 }}
+                    transition={{ duration: 1, ease: "easeOut" }} />
+                )}
+
+                {(tempView === "avg" || tempView === "all") &&
+                  ptsAvg.map((p, i) => (
+                    <circle key={`dot-${i}`} cx={p.x} cy={p.y}
+                      r={hoverMonth === i ? 6 : 3.5} fill={tempColor(p.v)}
+                      stroke="#080809" strokeWidth={hoverMonth === i ? 1.5 : 0.5}
+                      className="transition-all duration-150" />
+                  ))}
+
+                {MONTHS.map((m, i) => {
+                  const x = toX(i);
+                  const isH = hoverMonth === i;
+                  const hitX = padLeft + (i / 12) * plotW;
+                  return (
+                    <g key={m} onMouseEnter={() => setHoverMonth(i)} onMouseLeave={() => setHoverMonth(null)} style={{ cursor: "pointer" }}>
+                      <text x={x} y={h - 12} textAnchor="middle" fill={isH ? tempColor(avg[i]) : "#3f3f46"}
+                        fontSize="10" fontWeight={isH ? "700" : "400"} fontFamily="system-ui" pointerEvents="none">{m}</text>
+                      {isH && <line x1={x} y1={padTop} x2={x} y2={padTop + plotH} stroke="#3f3f46" strokeWidth="0.8" strokeDasharray="3 3" pointerEvents="none" />}
+                      <rect x={hitX} y={padTop} width={colW} height={plotH + padBottom} fill="transparent"
+                        style={{ pointerEvents: "all" }}
+                        aria-label={`${MONTHS_FULL[i]} – Avg ${avg[i]}°, Day ${day[i]}°, Night ${night[i]}°, Rain ${rain[i]} mm`} />
+                    </g>
+                  );
+                })}
+
+                <text x={w - padRight + 8} y={padTop + 4} textAnchor="start" fill="#27272a" fontSize="8" fontFamily="system-ui">mm</text>
+
+                {hoverMonth != null && (() => {
+                  const avgT = avg[hoverMonth];
+                  const col = tempColor(avgT);
+                  const tx = Math.min(w - padRight - 180, Math.max(padLeft, toX(hoverMonth) - 80));
+                  const ty = padTop + 4;
+                  return (
+                    <g>
+                      <rect x={tx} y={ty} width={172} height={92} rx={8} fill="#0a0a0c" fillOpacity={0.95} stroke={col} strokeWidth="0.4" strokeOpacity="0.4" />
+                      <text x={tx + 12} y={ty + 18} fill="#e4e4e7" fontSize="11" fontWeight="700" fontFamily="system-ui">{MONTHS_FULL[hoverMonth]}</text>
+                      <text x={tx + 120} y={ty + 18} fill={col} fontSize="9" fontWeight="600" fontFamily="system-ui" textAnchor="middle">{tempLabel(avgT)}</text>
+                      <text x={tx + 12} y={ty + 36} fill={col} fontSize="10" fontFamily="system-ui">Avg {avgT}°</text>
+                      <text x={tx + 72} y={ty + 36} fill="#f97316" fontSize="10" fontFamily="system-ui">Day {day[hoverMonth]}°</text>
+                      <text x={tx + 12} y={ty + 52} fill="#60a5fa" fontSize="10" fontFamily="system-ui">Night {night[hoverMonth]}°</text>
+                      <text x={tx + 72} y={ty + 52} fill="#3b82f6" fontSize="10" fontFamily="system-ui">Rain {rain[hoverMonth]} mm</text>
+                      <rect x={tx + 12} y={ty + 64} width={148} height={6} rx={3} fill="#1a1a1c" />
+                      <motion.rect x={tx + 12} y={ty + 64} width={Math.max(4, ((avgT - tempMin) / (tempMax - tempMin)) * 148)} height={6} rx={3} fill={col} fillOpacity={0.7} />
+                      <text x={tx + 12} y={ty + 82} fill="#3f3f46" fontSize="8" fontFamily="system-ui">cold</text>
+                      <text x={tx + 148} y={ty + 82} fill="#3f3f46" fontSize="8" fontFamily="system-ui" textAnchor="end">hot</text>
+                    </g>
+                  );
+                })()}
+              </svg>
+
+              {hoverMonth != null && (
+                <div
+                  className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-zinc-700/80 bg-zinc-900/95 px-4 py-3 shadow-xl backdrop-blur-sm"
+                  style={{ borderLeftWidth: 3, borderLeftColor: tempColor(avg[hoverMonth]) }}
+                >
+                  <p className="mb-1.5 text-xs font-bold text-zinc-100">
+                    {MONTHS_FULL[hoverMonth]}
+                    <span className="ml-2 font-semibold" style={{ color: tempColor(avg[hoverMonth]) }}>
+                      {tempLabel(avg[hoverMonth])}
+                    </span>
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-zinc-400">
+                    <span>Avg <span className="font-semibold text-zinc-200">{avg[hoverMonth]}°C</span></span>
+                    <span>Day <span className="font-semibold text-orange-400">{day[hoverMonth]}°C</span></span>
+                    <span>Night <span className="font-semibold text-sky-400">{night[hoverMonth]}°C</span></span>
+                    <span>Rain <span className="font-semibold text-blue-400">{rain[hoverMonth]} mm</span></span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Summary row */}
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -550,12 +597,7 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
                   {Math.min(...avg).toFixed(0)}°
                 </span>
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      background: `linear-gradient(to right, ${tempColor(Math.min(...avg))}, ${tempColor(Math.max(...avg))})`,
-                    }}
-                  />
+                  <div className="h-full rounded-full" style={{ background: `linear-gradient(to right, ${tempColor(Math.min(...avg))}, ${tempColor(Math.max(...avg))})` }} />
                 </div>
                 <span className="text-xs font-semibold" style={{ color: tempColor(Math.max(...avg)) }}>
                   {Math.max(...avg).toFixed(0)}°
@@ -578,11 +620,8 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
                   const mi = MONTHS.indexOf(m);
                   const t = avg[mi] ?? 22;
                   return (
-                    <span
-                      key={m}
-                      className="rounded px-1.5 py-0.5 text-[9px] font-bold"
-                      style={{ backgroundColor: tempColorOpaque(t, 0.15), color: tempColor(t) }}
-                    >
+                    <span key={m} className="rounded px-1.5 py-0.5 text-[9px] font-bold"
+                      style={{ backgroundColor: tempColorOpaque(t, 0.15), color: tempColor(t) }}>
                       {m}
                     </span>
                   );
@@ -590,6 +629,7 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
               </div>
             </div>
           </div>
+
         </div>
       </motion.div>
     </section>

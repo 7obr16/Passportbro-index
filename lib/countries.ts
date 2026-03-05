@@ -134,6 +134,33 @@ const PORTRAIT_AVAILABLE = new Set([
   "heard-island-and-mcdonald-islands", "aland-islands"
 ]);
 
+/**
+ * Countries/territories with a population below 100 000.
+ * These are filtered out everywhere (dashboard, leaderboard, globe, etc.)
+ * because they are not relevant travel destinations.
+ */
+const UNDER_100K_SLUGS = new Set([
+  // Microstates
+  "vatican-city", "nauru", "tuvalu", "palau", "san-marino",
+  "liechtenstein", "monaco", "marshall-islands", "saint-kitts-and-nevis",
+  "andorra", "dominica", "antigua-and-barbuda", "seychelles",
+
+  // Overseas / dependent territories
+  "cook-islands", "niue", "tokelau", "montserrat",
+  "saint-helena-ascension-and-tristan-da-cunha", "wallis-and-futuna",
+  "norfolk-island", "pitcairn-islands", "cocos-keeling-islands",
+  "christmas-island", "falkland-islands", "svalbard-and-jan-mayen",
+  "bouvet-island", "heard-island-and-mcdonald-islands",
+  "british-indian-ocean-territory", "united-states-minor-outlying-islands",
+  "french-southern-and-antarctic-lands", "south-georgia", "antarctica",
+  "aland-islands", "anguilla", "bermuda", "cayman-islands", "faroe-islands",
+  "gibraltar", "greenland", "guernsey", "isle-of-man", "jersey",
+  "northern-mariana-islands", "saint-barthelemy", "saint-martin",
+  "sint-maarten", "turks-and-caicos-islands", "american-samoa",
+  "caribbean-netherlands", "saint-pierre-and-miquelon",
+  "united-states-virgin-islands",
+]);
+
 /** Canonical dating tiers only. "Possible" is treated as "Normal". */
 const DATING_EASE_CANONICAL: Record<string, string> = {
   Possible: "Normal",
@@ -292,10 +319,14 @@ export async function getCountries(): Promise<Country[]> {
     return [];
   }
 
-  return (data as CountryRow[]).map(rowToCountry);
+  return (data as CountryRow[])
+    .filter((row) => !UNDER_100K_SLUGS.has(row.slug))
+    .map(rowToCountry);
 }
 
 export async function getCountryBySlug(slug: string): Promise<Country | undefined> {
+  if (UNDER_100K_SLUGS.has(slug)) return undefined;
+
   const { data, error } = await supabase
     .from("Countries")
     .select("*")
@@ -316,5 +347,7 @@ export async function getAllSlugs(): Promise<string[]> {
     .select("slug");
 
   if (error || !data) return [];
-  return (data as { slug: string }[]).map((r) => r.slug);
+  return (data as { slug: string }[])
+    .map((r) => r.slug)
+    .filter((slug) => !UNDER_100K_SLUGS.has(slug));
 }

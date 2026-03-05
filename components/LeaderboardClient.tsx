@@ -47,26 +47,29 @@ export default function LeaderboardClient({ countries }: Props) {
   const [selected, setSelected] = useState<LeaderboardSortKey>("overall");
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [hasPaid, setHasPaid] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      const uid = data.session?.user.id;
-      if (!uid) return;
-      supabase.from("profiles").select("has_paid").eq("id", uid).single()
+      const user = data.session?.user;
+      if (!user) return;
+      setUserEmail(user.email ?? null);
+      supabase.from("profiles").select("has_paid").eq("id", user.id).single()
         .then(({ data: p }) => setHasPaid(p?.has_paid ?? false));
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      const uid = session?.user.id;
-      if (!uid) { setHasPaid(false); return; }
-      supabase.from("profiles").select("has_paid").eq("id", uid).single()
+      const user = session?.user;
+      if (!user) { setHasPaid(false); setUserEmail(null); return; }
+      setUserEmail(user.email ?? null);
+      supabase.from("profiles").select("has_paid").eq("id", user.id).single()
         .then(({ data: p }) => setHasPaid(p?.has_paid ?? false));
     });
     return () => subscription.unsubscribe();
   }, []);
 
   // Leaderboard uses "overall" as the slug sentinel — no country-specific free sample
-  const canAccess = hasAccess({ has_paid: hasPaid }, "__leaderboard__");
+  const canAccess = hasAccess({ has_paid: hasPaid, email: userEmail }, "__leaderboard__");
 
   const ranked = useMemo(() => {
     const parseHeight = (h: string) => {

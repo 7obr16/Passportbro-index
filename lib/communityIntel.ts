@@ -25,6 +25,12 @@ const PLACEHOLDER_PHRASES = [
   "tbd",
   "TBD",
   "coming soon",
+  "Community data currently being expanded",
+  "community data currently being expanded",
+  "data being expanded",
+  "being expanded",
+  "coming soon",
+  "placeholder",
 ];
 
 function isPlaceholder(text: string): boolean {
@@ -727,7 +733,1038 @@ export const COMMUNITY_INTEL: Record<string, CommunityIntel> = {
     pros: ["Very affordable; visa-free for EU; Chișinău has bars; low cost of living."],
     cons: ["Poor infrastructure; many young women leave for EU; dating pool affected by emigration.", "Corruption and weak economy; not a mainstream passport bro destination."],
   },
+
+  // ── East Asia ──
+  taiwan: {
+    pros: [
+      "Taipei is top-tier for East Asia: women are warmer and more direct than in Japan.",
+      "Very safe; one of the safest countries in Asia for foreigners.",
+      "Excellent food scene; night markets, street food, restaurants everywhere.",
+      "Good English in Taipei; younger generation often English-capable.",
+      "Modern infrastructure; high-speed rail; clean cities.",
+      "Women are well-educated, open-minded, and curious about foreigners.",
+      "Night markets and café culture make casual meetups easy.",
+      "Visa-free for many nationalities for 90 days; gold card visa for longer stays.",
+    ],
+    cons: [
+      "Dating can still be conservative compared to Southeast Asia; moving slower expected.",
+      "Language helps a lot outside Taipei.",
+      "Smaller country; dating pool limited compared to Japan or South Korea.",
+      "Political situation with China creates background uncertainty.",
+    ],
+  },
+  "hong-kong": {
+    pros: [
+      "World-class city; great nightlife, dining, and finance scene.",
+      "English is widely spoken; easy to navigate.",
+      "Cosmopolitan dating pool; many expats and international professionals.",
+      "Excellent transport and infrastructure.",
+    ],
+    cons: [
+      "Extremely expensive; one of the priciest cities in the world.",
+      "Political changes post-2020 affect expat sentiment.",
+      "Competitive dating; women independent and career-focused.",
+      "Small territory; limited variety outside the city.",
+    ],
+  },
+  "north-korea": {
+    pros: [],
+    cons: [
+      "Closed to nearly all foreign visitors; no independent travel possible.",
+      "Not a viable destination for passport bros or anyone.",
+    ],
+  },
+  macau: {
+    pros: [
+      "Easy day-trip from Hong Kong; casino and entertainment hub.",
+      "Visa-free for many; Portuguese colonial architecture unique.",
+    ],
+    cons: [
+      "Very small; not a long-term destination.",
+      "Expensive; tourism-focused economy; limited authentic local scene.",
+    ],
+  },
+
+  // ── Southeast Asia ──
+  laos: {
+    pros: [
+      "Very affordable; Vientiane and Vang Vieng popular with budget travelers.",
+      "Relaxed and friendly culture; low-key vibe.",
+      "Easy visa on arrival; good for slow travel.",
+      "Luang Prabang is a UNESCO gem; great for nature lovers.",
+    ],
+    cons: [
+      "Small population; limited dating scene compared to Thailand or Vietnam.",
+      "English is limited; Lao language helps.",
+      "Infrastructure basic; internet can be slow outside cities.",
+      "Less of a passport bro hub; few community trip reports.",
+    ],
+  },
+  myanmar: {
+    pros: [
+      "Beautiful culture and temples; Bagan, Yangon, Inle Lake all unique.",
+      "Very affordable when accessible.",
+      "Women generally friendly and curious about foreigners historically.",
+    ],
+    cons: [
+      "Military coup since 2021; travel not recommended; safety concerns.",
+      "Infrastructure and internet disrupted; banking complicated.",
+      "Not a viable passport bro destination currently.",
+    ],
+  },
+  "timor-leste": {
+    pros: [
+      "Untouched; one of Southeast Asia's most unexplored countries.",
+      "Cheap and authentic; Portuguese and Tetum culture.",
+    ],
+    cons: [
+      "Very limited infrastructure; poor internet and healthcare.",
+      "Tiny expat scene; not a dating or nomad destination.",
+      "Visa process and travel logistics can be complicated.",
+    ],
+  },
+
+  // ── South Asia ──
+  "sri-lanka": {
+    pros: [
+      "Beautiful island; beaches, mountains, temples — huge variety.",
+      "Affordable; $1k–1.5k/month possible with care.",
+      "English widely spoken due to British heritage.",
+      "Colombo has a growing expat and digital nomad scene.",
+      "Visa on arrival or ETA; easy entry for most.",
+    ],
+    cons: [
+      "Conservative culture; public dating norms matter.",
+      "Economic instability and political uncertainty in recent years.",
+      "Smaller passport bro community; fewer trip reports.",
+      "Infrastructure outside Colombo can be basic.",
+    ],
+  },
+  nepal: {
+    pros: [
+      "Kathmandu is vibrant; trekking culture brings internationals together.",
+      "Very affordable; great for long-term budget living.",
+      "Friendly and curious locals; English in tourist areas.",
+      "Spiritual and nature experiences unique globally.",
+    ],
+    cons: [
+      "Conservative in many areas; dating culture traditional.",
+      "Infrastructure basic; power cuts still occur.",
+      "Thin air at altitude; not for everyone.",
+      "Smaller nomad dating scene outside Kathmandu.",
+    ],
+  },
+  bangladesh: {
+    pros: [
+      "Dhaka is a huge, buzzing city; very affordable.",
+      "English common in professional circles.",
+    ],
+    cons: [
+      "Conservative Muslim country; dating scene very limited.",
+      "Traffic and pollution in Dhaka extreme.",
+      "Not a typical passport bro destination; little forum coverage.",
+    ],
+  },
+  bhutan: {
+    pros: [
+      "Unique Himalayan kingdom; stunning nature and Buddhist culture.",
+      "Safe and peaceful.",
+    ],
+    cons: [
+      "High daily tourist fee ($200/day) limits budget stays.",
+      "Very conservative; no real dating scene.",
+      "Not a passport bro destination; more for spiritual travel.",
+    ],
+  },
+  afghanistan: {
+    pros: [],
+    cons: [
+      "Active conflict and Taliban rule; no-go for virtually all foreign travel.",
+      "Not a viable destination under any circumstances.",
+    ],
+  },
+
+  // ── Central Asia ──
+  uzbekistan: {
+    pros: [
+      "Samarkand and Bukhara are stunning; rich Silk Road history.",
+      "Very affordable; visa-free or on arrival for many.",
+      "Women curious about foreigners in cities; traditional yet warming.",
+    ],
+    cons: [
+      "Conservative Muslim culture; dating and nightlife limited.",
+      "Language (Uzbek/Russian) barrier; English rare outside tourist spots.",
+      "Infrastructure improving but still developing.",
+    ],
+  },
+  kyrgyzstan: {
+    pros: [
+      "Bishkek is affordable and surprisingly lively; visa-free for many.",
+      "Outdoor and adventure capital of Central Asia.",
+      "Women in cities are more open than regional neighbors.",
+    ],
+    cons: [
+      "Small country; dating pool limited.",
+      "Russian useful; English limited.",
+      "Conservative in rural areas; not a typical nomad hub.",
+    ],
+  },
+  tajikistan: {
+    pros: [
+      "Pamir Highway is one of the world's great adventures.",
+      "Very affordable; visa-on-arrival options.",
+    ],
+    cons: [
+      "Conservative; limited dating scene.",
+      "Infrastructure very basic; internet limited.",
+      "Not a passport bro destination; niche adventure only.",
+    ],
+  },
+  turkmenistan: {
+    pros: [
+      "Darvaza gas crater ('Door to Hell') is a unique spectacle.",
+    ],
+    cons: [
+      "Highly authoritarian state; tourist visa very hard to get.",
+      "No real expat or dating scene.",
+      "Not viable for passport bros.",
+    ],
+  },
+  azerbaijan: {
+    pros: [
+      "Baku is modern and well-developed; oil money visible.",
+      "Visa-on-arrival or e-visa; visa-free for some.",
+      "Mix of European and Eastern culture; good food.",
+    ],
+    cons: [
+      "Women can be conservative and family-guarded.",
+      "Dating apps exist but culture is cautious.",
+      "Conflict with Armenia creates regional instability.",
+    ],
+  },
+  armenia: {
+    pros: [
+      "Yerevan is affordable, growing; strong café and arts scene.",
+      "English increasingly spoken; EU alignment growing.",
+      "Women are well-educated and often beautiful; curious about foreigners.",
+    ],
+    cons: [
+      "Conservative culture; families are protective.",
+      "Small country; dating pool limited.",
+      "Ongoing tension with Azerbaijan affects stability.",
+    ],
+  },
+  georgia: {
+    pros: [
+      "Tbilisi is an underrated gem; great nightlife, wine, and food.",
+      "Visa-free for most; 365-day visa-free for many nationalities.",
+      "Affordable: $1k–1.5k/month comfortable in Tbilisi.",
+      "Women are beautiful, educated, and open in the city.",
+      "Strong digital nomad growth post-2022; great café culture.",
+      "Unique culture; ancient churches, Caucasus mountains nearby.",
+    ],
+    cons: [
+      "Traditional family values; meeting women outside apps or venues harder.",
+      "Russian influence and language common; English improving but limited.",
+      "Tbilisi gets crowded; regional tensions with Russia.",
+    ],
+  },
+
+  // ── Middle East ──
+  "united-arab-emirates": {
+    pros: [
+      "Dubai is glamorous; world-class nightlife and events.",
+      "Safe; modern infrastructure; English everywhere.",
+      "International crowd; many single expats from all over the world.",
+      "Tax-free income; great for working and saving.",
+    ],
+    cons: [
+      "Very expensive; one of the priciest places to live.",
+      "Local women off-limits; dating pool is expat only.",
+      "Conservative laws still apply; be discreet.",
+      "Soulless if you're on a budget; transient expat culture.",
+    ],
+  },
+  jordan: {
+    pros: [
+      "Amman is relatively modern and safe for the region.",
+      "English common; visa-on-arrival for many.",
+      "Petra and Wadi Rum; world-class sights.",
+    ],
+    cons: [
+      "Conservative culture; dating as a foreigner is limited.",
+      "Limited nightlife outside hotel bars in Amman.",
+      "Not a dating destination; more cultural tourism.",
+    ],
+  },
+  oman: {
+    pros: [
+      "Very safe; one of the most stable Arab countries.",
+      "Muscat is clean and well-run; great for nature trips.",
+      "Visa-on-arrival or e-visa for many.",
+    ],
+    cons: [
+      "Strict conservative culture; no real dating scene.",
+      "Expensive by regional standards.",
+      "Not a passport bro destination.",
+    ],
+  },
+  kuwait: {
+    pros: [
+      "Very safe; high income for those working there.",
+      "English common in professional settings.",
+    ],
+    cons: [
+      "Very conservative; no nightlife; alcohol illegal.",
+      "Expat dating exists but restricted; local women not accessible.",
+      "Expensive; insular society.",
+    ],
+  },
+  bahrain: {
+    pros: [
+      "Most liberal Gulf state; nightlife and alcohol allowed.",
+      "Easy visa; expat-friendly; smaller and more relaxed than Dubai.",
+      "Weekends draw Saudi visitors; active social scene on weekends.",
+    ],
+    cons: [
+      "Small island; limited long-term options.",
+      "Expensive; expat-heavy social bubble.",
+      "Dating is expat-to-expat mostly; local women not available.",
+    ],
+  },
+  qatar: {
+    pros: [
+      "Doha is modern and safe; world-class events (World Cup legacy).",
+      "High income potential for workers; English common.",
+    ],
+    cons: [
+      "Very expensive; conservative laws still apply.",
+      "Local dating off-limits; expat bubble.",
+      "Not a typical passport bro destination.",
+    ],
+  },
+  iraq: {
+    pros: [
+      "Kurdistan region (Erbil) is surprisingly safe and developing.",
+    ],
+    cons: [
+      "Most of country not recommended; active security concerns.",
+      "Conservative; strict cultural rules.",
+      "Not a passport bro destination; high risk.",
+    ],
+  },
+  yemen: {
+    pros: [],
+    cons: [
+      "Active civil war; no travel recommended.",
+      "Not a viable destination.",
+    ],
+  },
+  syria: {
+    pros: [
+      "Post-conflict reconstruction beginning; Damascus slowly reopening.",
+    ],
+    cons: [
+      "Still unstable in many regions; travel not recommended for most.",
+      "Infrastructure destroyed in many areas.",
+    ],
+  },
+  palestine: {
+    pros: [
+      "Ramallah has a small but vibrant café and social scene.",
+    ],
+    cons: [
+      "Active conflict; travel highly uncertain and dangerous.",
+      "Not a viable destination currently.",
+    ],
+  },
+  israel: {
+    pros: [
+      "Tel Aviv has excellent nightlife; one of the Middle East's most liberal cities.",
+      "English widely spoken; modern infrastructure.",
+      "Tech scene and beach city lifestyle attract internationals.",
+    ],
+    cons: [
+      "Expensive; security situation affects travel freely.",
+      "Entry can be complicated for some nationalities.",
+      "Regional conflict creates ongoing instability.",
+    ],
+  },
+  lebanon: {
+    pros: [
+      "Beirut had the best nightlife in the Middle East; women fashion-conscious and open.",
+      "Arabic and French culture mix; cosmopolitan before economic collapse.",
+    ],
+    cons: [
+      "Severe economic and political crisis since 2019; banking collapsed.",
+      "Infrastructure unreliable; electricity and internet cut regularly.",
+      "Active security risks; not recommended currently.",
+    ],
+  },
+
+  // ── Africa ──
+  ghana: {
+    pros: [
+      "Accra is a growing hub; English official language; stable democracy.",
+      "Warm and welcoming culture; West African music and food great.",
+      "Visa-free or on-arrival for many; popular with the diaspora.",
+      "Women generally friendly and family-oriented.",
+    ],
+    cons: [
+      "Scams targeting foreigners common; 'sakawa' and romance fraud known.",
+      "Infrastructure and healthcare inconsistent outside Accra.",
+      "Dating expectations can be transactional; financial gifts expected by some.",
+    ],
+  },
+  senegal: {
+    pros: [
+      "Dakar is one of West Africa's best cities; French and Wolof culture.",
+      "Relatively safe; stable politically.",
+      "Beaches, music, and nightlife in Dakar.",
+    ],
+    cons: [
+      "French essential; English limited.",
+      "Conservative Muslim values in many areas.",
+      "Infrastructure developing; logistics can be tough.",
+    ],
+  },
+  "ivory-coast": {
+    pros: [
+      "Abidjan is the economic powerhouse of West Africa; vibrant and modern.",
+      "Nightlife active; women open in urban areas.",
+    ],
+    cons: [
+      "Safety in some areas; political history of instability.",
+      "French needed; English rare.",
+    ],
+  },
+  mali: {
+    pros: [
+      "Bamako is culturally rich; world-class music scene.",
+    ],
+    cons: [
+      "Security concerns; active jihadist threat in the north.",
+      "Not recommended for general travel; limited passport bro scene.",
+    ],
+  },
+  niger: {
+    pros: [
+      "Niamey; Saharan culture and gateway to the desert.",
+    ],
+    cons: [
+      "Security concerns; recent coup; not recommended.",
+      "Very limited infrastructure; not a nomad destination.",
+    ],
+  },
+  "burkina-faso": {
+    pros: [],
+    cons: [
+      "Active jihadist insurgency; travel not recommended.",
+      "Not a viable destination currently.",
+    ],
+  },
+  togo: {
+    pros: [
+      "Lomé has a beach and a lively vibe; visa-on-arrival for many.",
+      "French culture; affordable.",
+    ],
+    cons: [
+      "Small and underdeveloped; limited dating and nomad scene.",
+      "French needed; English limited.",
+    ],
+  },
+  benin: {
+    pros: [
+      "Cotonou; West African culture; vodou heritage and beaches.",
+      "Visa-on-arrival for many.",
+    ],
+    cons: [
+      "Very small expat dating scene.",
+      "French needed; infrastructure basic.",
+    ],
+  },
+  cameroon: {
+    pros: [
+      "Douala and Yaoundé; dual French/English due to colonial split.",
+      "Diverse culture; great food.",
+    ],
+    cons: [
+      "Safety concerns especially in Anglophone regions.",
+      "Corruption; infrastructure variable.",
+      "Not a typical passport bro hub.",
+    ],
+  },
+  angola: {
+    pros: [
+      "Luanda booming with oil money; expat scene exists.",
+      "Portuguese-speaking; Africa's largest Lusophone country.",
+    ],
+    cons: [
+      "One of the world's most expensive cities for expats.",
+      "Safety varies; corruption high.",
+      "Visa difficult to obtain.",
+    ],
+  },
+  mozambique: {
+    pros: [
+      "Maputo is affordable; Portuguese culture meets African beaches.",
+      "Diving and beaches near Tofo outstanding.",
+    ],
+    cons: [
+      "Security concerns in northern regions.",
+      "Portuguese needed; English limited.",
+      "Infrastructure basic; healthcare limited.",
+    ],
+  },
+  zimbabwe: {
+    pros: [
+      "Victoria Falls is world-class; English spoken.",
+      "Harare has a surprisingly developed middle class and nightlife.",
+    ],
+    cons: [
+      "Economic instability; currency issues.",
+      "Infrastructure deteriorated; power cuts common.",
+      "Smaller passport bro scene.",
+    ],
+  },
+  zambia: {
+    pros: [
+      "Lusaka; English official; Victoria Falls accessible.",
+      "Friendly people; relatively stable.",
+    ],
+    cons: [
+      "Smaller nomad scene; limited nightlife.",
+      "Infrastructure developing; healthcare limited.",
+    ],
+  },
+  malawi: {
+    pros: [
+      "Lake Malawi is stunning; peaceful and affordable.",
+      "English official; very friendly people ('The Warm Heart of Africa').",
+    ],
+    cons: [
+      "One of the world's poorest countries; limited infrastructure.",
+      "Very small expat and dating scene.",
+    ],
+  },
+  "dr-congo": {
+    pros: [
+      "Kinshasa is huge; music capital of Africa (rumba).",
+      "French-speaking; vibrant culture.",
+    ],
+    cons: [
+      "Safety concerns significant; eastern regions in conflict.",
+      "Infrastructure very poor; not recommended for inexperienced travelers.",
+    ],
+  },
+  "republic-of-the-congo": {
+    pros: [
+      "Brazzaville; French culture; across the river from Kinshasa.",
+    ],
+    cons: [
+      "Limited infrastructure; small expat scene.",
+      "French needed; not a typical destination.",
+    ],
+  },
+  "central-african-republic": {
+    pros: [],
+    cons: [
+      "One of the world's most dangerous countries; travel not recommended.",
+      "No viable passport bro or nomad scene.",
+    ],
+  },
+  chad: {
+    pros: [],
+    cons: [
+      "Extreme heat; ongoing security concerns; limited infrastructure.",
+      "Not a viable travel destination.",
+    ],
+  },
+  "equatorial-guinea": {
+    pros: [
+      "Spanish-speaking; oil wealth means relative infrastructure.",
+    ],
+    cons: [
+      "Authoritarian; expensive; visa difficult.",
+      "Very small expat scene.",
+    ],
+  },
+  gabon: {
+    pros: [
+      "Libreville; oil wealth; relatively stable; good infrastructure for region.",
+    ],
+    cons: [
+      "Expensive; French needed; very small passport bro scene.",
+    ],
+  },
+  eritrea: {
+    pros: [
+      "Asmara; unique Italian colonial architecture; safe for tourists.",
+    ],
+    cons: [
+      "Authoritarian state; visa very hard to obtain.",
+      "Not a viable travel or dating destination.",
+    ],
+  },
+  djibouti: {
+    pros: [
+      "Strategic location; diving in the Gulf of Aden; whale sharks.",
+    ],
+    cons: [
+      "Extremely expensive; tiny; very hot.",
+      "Limited dating scene; conservative.",
+    ],
+  },
+  somalia: {
+    pros: [
+      "Somaliland (north) is safer and emerging slowly.",
+    ],
+    cons: [
+      "Active conflict in most regions; not recommended.",
+      "No viable passport bro destination.",
+    ],
+  },
+  "south-sudan": {
+    pros: [],
+    cons: [
+      "Active conflict; one of the world's most dangerous countries.",
+      "Not a viable destination.",
+    ],
+  },
+  sudan: {
+    pros: [],
+    cons: [
+      "Active civil war since 2023; not recommended for travel.",
+    ],
+  },
+  burundi: {
+    pros: [
+      "Bujumbura on Lake Tanganyika; beautiful scenery.",
+    ],
+    cons: [
+      "Safety concerns; political instability.",
+      "Very underdeveloped; not a nomad or dating destination.",
+    ],
+  },
+  "guinea-bissau": {
+    pros: [
+      "Visa-on-arrival; low cost.",
+    ],
+    cons: [
+      "Very underdeveloped; political instability; limited infrastructure.",
+      "Portuguese needed; no real passport bro scene.",
+    ],
+  },
+  guinea: {
+    pros: [
+      "Conakry; French culture; mining wealth.",
+    ],
+    cons: [
+      "Safety and political instability; French needed.",
+      "Not a typical destination.",
+    ],
+  },
+  "sierra-leone": {
+    pros: [
+      "Freetown; English official; beach scene growing.",
+      "Friendly people; recovering from Ebola past.",
+    ],
+    cons: [
+      "Infrastructure and healthcare limited.",
+      "Safety and poverty concerns.",
+    ],
+  },
+  liberia: {
+    pros: [
+      "English official; unique American-African heritage.",
+    ],
+    cons: [
+      "Post-war recovery; infrastructure very limited.",
+      "Safety concerns; not a nomad destination.",
+    ],
+  },
+  mauritania: {
+    pros: [
+      "Saharan landscapes; unique culture.",
+    ],
+    cons: [
+      "Conservative Islamic country; dating not viable.",
+      "Very limited infrastructure; extreme heat.",
+    ],
+  },
+  "sao-tome-and-principe": {
+    pros: [
+      "Beautiful islands; Portuguese culture; laid-back.",
+    ],
+    cons: [
+      "Very small and isolated; expensive to reach.",
+      "Tiny population; limited scene.",
+    ],
+  },
+  "cape-verde": {
+    pros: [
+      "Beaches; Portuguese Creole culture; safe; good for island relaxation.",
+      "Women are known for warmth and approachability.",
+      "Regular flights from Europe; growing tourist scene.",
+    ],
+    cons: [
+      "Small archipelago; limited beyond beach tourism.",
+      "More expensive than mainland Africa.",
+    ],
+  },
+  eswatini: {
+    pros: [
+      "Small; nature parks; culture unique for the region.",
+    ],
+    cons: [
+      "Authoritarian monarchy; very small; limited scene.",
+    ],
+  },
+  lesotho: {
+    pros: [
+      "Highland kingdom; unique culture; good for trekking.",
+    ],
+    cons: [
+      "Very poor; landlocked within South Africa; limited options.",
+      "Not a travel or dating destination.",
+    ],
+  },
+  namibia: {
+    pros: [
+      "Windhoek is well-run; Namib Desert is world-class.",
+      "English official; safe by African standards.",
+      "Very small population; peaceful.",
+    ],
+    cons: [
+      "Very sparse population; tiny dating scene.",
+      "Expensive for Africa; limited nightlife.",
+    ],
+  },
+  botswana: {
+    pros: [
+      "Very safe; stable democracy; Okavango Delta world-famous.",
+      "English official; good infrastructure for region.",
+    ],
+    cons: [
+      "Very small and expensive for Africa.",
+      "Limited dating and nomad scene.",
+    ],
+  },
+
+  // ── Oceania ──
+  "new-zealand": {
+    pros: [
+      "Beautiful nature; safe; English-speaking; Queenstown and Auckland popular.",
+      "Good work-holiday visa options for many.",
+    ],
+    cons: [
+      "Very expensive; remote; dating is Western and competitive.",
+      "Small population; high cost of living.",
+    ],
+  },
+  fiji: {
+    pros: [
+      "World-famous beaches; resort culture; friendly locals.",
+      "English-speaking; visa-free for many.",
+    ],
+    cons: [
+      "Expensive as a tourist; outside resorts infrastructure is basic.",
+      "Small population; not a dating destination; more couples/honeymoon.",
+    ],
+  },
+  "papua-new-guinea": {
+    pros: [
+      "Unique tribal cultures; truly off-the-beaten-path.",
+    ],
+    cons: [
+      "Very high crime and safety risks; not recommended for general travel.",
+      "Infrastructure very limited; healthcare poor.",
+    ],
+  },
+  "solomon-islands": {
+    pros: [
+      "World-class diving; WWII history; untouched.",
+    ],
+    cons: [
+      "Very limited infrastructure; not a dating or nomad destination.",
+      "Remote and expensive to reach.",
+    ],
+  },
+  vanuatu: {
+    pros: [
+      "Volcano tourism (Tanna); visa-free for many; laid-back.",
+    ],
+    cons: [
+      "Very small; expensive; limited scene beyond tourism.",
+    ],
+  },
+  samoa: {
+    pros: [
+      "Beautiful islands; friendly people; English and Samoan spoken.",
+    ],
+    cons: [
+      "Small population; conservative Christian culture.",
+      "Limited nightlife and dating scene.",
+    ],
+  },
+  tonga: {
+    pros: [
+      "Friendly; swimming with humpback whales unique.",
+    ],
+    cons: [
+      "Very conservative Christian society.",
+      "Small; expensive to reach; limited scene.",
+    ],
+  },
+  micronesia: {
+    pros: [
+      "Diving world-class in Pohnpei and Chuuk lagoon.",
+    ],
+    cons: [
+      "Very remote; tiny; no real dating or nomad scene.",
+    ],
+  },
+  "french-polynesia": {
+    pros: [
+      "Bora Bora and Tahiti are dream destinations; French culture.",
+      "Stunning overwater bungalows; couples/honeymoon tourism.",
+    ],
+    cons: [
+      "Extremely expensive; one of the priciest places on earth.",
+      "Not a dating destination; honeymoon territory.",
+    ],
+  },
+  "new-caledonia": {
+    pros: [
+      "French territory; beautiful lagoons; unique blend of cultures.",
+    ],
+    cons: [
+      "Expensive; limited passport bro scene.",
+      "Political tensions between French and Kanak populations.",
+    ],
+  },
+
+  // ── Latin America (additional) ──
+  paraguay: {
+    pros: [
+      "One of South America's most affordable countries; low cost of living.",
+      "Asunción has a growing expat scene; low taxes attract foreigners.",
+      "Women are warm and family-oriented; generally traditional.",
+      "Visa-free or easy for many; no income tax for foreign income.",
+    ],
+    cons: [
+      "Small and landlocked; not a typical nomad hub.",
+      "Less English spoken; Spanish essential.",
+      "Less dating scene coverage than Colombia, Brazil, or Argentina.",
+    ],
+  },
+  uruguay: {
+    pros: [
+      "Safest country in Latin America; good infrastructure.",
+      "Montevideo is chill; Punta del Este is upscale beach resort.",
+      "Progressive and open society; good quality of life.",
+      "Visa-free for many; digital nomad visa available.",
+    ],
+    cons: [
+      "More expensive than neighboring countries.",
+      "Smaller dating scene; women independent and more Western-oriented.",
+      "Less passport bro content; more for quality-of-life seekers.",
+    ],
+  },
+  panama: {
+    pros: [
+      "Panama City is the most developed in Central America; great hub.",
+      "Dollarized economy; easy banking and visas.",
+      "Friendly Pensionado program for long stays.",
+      "Good nightlife; women approachable; mix of Latin cultures.",
+      "Gateway between North and South America.",
+    ],
+    cons: [
+      "Panama City can feel expensive in tourist areas.",
+      "Safety varies by district; do research.",
+      "Spanish helps a lot; English limited outside the canal zone.",
+    ],
+  },
+  guatemala: {
+    pros: [
+      "Antigua is stunning; colonial architecture and expat community.",
+      "Very affordable; $800–1.2k/month possible.",
+      "Lake Atitlán attracts spiritual travelers and nomads.",
+      "Women generally traditional and family-oriented.",
+    ],
+    cons: [
+      "Safety concerns; Guatemala City has high crime.",
+      "Spanish needed; English limited outside tourist areas.",
+      "Less passport bro coverage; more adventure/backpacker scene.",
+    ],
+  },
+  cuba: {
+    pros: [
+      "Havana is iconic; music, rum, classic cars.",
+      "Women are beautiful and often very forward with foreign men.",
+      "Caribbean vibes; beaches and nightlife unique.",
+    ],
+    cons: [
+      "Internet highly restricted; banking and ATMs problematic.",
+      "Jinetero/jinetera culture; many locals target tourists financially.",
+      "Currency situation confusing; double economy.",
+      "Government restrictions limit free movement.",
+    ],
+  },
+  jamaica: {
+    pros: [
+      "Beaches; reggae culture; Kingston has energy and nightlife.",
+      "English official; no language barrier.",
+      "Women often confident and direct.",
+    ],
+    cons: [
+      "High crime; safety vigilance required at all times.",
+      "Tourist vs. local divide; inflated prices.",
+      "Romance scam culture exists in some areas.",
+    ],
+  },
+  haiti: {
+    pros: [
+      "Unique culture; French and Creole heritage.",
+    ],
+    cons: [
+      "Major safety crisis; gang violence widespread; not recommended.",
+      "Infrastructure collapsed; healthcare limited.",
+    ],
+  },
+  nicaragua: {
+    pros: [
+      "Very affordable; Granada and León charming colonial cities.",
+      "Visa-free for many; laid-back vibe.",
+      "Women can be warm and traditional.",
+    ],
+    cons: [
+      "Political instability; authoritarian government since 2018.",
+      "Safety in cities mixed; do research.",
+      "Smaller nomad and passport bro scene.",
+    ],
+  },
+  belize: {
+    pros: [
+      "English official; only English-speaking country in Central America.",
+      "Stunning reefs; relaxed Caribbean coast.",
+      "Visa-free for many; good for retirees and divers.",
+    ],
+    cons: [
+      "Small population; very limited dating scene.",
+      "Expensive by regional standards; crime in Belize City.",
+      "Not a typical passport bro hub.",
+    ],
+  },
+  honduras: {
+    pros: [
+      "Bay Islands (Roatán) are world-class diving and beaches.",
+      "Very affordable on the mainland.",
+    ],
+    cons: [
+      "High crime rate; one of the more dangerous in Central America.",
+      "Tegucigalpa and San Pedro Sula have safety concerns.",
+      "Limited expat and passport bro scene.",
+    ],
+  },
+  "el-salvador": {
+    pros: [
+      "Bitcoin-friendly; growing startup and surf scene.",
+      "Affordable; El Zonte ('Bitcoin Beach') popular with tech crowd.",
+      "Women traditional and family-oriented.",
+    ],
+    cons: [
+      "Safety improving but historically high crime.",
+      "Small country; limited long-term scene.",
+      "Spanish needed; English outside tourist areas limited.",
+    ],
+  },
+  suriname: {
+    pros: [
+      "Dutch-speaking; unique mix of South American and Caribbean culture.",
+      "Untouched Amazon; great for nature tourism.",
+    ],
+    cons: [
+      "Very small; limited infrastructure and dating scene.",
+      "Dutch or Sranan needed; English limited.",
+    ],
+  },
+  guyana: {
+    pros: [
+      "English-speaking; Caribbean-South American culture.",
+      "Oil boom attracting investment; Georgetown developing.",
+    ],
+    cons: [
+      "Safety in Georgetown variable.",
+      "Small expat and dating scene.",
+    ],
+  },
+
+  // ── Additional European ──
+  iceland: {
+    pros: [
+      "Safe; stunning nature; midnight sun and Northern Lights unique.",
+      "English widely spoken; educated population.",
+      "Reykjavik has a surprisingly good nightlife for its size.",
+    ],
+    cons: [
+      "One of the most expensive countries in the world.",
+      "Tiny population; dating pool very small.",
+      "Nordic dating culture; women very independent; not seeking foreign men.",
+    ],
+  },
+  belarus: {
+    pros: [
+      "Minsk; women often beautiful; affordable when accessible.",
+      "Central European culture; Russian-speaking.",
+    ],
+    cons: [
+      "Authoritarian government; Lukashenko regime; sanctions complicate travel.",
+      "Visa situation complex for many; not recommended currently.",
+      "Western men scrutinized by authorities.",
+    ],
+  },
+  kosovo: {
+    pros: [
+      "Pristina; young population; visa-free for many; affordable.",
+      "Pro-Western; English decent among young people.",
+      "Growing café and bar scene; young demographics.",
+    ],
+    cons: [
+      "Small; limited passport bro coverage.",
+      "Not recognized by all countries; some visa complications.",
+    ],
+  },
+  mauritius: {
+    pros: [
+      "Stunning island; beaches and resorts world-class.",
+      "English and French official; safe and stable.",
+      "Growing digital nomad and premium expat destination.",
+      "Women educated and cosmopolitan in Port Louis.",
+    ],
+    cons: [
+      "Expensive; resort economy means high prices.",
+      "Small island; limited variety long-term.",
+      "Dating pool small; mostly for couples or premium stays.",
+    ],
+  },
+  singapore: {
+    pros: [
+      "World-class city; clean, safe, incredibly efficient.",
+      "English the primary language; easy to navigate.",
+      "Dating apps active; international crowd.",
+      "Great food and nightlife; transit hub for SEA.",
+    ],
+    cons: [
+      "Extremely expensive; one of Asia's priciest cities.",
+      "Dating as a foreigner not particularly advantaged.",
+      "Strict laws; fines for small infractions; little flexibility.",
+      "Small country; limited variety.",
+    ],
+  },
 };
+
+
 
 /** Get pros list: forum intel first; DB merged only if real (no placeholders). */
 export function getPros(slug: string, dbPros: string): string[] {

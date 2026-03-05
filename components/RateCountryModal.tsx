@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, Wifi, MessageSquare, Check, DollarSign, Shield, Users } from "lucide-react";
+import { X, MessageSquare, Check, DollarSign, Shield, Users, Heart } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
   countrySlug: string;
   countryName: string;
   userId: string;
+  onRated?: () => void;
 };
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
@@ -34,47 +35,95 @@ const COST_ACTIVE: Record<number, string> = {
 const COST_INACTIVE =
   "border-zinc-700/50 bg-zinc-800 text-zinc-500 hover:bg-zinc-700/80 hover:text-zinc-300";
 
-type RatingRowProps = {
+// ─── Slider row for 0-10 subjective ratings ─────────────────────
+
+type SliderRowProps = {
   value: number;
   onChange: (v: number) => void;
   icon: React.ElementType;
   label: string;
-  starColor: string;
+  lowLabel: string;
+  highLabel: string;
+  accentColor: string;
+  trackGradient: string;
 };
 
-function StarRow({ value, onChange, icon: Icon, label, starColor }: RatingRowProps) {
-  const [hovered, setHovered] = useState(0);
+function SliderRow({
+  value,
+  onChange,
+  icon: Icon,
+  label,
+  lowLabel,
+  highLabel,
+  accentColor,
+  trackGradient,
+}: SliderRowProps) {
+  const pct = (value / 10) * 100;
 
   return (
-    <div className="flex items-center justify-between py-0.5">
-      <div className="flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 text-zinc-500" />
-        <span className="text-sm font-medium text-zinc-300">{label}</span>
+    <div className="py-1">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className="h-3.5 w-3.5 text-zinc-500" />
+          <span className="text-sm font-medium text-zinc-300">{label}</span>
+        </div>
+        <span
+          className={`min-w-[2.5rem] text-right text-lg font-black tabular-nums ${
+            value === 0 ? "text-zinc-600" : accentColor
+          }`}
+        >
+          {value}<span className="text-xs font-semibold text-zinc-600">/10</span>
+        </span>
       </div>
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type="button"
-            onMouseEnter={() => setHovered(star)}
-            onMouseLeave={() => setHovered(0)}
-            onClick={() => onChange(star)}
-            className="p-0.5 transition-transform active:scale-90"
-            aria-label={`${star} star`}
-          >
-            <Star
-              className={`h-6 w-6 transition-colors ${
-                star <= (hovered || value)
-                  ? `${starColor} fill-current`
-                  : "text-zinc-700"
+
+      <div className="relative h-8 px-0.5">
+        {/* Track background */}
+        <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-zinc-800" />
+        {/* Filled track */}
+        <div
+          className="absolute left-0 top-1/2 h-2 -translate-y-1/2 rounded-full transition-all duration-150"
+          style={{ width: `${pct}%`, background: trackGradient }}
+        />
+        {/* Dot markers */}
+        <div className="absolute left-0 right-0 top-1/2 flex -translate-y-1/2 justify-between px-[1px]">
+          {Array.from({ length: 11 }, (_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onChange(i)}
+              className={`relative z-10 h-2 w-2 rounded-full transition-all ${
+                i <= value
+                  ? i === value
+                    ? "h-4 w-4 -translate-y-[0.15rem] ring-2 ring-white/20 shadow-lg"
+                    : "opacity-70"
+                  : "bg-zinc-700"
               }`}
+              style={i <= value ? { background: trackGradient.includes("gradient") ? undefined : trackGradient } : undefined}
+              aria-label={`${i}`}
             />
-          </button>
-        ))}
+          ))}
+        </div>
+        {/* Invisible range input for drag support */}
+        <input
+          type="range"
+          min={0}
+          max={10}
+          step={1}
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value, 10))}
+          className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+        />
+      </div>
+
+      <div className="mt-0.5 flex justify-between text-[9px] text-zinc-600">
+        <span>{lowLabel}</span>
+        <span>{highLabel}</span>
       </div>
     </div>
   );
 }
+
+// ─── Main modal ─────────────────────────────────────────────────
 
 export default function RateCountryModal({
   isOpen,
@@ -82,11 +131,12 @@ export default function RateCountryModal({
   countrySlug,
   countryName,
   userId,
+  onRated,
 }: Props) {
+  const [datingRating, setDatingRating] = useState(0);
   const [safetyRating, setSafetyRating] = useState(0);
-  const [costRating, setCostRating] = useState(0);
   const [friendlinessRating, setFriendlinessRating] = useState(0);
-  const [internetMbps, setInternetMbps] = useState("");
+  const [costRating, setCostRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -106,10 +156,10 @@ export default function RateCountryModal({
       .then(({ data }) => {
         if (data) {
           setIsExisting(true);
-          setSafetyRating(data.safety_rating);
-          setCostRating(data.cost_rating);
-          setFriendlinessRating(data.friendliness_rating);
-          setInternetMbps(data.internet_speed_mbps?.toString() ?? "");
+          setDatingRating(data.dating_rating ?? 0);
+          setSafetyRating(data.safety_rating ?? 0);
+          setFriendlinessRating(data.friendliness_rating ?? 0);
+          setCostRating(data.cost_rating ?? 0);
           setComment(data.comment ?? "");
         } else {
           setIsExisting(false);
@@ -119,10 +169,10 @@ export default function RateCountryModal({
   }, [isOpen, userId, countrySlug]);
 
   const resetForm = () => {
+    setDatingRating(0);
     setSafetyRating(0);
-    setCostRating(0);
     setFriendlinessRating(0);
-    setInternetMbps("");
+    setCostRating(0);
     setComment("");
     setIsExisting(false);
     setErrorMsg(null);
@@ -137,7 +187,7 @@ export default function RateCountryModal({
   };
 
   const canSubmit =
-    safetyRating > 0 && costRating > 0 && friendlinessRating > 0;
+    datingRating > 0 && safetyRating > 0 && friendlinessRating > 0 && costRating > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,20 +200,28 @@ export default function RateCountryModal({
       {
         user_id: userId,
         country_slug: countrySlug,
+        dating_rating: datingRating,
         safety_rating: safetyRating,
-        cost_rating: costRating,
         friendliness_rating: friendlinessRating,
-        internet_speed_mbps: internetMbps ? parseInt(internetMbps, 10) : null,
+        cost_rating: costRating,
         comment: comment.trim() || null,
       },
       { onConflict: "user_id,country_slug" }
     );
 
     if (error) {
+      console.error("[RateCountryModal] Supabase upsert error:", error);
       setSubmitState("error");
-      setErrorMsg(error.message);
+      setErrorMsg(
+        error.code === "42P01"
+          ? "The ratings table doesn't exist yet. Please run the setup SQL in Supabase first."
+          : error.code === "42501" || error.code === "PGRST301"
+            ? "Permission denied. Check that RLS policies allow authenticated inserts."
+            : `Could not save your rating: ${error.message ?? "Unknown error"}`,
+      );
     } else {
       setSubmitState("success");
+      onRated?.();
     }
   };
 
@@ -184,7 +242,7 @@ export default function RateCountryModal({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 26, stiffness: 300 }}
-            className="relative w-full max-w-md overflow-hidden rounded-2xl bg-[#1c1c1f] shadow-2xl ring-1 ring-white/[0.08]"
+            className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#1c1c1f] shadow-2xl ring-1 ring-white/[0.08]"
           >
             <div className="flex items-center justify-between border-b border-zinc-800/60 px-5 py-4">
               <div>
@@ -253,28 +311,53 @@ export default function RateCountryModal({
                         </div>
                       )}
 
-                      <div className="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
+                      {/* Dating Ease */}
+                      <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
                         <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                           Your Experience
                         </p>
-                        <StarRow
+                        <SliderRow
+                          value={datingRating}
+                          onChange={setDatingRating}
+                          icon={Heart}
+                          label="Dating Ease"
+                          lowLabel="Very Hard"
+                          highLabel="Very Easy"
+                          accentColor="text-rose-400"
+                          trackGradient="#f43f5e"
+                        />
+                      </div>
+
+                      {/* Safety */}
+                      <div className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
+                        <SliderRow
                           value={safetyRating}
                           onChange={setSafetyRating}
                           icon={Shield}
                           label="Safety"
-                          starColor="text-sky-400"
+                          lowLabel="Unsafe"
+                          highLabel="Very Safe"
+                          accentColor="text-sky-400"
+                          trackGradient="#38bdf8"
                         />
-                        <div className="h-px bg-zinc-800/60" />
-                        <StarRow
+                      </div>
+
+                      {/* Friendliness */}
+                      <div className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
+                        <SliderRow
                           value={friendlinessRating}
                           onChange={setFriendlinessRating}
                           icon={Users}
                           label="Friendliness"
-                          starColor="text-amber-400"
+                          lowLabel="Unfriendly"
+                          highLabel="Very Friendly"
+                          accentColor="text-amber-400"
+                          trackGradient="#fbbf24"
                         />
                       </div>
 
-                      <div className="mt-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
+                      {/* Cost of Living */}
+                      <div className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
                         <div className="mb-3 flex items-center gap-2">
                           <DollarSign className="h-4 w-4 text-zinc-500" />
                           <span className="text-sm font-medium text-zinc-300">Cost of Living</span>
@@ -309,31 +392,8 @@ export default function RateCountryModal({
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Wifi className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                          <span className="flex-1 text-sm font-medium text-zinc-300">
-                            Internet Speed
-                            <span className="ml-1.5 text-[10px] font-normal text-zinc-600">(optional)</span>
-                          </span>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min={1}
-                              max={10000}
-                              value={internetMbps}
-                              onChange={(e) => setInternetMbps(e.target.value)}
-                              placeholder="e.g. 50"
-                              className="w-28 rounded-lg border border-zinc-700/60 bg-zinc-800/40 px-3 py-2 pr-12 text-right text-sm text-white outline-none placeholder:text-zinc-600 transition-colors focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
-                            />
-                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500">
-                              Mbps
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
+                      {/* Comment */}
+                      <div className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
                         <div className="mb-2.5 flex items-center gap-2">
                           <MessageSquare className="h-3.5 w-3.5 text-zinc-500" />
                           <span className="text-sm font-medium text-zinc-300">
@@ -383,7 +443,7 @@ export default function RateCountryModal({
 
                       {!canSubmit && (
                         <p className="mt-2 text-center text-[10px] text-zinc-600">
-                          Rate all three categories to submit
+                          Rate all four categories to submit
                         </p>
                       )}
                     </>

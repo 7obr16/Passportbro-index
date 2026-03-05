@@ -10,6 +10,7 @@ import GlobeSection from "@/components/GlobeSection";
 import FilterSidebar, { FiltersState, createDefaultFilters } from "@/components/FilterSidebar";
 import CountryMark from "@/components/CountryMark";
 import { getCountryScores } from "@/lib/scoring";
+import SignupModal from "@/components/SignupModal";
 
 const TIERS = ["Very Easy", "Easy", "Normal", "Hard", "Improbable", "N/A"] as const;
 
@@ -43,6 +44,8 @@ export default function ClientDashboard({ initialCountries }: Props) {
   const [filters, setFilters] = useState<FiltersState>(createDefaultFilters);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isFirstRun = useRef(true);
+  const [scrollPaywallOpen, setScrollPaywallOpen] = useState(false);
+  const scrollTriggered = useRef(false);
 
   // First invocation: load saved filters from sessionStorage.
   // Every subsequent invocation (when filters actually change): persist them.
@@ -59,6 +62,23 @@ export default function ClientDashboard({ initialCountries }: Props) {
       sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
     } catch { /* ignore */ }
   }, [filters]);
+
+  // Trigger signup modal after user scrolls down a bit (only once per load).
+  // Skipped entirely in development so the paywall never blocks local testing.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") return;
+
+    function handleScroll() {
+      if (scrollTriggered.current) return;
+      if (window.scrollY > 400) {
+        scrollTriggered.current = true;
+        setScrollPaywallOpen(true);
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const filteredCountries = useMemo(() => {
     return initialCountries.filter((c) => {
@@ -141,17 +161,20 @@ export default function ClientDashboard({ initialCountries }: Props) {
     countries: filteredCountries.filter((c) => c.datingEase === tier),
   })).filter((group) => group.countries.length > 0);
 
-  return (
-    <div className="flex w-full">
-      <FilterSidebar 
-        filters={filters} 
-        setFilters={setFilters} 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-      />
+  const isBlurred = scrollPaywallOpen;
 
-      <div className="flex-1 min-w-0 overflow-x-hidden">
-        <div className="mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-5">
+  return (
+    <div className="relative">
+      <div className={`flex w-full transition filter duration-300 ${isBlurred ? "blur-sm" : ""}`}>
+        <FilterSidebar 
+          filters={filters} 
+          setFilters={setFilters} 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)} 
+        />
+
+        <div className="flex-1 min-w-0 overflow-x-hidden">
+          <div className="mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-5">
           
           {/* Mobile Filter Toggle */}
           <div className="mb-6 flex justify-end lg:hidden">
@@ -287,18 +310,50 @@ export default function ClientDashboard({ initialCountries }: Props) {
                                 </div>
                               </div>
 
-                              {/* Absolute Badges (Stay above overlay) */}
-                              <div className="absolute bottom-2 left-3 right-3 z-30 flex items-center justify-between gap-2 transition-transform duration-300 group-hover:-translate-y-1">
+                              {/* Always-visible metric overlays — fade on hover */}
+                              <div className="absolute left-2 top-2 z-30 flex items-center gap-1 rounded-md bg-black/50 px-1.5 py-[3px] backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-0">
+                                <Star
+                                  className="h-2.5 w-2.5"
+                                  style={{ color: scores.overall >= 70 ? "#34d399" : scores.overall >= 50 ? "#fbbf24" : "#a1a1aa" }}
+                                />
+                                <span
+                                  className="text-[11px] font-bold tabular-nums leading-none"
+                                  style={{ color: scores.overall >= 70 ? "#34d399" : scores.overall >= 50 ? "#fbbf24" : "#a1a1aa" }}
+                                >
+                                  {scores.overall.toFixed(0)}
+                                </span>
+                              </div>
+
+                              <div className="absolute right-2 top-2 z-30 flex items-center gap-1 rounded-md bg-black/50 px-1.5 py-[3px] backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-0">
+                                <Wifi className="h-2.5 w-2.5 text-sky-400/80" />
+                                <span className="text-[10px] font-semibold tabular-nums leading-none text-white/85">
+                                  {country.internetMbps ?? country.internetSpeed}
+                                </span>
+                                {country.internetMbps != null && (
+                                  <span className="text-[7px] font-medium leading-none text-zinc-400">Mbps</span>
+                                )}
+                              </div>
+
+                              {/* Bottom row: name left, cost + safety right */}
+                              <div className="absolute bottom-2 left-3 right-2 z-30 flex items-end justify-between gap-2 transition-transform duration-300 group-hover:-translate-y-1">
                                 <div className="flex min-w-0 items-center gap-2">
                                   <CountryMark slug={country.slug} name={country.name} flagEmoji={country.flagEmoji} compact />
                                   <h3 className="truncate text-sm font-bold text-white drop-shadow-lg">
                                     {country.name}
                                   </h3>
                                 </div>
+                                <div className="flex shrink-0 items-center gap-1 transition-opacity duration-300 group-hover:opacity-0">
+                                  <span className="rounded-md bg-black/50 px-1.5 py-[3px] text-[9px] font-semibold leading-none text-emerald-300/90 backdrop-blur-sm">
+                                    {country.budgetTier}<span className="text-zinc-500">/mo</span>
+                                  </span>
+                                  <span className="flex items-center rounded-md bg-black/50 p-[3px] backdrop-blur-sm">
+                                    <Shield
+                                      className="h-2.5 w-2.5"
+                                      style={{ color: scores.safety >= 65 ? "#34d399" : scores.safety >= 40 ? "#fbbf24" : "#f87171" }}
+                                    />
+                                  </span>
+                                </div>
                               </div>
-                              <span className={`absolute right-2 top-2 z-30 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 transition-opacity duration-300 group-hover:opacity-0 ${TIER_BADGE[tier]}`}>
-                                {tier}
-                              </span>
                             </div>
 
                             {/* Stats */}
@@ -354,8 +409,17 @@ export default function ClientDashboard({ initialCountries }: Props) {
             <p>Passport Bro Index · Data sourced from Reddit communities</p>
             <p className="mt-1">This is community opinion, not professional advice. Always do your own research.</p>
           </footer>
+          </div>
         </div>
       </div>
+
+      <SignupModal
+        isOpen={scrollPaywallOpen}
+        // Hard paywall: user shouldn't be able to dismiss this
+        // with a simple click; require signup/login instead.
+        onClose={() => {}}
+        dismissible={false}
+      />
     </div>
   );
 }

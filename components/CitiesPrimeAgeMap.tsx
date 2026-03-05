@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ComposableMap,
@@ -121,7 +121,10 @@ type Props = {
 export default function CitiesPrimeAgeMap({ countrySlug, countryName }: Props) {
   const [hovered, setHovered] = useState<CityWithRatio | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setMounted(true), []);
 
   const cities = useMemo(() => {
     if (countrySlug) return getCitiesForCountry(countrySlug);
@@ -193,7 +196,7 @@ export default function CitiesPrimeAgeMap({ countrySlug, countryName }: Props) {
               }
             </Geographies>
 
-            {cities.map((city, i) => {
+            {mounted && cities.map((city, i) => {
               const color = getColor(city.womenPer100Men);
               const r = getRadius(city.population, maxPop);
               const isH = hovered?.name === city.name && hovered?.countrySlug === city.countrySlug;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -89,9 +89,21 @@ const SCORE_ITEMS: { key: "dating" | "cost" | "internet" | "friendly" | "safety"
 
 type CommunityStats = {
   count: number;
+  avgDating: number;
   avgSafety: number;
   avgCost: number;
   avgFriendliness: number;
+};
+
+type MemberComment = {
+  id: string;
+  userId: string;
+  comment: string;
+  datingRating: number;
+  safetyRating: number;
+  costRating: number;
+  friendlinessRating: number;
+  createdAt: string;
 };
 
 const COST_DISPLAY = ["Very Cheap", "Cheap", "Moderate", "Expensive", "Very Expensive"];
@@ -106,10 +118,19 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
 
   // Auth + community rating state
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [hasPaid, setHasPaid] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallMode, setPaywallMode] = useState<"signup" | "login">("signup");
+
+  const openPaywall = (mode: "signup" | "login" = "signup") => {
+    setPaywallMode(mode);
+    setPaywallOpen(true);
+  };
   const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
+  const [memberComments, setMemberComments] = useState<MemberComment[]>([]);
+  const [showAllComments, setShowAllComments] = useState(false);
 
   const fetchProfile = async (uid: string) => {
     const { data } = await supabase
@@ -122,39 +143,63 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      const uid = data.session?.user.id ?? null;
-      setUserId(uid);
-      if (uid) fetchProfile(uid);
+      const user = data.session?.user ?? null;
+      setUserId(user?.id ?? null);
+      setUserEmail(user?.email ?? null);
+      if (user?.id) fetchProfile(user.id);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const uid = session?.user.id ?? null;
-      setUserId(uid);
-      if (uid) fetchProfile(uid);
+      const user = session?.user ?? null;
+      setUserId(user?.id ?? null);
+      setUserEmail(user?.email ?? null);
+      if (user?.id) fetchProfile(user.id);
       else setHasPaid(false);
     });
     return () => subscription.unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
+  const fetchCommunityData = useCallback(() => {
     supabase
       .from("country_ratings")
-      .select("safety_rating, cost_rating, friendliness_rating")
+      .select("id, user_id, dating_rating, safety_rating, cost_rating, friendliness_rating, comment, created_at")
       .eq("country_slug", country.slug)
-      .then(({ data }) => {
-        if (!data || data.length === 0) {
-          setCommunityStats({ count: 0, avgSafety: 0, avgCost: 0, avgFriendliness: 0 });
+      .then(({ data, error }) => {
+        // Silently ignore errors (e.g. table not yet in schema cache)
+        if (error || !data || data.length === 0) {
+          setCommunityStats({ count: 0, avgDating: 0, avgSafety: 0, avgCost: 0, avgFriendliness: 0 });
+          setMemberComments([]);
           return;
         }
         const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
         setCommunityStats({
           count: data.length,
+          avgDating: avg(data.map((d) => d.dating_rating)),
           avgSafety: avg(data.map((d) => d.safety_rating)),
           avgCost: avg(data.map((d) => d.cost_rating)),
           avgFriendliness: avg(data.map((d) => d.friendliness_rating)),
         });
+        setMemberComments(
+          data
+            .filter((d) => d.comment)
+            .map((d) => ({
+              id: d.id,
+              userId: d.user_id,   // kept only for "your review" highlight
+              comment: d.comment!,
+              datingRating: d.dating_rating,
+              safetyRating: d.safety_rating,
+              costRating: d.cost_rating,
+              friendlinessRating: d.friendliness_rating,
+              createdAt: d.created_at,
+            }))
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        );
       });
   }, [country.slug]);
+
+  useEffect(() => {
+    fetchCommunityData();
+  }, [fetchCommunityData]);
 
   const scores = getCountryScores(country);
   const prosList = getPros(country.slug, country.redditPros);
@@ -192,7 +237,7 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
     })
     .join(" ") + " Z";
 
-  const canAccess = hasAccess({ has_paid: hasPaid }, country.slug);
+  const canAccess = hasAccess({ has_paid: hasPaid, email: userEmail }, country.slug);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
@@ -267,21 +312,19 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
               </p>
               <div className="group/rate relative">
                 <button
-                  onClick={() => userId && setIsRatingModalOpen(true)}
+                  onClick={() => {
+                    if (userId) setIsRatingModalOpen(true);
+                    else openPaywall("login");
+                  }}
                   className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
                     userId
                       ? "cursor-pointer border-emerald-600/40 bg-emerald-500/10 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/20"
-                      : "cursor-default border-zinc-700/50 bg-zinc-800/40 text-zinc-600"
+                      : "cursor-pointer border-zinc-700/50 bg-zinc-800/40 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
                   }`}
                 >
                   <Star className="h-3 w-3" />
-                  Rate this Country
+                  {userId ? "Rate this Country" : "Sign in to Rate"}
                 </button>
-                {!userId && (
-                  <div className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 w-40 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-[10px] leading-snug text-zinc-400 opacity-0 shadow-xl transition-opacity group-hover/rate:opacity-100">
-                    Log in to rate this country
-                  </div>
-                )}
               </div>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6 md:gap-8">
@@ -326,32 +369,6 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
               </div>
             </div>
 
-            {/* Community ratings summary strip */}
-            {communityStats !== null && (
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-zinc-800/50 pt-3 text-[10px] text-zinc-500">
-                {communityStats.count > 0 ? (
-                  <>
-                    <span className="font-semibold text-zinc-400">
-                      {communityStats.count} member{communityStats.count !== 1 ? "s" : ""} rated
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Shield className="h-3 w-3" />
-                      Safety {communityStats.avgSafety.toFixed(1)}★
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      Friendly {communityStats.avgFriendliness.toFixed(1)}★
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <DollarSign className="h-3 w-3" />
-                      {COST_DISPLAY[Math.round(communityStats.avgCost) - 1] ?? ""}
-                    </span>
-                  </>
-                ) : (
-                  <span>No community ratings yet — be the first to rate {country.name}!</span>
-                )}
-              </div>
-            )}
           </div>
         </motion.div>
 
@@ -657,7 +674,7 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
                 Community Intel
               </h2>
               <p className="mt-0.5 text-[10px] text-zinc-500 sm:mt-1 sm:text-xs">
-                Pros and cons — Reddit, forums, community reports
+                Pros, cons & member experiences — Reddit, forums, community data
               </p>
             </div>
             <motion.div
@@ -757,6 +774,123 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
                     </div>
                   </motion.div>
                 </div>
+
+                {/* ─── Member Experiences ─── */}
+                <div className="border-t border-zinc-800/50 px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-zinc-200">
+                      <Users className="h-3.5 w-3.5 text-zinc-500" />
+                      Member Experiences
+                      {memberComments.length > 0 && (
+                        <span className="rounded-full bg-zinc-700/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-zinc-400">
+                          {memberComments.length}
+                        </span>
+                      )}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        if (userId) setIsRatingModalOpen(true);
+                        else openPaywall("login");
+                      }}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+                        userId
+                          ? "border-emerald-600/40 bg-emerald-500/10 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/20"
+                          : "border-zinc-700/50 bg-zinc-800/40 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                      }`}
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      {userId ? "Share Experience" : "Sign in to Share"}
+                    </button>
+                  </div>
+
+                  {memberComments.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {(showAllComments ? memberComments : memberComments.slice(0, 3)).map((mc) => {
+                        const isOwn = mc.userId === userId;
+                        const date = new Date(mc.createdAt);
+                        const timeAgo = (() => {
+                          const diffMs = Date.now() - date.getTime();
+                          const diffDays = Math.floor(diffMs / 86_400_000);
+                          if (diffDays < 1) return "Today";
+                          if (diffDays === 1) return "Yesterday";
+                          if (diffDays < 30) return `${diffDays}d ago`;
+                          if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+                          return `${Math.floor(diffDays / 365)}y ago`;
+                        })();
+                        return (
+                          <div
+                            key={mc.id}
+                            className={`rounded-xl border p-3.5 sm:p-4 ${
+                              isOwn
+                                ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+                                : "border-zinc-800/50 bg-zinc-950/50"
+                            }`}
+                          >
+                            <div className="mb-2 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                                    isOwn
+                                      ? "bg-emerald-500/15 text-emerald-400"
+                                      : "bg-zinc-800 text-zinc-500"
+                                  }`}
+                                >
+                                  {isOwn ? "You" : "M"}
+                                </div>
+                                <span className="text-[11px] font-semibold text-zinc-400">
+                                  {isOwn ? "Your review" : "Community member"}
+                                </span>
+                                <span className="text-[10px] text-zinc-600">{timeAgo}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-zinc-600">
+                                <span className="flex items-center gap-0.5" title="Dating">
+                                  <Heart className="h-2.5 w-2.5" />
+                                  {mc.datingRating}
+                                </span>
+                                <span className="flex items-center gap-0.5" title="Safety">
+                                  <Shield className="h-2.5 w-2.5" />
+                                  {mc.safetyRating}
+                                </span>
+                                <span className="flex items-center gap-0.5" title="Friendly">
+                                  <Users className="h-2.5 w-2.5" />
+                                  {mc.friendlinessRating}
+                                </span>
+                                <span className="flex items-center gap-0.5" title="Cost">
+                                  <DollarSign className="h-2.5 w-2.5" />
+                                  {"$".repeat(mc.costRating)}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-[13px] leading-relaxed text-zinc-300">
+                              {mc.comment}
+                            </p>
+                          </div>
+                        );
+                      })}
+
+                      {memberComments.length > 3 && !showAllComments && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllComments(true)}
+                          className="w-full rounded-lg border border-zinc-800/50 bg-zinc-950/50 py-2.5 text-[11px] font-semibold text-zinc-500 transition hover:border-zinc-700/60 hover:text-zinc-300"
+                        >
+                          Show {memberComments.length - 3} more experiences
+                        </button>
+                      )}
+                      {showAllComments && memberComments.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllComments(false)}
+                          className="text-[11px] font-medium text-zinc-600 transition hover:text-zinc-400"
+                        >
+                          Show less
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[12px] text-zinc-600">No reviews yet — be the first to share your experience.</p>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -816,7 +950,7 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
                   ))}
                 </ul>
                 <button
-                  onClick={() => setPaywallOpen(true)}
+                  onClick={() => openPaywall("signup")}
                   className="group mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3.5 text-sm font-bold text-black transition-all hover:bg-emerald-400 active:scale-[0.98]"
                 >
                   Unlock Full Access
@@ -840,14 +974,16 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
           countrySlug={country.slug}
           countryName={country.name}
           userId={userId}
+          onRated={fetchCommunityData}
         />
       )}
 
-      {/* Paywall signup modal */}
+      {/* Paywall / auth modal */}
       <SignupModal
         isOpen={paywallOpen}
         onClose={() => setPaywallOpen(false)}
-        countryName={country.name}
+        countryName={paywallMode === "signup" ? country.name : undefined}
+        initialMode={paywallMode}
       />
     </div>
   );

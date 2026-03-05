@@ -1,21 +1,8 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-
-// Stripe requires the raw body bytes for signature verification — Next.js App
-// Router gives us a ReadableStream via request.body, so we must NOT use a
-// bodyParser. The route segment config below disables the default parser.
-export const dynamic = "force-dynamic";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia",
-});
-
-// Use the service-role key so the webhook can write to the DB without RLS.
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
@@ -25,12 +12,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
   }
 
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!stripeSecretKey || !webhookSecret || !supabaseUrl || !serviceRoleKey) {
+    console.error("[stripe webhook] Missing required environment variables");
+    return NextResponse.json(
+      { error: "Server misconfigured. Missing Stripe or Supabase credentials." },
+      { status: 500 }
+    );
+  }
+
+  const stripe = new Stripe(stripeSecretKey, {
+    apiVersion: "2025-01-27.acacia",
+  });
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(
       rawBody,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

@@ -3,22 +3,24 @@ export const FREE_COUNTRY_SLUG = "philippines";
 
 type UserLike = { has_paid?: boolean | null; email?: string | null } | null | undefined;
 
-const ADMIN_EMAILS = new Set(["emilio.arnold99@googlemail.com"]);
+const ADMIN_EMAILS = new Set([
+  "emilio.arnold99@googlemail.com",
+  "emilio.arnold99@gmail.com",     // Gmail variant
+]);
 
-/**
- * Returns true when a user is allowed to see premium content for a country.
- *
- * Rules (evaluated in order):
- *  0. Development bypass — grants full access in local dev so the paywall
- *     never blocks testing. Has zero effect in production.
- *  1. Philippines is the free sample — always accessible.
- *  2. A signed-in user whose profile has `has_paid = true` gets full access.
- *  3. Everyone else is locked.
- */
+/** Normalize email for comparison (lowercase, treat googlemail = gmail) */
+const normalizeEmail = (email: string): string => {
+  return email.toLowerCase().replace(/@googlemail\.com$/, "@gmail.com");
+};
+
 export const hasAccess = (user: UserLike, countrySlug: string): boolean => {
-  if (process.env.NODE_ENV === "development") return true;
   if (countrySlug === FREE_COUNTRY_SLUG) return true;
-  if (user?.email && ADMIN_EMAILS.has(user.email)) return true;
+  if (user?.email) {
+    const normalized = normalizeEmail(user.email);
+    for (const adminEmail of ADMIN_EMAILS) {
+      if (normalizeEmail(adminEmail) === normalized) return true;
+    }
+  }
   if (user?.has_paid === true) return true;
   return false;
 };

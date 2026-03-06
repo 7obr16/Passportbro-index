@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Users, DollarSign, Cross, Filter, Star, Wifi, Heart, Shield } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { TIER_CONFIG } from "@/lib/countries";
 import GlobeSection from "@/components/GlobeSection";
+import SignupModal from "@/components/SignupModal";
 import FilterSidebar, { FiltersState, createDefaultFilters } from "@/components/FilterSidebar";
 import CountryMark from "@/components/CountryMark";
 import { getCountryScores } from "@/lib/scoring";
-import SignupModal from "@/components/SignupModal";
-
+import { hasAccess } from "@/lib/access";
+import { supabase } from "@/lib/supabase";
 const TIERS = ["Very Easy", "Easy", "Normal", "Hard", "Improbable", "N/A"] as const;
 
 const TIER_BADGE: Record<string, string> = {
@@ -37,6 +38,10 @@ type Props = {
 };
 
 const FILTERS_STORAGE_KEY = "passport-filters-v1";
+const HOME_PAYWALL_LOCK_KEY = "passport-home-paywall-locked-v1";
+const HOME_PAYWALL_GRACE_MS = 18000;
+const HOME_CURTAIN_TRIGGER_OFFSET_PX = 260;
+const HOME_LOCK_TRIGGER_OFFSET_PX = 820;
 
 export default function ClientDashboard({ initialCountries }: Props) {
   // Always start with defaults (SSR-safe). The useEffect below restores from
@@ -44,8 +49,109 @@ export default function ClientDashboard({ initialCountries }: Props) {
   const [filters, setFilters] = useState<FiltersState>(createDefaultFilters);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isFirstRun = useRef(true);
-  const [scrollPaywallOpen, setScrollPaywallOpen] = useState(false);
-  const scrollTriggered = useRef(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [scrollCurtain, setScrollCurtain] = useState(false);
+  const [cardsBlurred, setCardsBlurred] = useState(false);
+  const paywallTriggered = useRef(false);
+  const tierSectionRef = useRef<HTMLDivElement>(null);
+  const [homePaywallEligible, setHomePaywallEligible] = useState(false);
+  const [hasPaid, setHasPaid] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  const openPaywall = useCallback(() => setPaywallOpen(true), []);
+  const activateHomepageBlur = useCallback(() => {
+    paywallTriggered.current = true;
+    setCardsBlurred(true);
+    try {
+      localStorage.setItem(HOME_PAYWALL_LOCK_KEY, "1");
+    } catch {
+      // Ignore storage failures and still lock for the current session.
+    }
+  }, []);
+
+  // Keep local auth state in sync so premium users bypass the homepage blur/paywall.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user;
+      if (!user) {
+        setHasPaid(false);
+        setUserEmail(null);
+        return;
+      }
+      setUserEmail(user.email ?? null);
+      supabase
+        .from("profiles")
+        .select("has_paid")
+        .eq("id", user.id)
+        .single()
+        .then(({ data: profile }) => {
+          setHasPaid(profile?.has_paid ?? false);
+        });
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      if (!user) {
+        setHasPaid(false);
+        setUserEmail(null);
+        return;
+      }
+      setUserEmail(user.email ?? null);
+      supabase
+        .from("profiles")
+        .select("has_paid")
+        .eq("id", user.id)
+        .single()
+        .then(({ data: profile }) => {
+          setHasPaid(profile?.has_paid ?? false);
+        });
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Synthetic slug for the homepage — premium / admin / dev users bypass all blurs.
+  const canAccessHome = hasAccess({ has_paid: hasPaid, email: userEmail }, "__homepage__");
+  const shouldBlurHome = !canAccessHome && cardsBlurred;
+
+  // Homepage lock now uses a longer grace window and only hard-locks
+  // after the user has also scrolled into the country list.
+  useEffect(() => {
+    if (canAccessHome) {
+      setCardsBlurred(false);
+      setScrollCurtain(false);
+      setHomePaywallEligible(false);
+      setPaywallOpen(false);
+      paywallTriggered.current = false;
+      return;
+    }
+
+    let wasPreviouslyLocked = false;
+    try {
+      wasPreviouslyLocked = localStorage.getItem(HOME_PAYWALL_LOCK_KEY) === "1";
+    } catch {
+      wasPreviouslyLocked = false;
+    }
+
+    if (wasPreviouslyLocked) {
+      paywallTriggered.current = true;
+      setCardsBlurred(true);
+      setHomePaywallEligible(true);
+      return;
+    }
+
+    setCardsBlurred(false);
+    setHomePaywallEligible(false);
+    const graceTimer = window.setTimeout(() => {
+      setHomePaywallEligible(true);
+    }, HOME_PAYWALL_GRACE_MS);
+
+    return () => {
+      clearTimeout(graceTimer);
+    };
+  }, [canAccessHome]);
 
   // First invocation: load saved filters from sessionStorage.
   // Every subsequent invocation (when filters actually change): persist them.
@@ -63,22 +169,30 @@ export default function ClientDashboard({ initialCountries }: Props) {
     } catch { /* ignore */ }
   }, [filters]);
 
-  // Trigger signup modal after user scrolls down a bit (only once per load).
-  // Skipped entirely in development so the paywall never blocks local testing.
+  // Soft curtain appears only after the grace window; the persistent blur
+  // activates once the user scrolls past the first few countries.
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") return;
+    if (canAccessHome) return;
 
-    function handleScroll() {
-      if (scrollTriggered.current) return;
-      if (window.scrollY > 400) {
-        scrollTriggered.current = true;
-        setScrollPaywallOpen(true);
+    function onScroll() {
+      const y = window.scrollY;
+      const sectionTop = tierSectionRef.current
+        ? tierSectionRef.current.getBoundingClientRect().top + window.scrollY
+        : 0;
+      const curtainStart = sectionTop + HOME_CURTAIN_TRIGGER_OFFSET_PX;
+      const lockStart = sectionTop + HOME_LOCK_TRIGGER_OFFSET_PX;
+
+      setScrollCurtain(homePaywallEligible && y > curtainStart);
+
+      if (!paywallTriggered.current && homePaywallEligible && y > lockStart) {
+        activateHomepageBlur();
       }
     }
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [activateHomepageBlur, canAccessHome, homePaywallEligible]);
 
   const filteredCountries = useMemo(() => {
     return initialCountries.filter((c) => {
@@ -161,11 +275,9 @@ export default function ClientDashboard({ initialCountries }: Props) {
     countries: filteredCountries.filter((c) => c.datingEase === tier),
   })).filter((group) => group.countries.length > 0);
 
-  const isBlurred = scrollPaywallOpen;
-
   return (
     <div className="relative">
-      <div className={`flex w-full transition filter duration-300 ${isBlurred ? "blur-sm" : ""}`}>
+      <div className="flex w-full">
         <FilterSidebar 
           filters={filters} 
           setFilters={setFilters} 
@@ -212,12 +324,23 @@ export default function ClientDashboard({ initialCountries }: Props) {
               </p>
             </div>
 
-            {/* Interactive Globe - Now only receives filtered countries! */}
-            <GlobeSection countries={filteredCountries} />
+            {/* Interactive Globe */}
+            <GlobeSection
+              countries={filteredCountries}
+              onRequestSignup={openPaywall}
+              unlockGlobe={canAccessHome}
+              forceBlurred={shouldBlurHome}
+            />
           </section>
 
-          {/* Tier sections */}
-          <div className="relative z-10 mt-8 space-y-12 md:mt-0">
+          {/* Tier sections — blurs after time/scroll threshold */}
+          <div ref={tierSectionRef} className="relative z-10 mt-8 md:mt-0">
+          <motion.div
+            animate={{ filter: shouldBlurHome ? "blur(7px)" : "blur(0px)" }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
+            className="space-y-12 pointer-events-none-when-blurred"
+            style={{ pointerEvents: shouldBlurHome ? "none" : undefined }}
+          >
             {grouped.length === 0 ? (
               <div className="py-20 text-center text-zinc-500">
                 <p>No countries match your selected filters.</p>
@@ -402,7 +525,42 @@ export default function ClientDashboard({ initialCountries }: Props) {
                 </section>
               ))
             )}
-          </div>
+          </motion.div>
+
+          {/* Cards blur overlay — fades in when blurred, sits on top with sign-up prompt */}
+          {shouldBlurHome && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.9 }}
+              className="pointer-events-auto absolute inset-0 z-20 flex items-start justify-center pt-24"
+              style={{ background: "linear-gradient(to bottom, transparent 0%, rgba(9,9,11,0.6) 20%, rgba(9,9,11,0.92) 60%)" }}
+            >
+              <div className="mx-4 mt-8 w-full max-w-sm rounded-2xl border border-white/[0.07] bg-zinc-900/95 p-7 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
+                <p className="text-lg font-bold text-white">See all ranked countries</p>
+                <p className="mt-1.5 text-sm text-zinc-400">
+                  Create a free account to browse the full list and unlock every country.
+                </p>
+                <div className="mt-5 flex flex-col gap-2">
+                  <button
+                    onClick={openPaywall}
+                    className="group flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+                  >
+                    Create Free Account
+                    <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                  <button
+                    onClick={openPaywall}
+                    className="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                  >
+                    Sign In
+                  </button>
+                </div>
+                <p className="mt-4 text-[11px] text-zinc-600">No credit card required to create a free account.</p>
+              </div>
+            </motion.div>
+          )}
+          </div>{/* end tier wrapper */}
 
           {/* Footer */}
           <footer className="mt-16 border-t border-zinc-800 pt-6 text-center text-[11px] text-zinc-600">
@@ -413,12 +571,25 @@ export default function ClientDashboard({ initialCountries }: Props) {
         </div>
       </div>
 
+      {/* ── Bottom blur curtain — appears after 350px scroll ── */}
+      {scrollCurtain && (
+        <div
+          className="pointer-events-none fixed bottom-0 left-0 right-0 z-40 h-[42vh]"
+          style={{
+            background: "linear-gradient(to top, rgba(9,9,11,0.98) 0%, rgba(9,9,11,0.7) 40%, transparent 100%)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            maskImage: "linear-gradient(to top, black 50%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to top, black 50%, transparent 100%)",
+          }}
+        />
+      )}
+
+      {/* Explicit signup modal — opened by CTA buttons, not automatically */}
       <SignupModal
-        isOpen={scrollPaywallOpen}
-        // Hard paywall: user shouldn't be able to dismiss this
-        // with a simple click; require signup/login instead.
-        onClose={() => {}}
-        dismissible={false}
+        isOpen={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        dismissible
       />
     </div>
   );

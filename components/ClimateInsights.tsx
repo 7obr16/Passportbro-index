@@ -32,27 +32,51 @@ const SOUTHERN_HEMISPHERE = new Set([
   "peru","new-zealand","uruguay","paraguay","bolivia","ecuador",
 ]);
 
-const MAP_VIEW: Record<string, { center: [number, number]; zoom: number }> = {
-  philippines:          { center: [122, 12],    zoom: 4.5 },
-  thailand:             { center: [101, 13],    zoom: 5 },
-  indonesia:            { center: [118, -2],    zoom: 3 },
-  vietnam:              { center: [107, 16],    zoom: 4 },
-  colombia:             { center: [-74, 4.5],   zoom: 4 },
-  mexico:               { center: [-102, 23],   zoom: 3.5 },
-  brazil:               { center: [-52, -14],   zoom: 2.5 },
-  argentina:            { center: [-64, -38],   zoom: 2.5 },
-  peru:                 { center: [-76, -10],   zoom: 4 },
-  "costa-rica":         { center: [-84, 10],    zoom: 9 },
-  "dominican-republic": { center: [-70, 19],    zoom: 10 },
-  cambodia:             { center: [105, 12.5],  zoom: 7 },
-  malaysia:             { center: [109, 4],     zoom: 4 },
-  india:                { center: [79, 22],     zoom: 3.5 },
-  japan:                { center: [138, 37],    zoom: 5 },
-  "south-korea":        { center: [128, 36],    zoom: 8 },
-  "south-africa":       { center: [25, -29],    zoom: 4 },
-  morocco:              { center: [-6.5, 32],   zoom: 5 },
-  turkey:               { center: [35, 39],     zoom: 5 },
-  spain:                { center: [-3.5, 37],   zoom: 5 },
+/** scale = react-simple-maps projectionConfig scale (higher = more zoomed in) */
+const MAP_VIEW: Record<string, { center: [number, number]; scale: number }> = {
+  // Asia
+  philippines:          { center: [122, 12],    scale: 1400 },
+  thailand:             { center: [101, 13],    scale: 1200 },
+  indonesia:            { center: [118, -2],    scale:  700 },
+  vietnam:              { center: [107, 16],    scale: 1400 },
+  cambodia:             { center: [105, 12.5],  scale: 2200 },
+  malaysia:             { center: [112, 4],     scale: 1000 },
+  india:                { center: [80, 22],     scale:  800 },
+  japan:                { center: [138, 37],    scale: 1200 },
+  "south-korea":        { center: [128, 36],    scale: 2400 },
+  china:                { center: [105, 35],    scale:  550 },
+  // Americas
+  usa:                  { center: [-97, 38],    scale:  620 },
+  canada:               { center: [-96, 60],    scale:  430 },
+  mexico:               { center: [-102, 24],   scale:  950 },
+  colombia:             { center: [-74, 4],     scale: 1100 },
+  brazil:               { center: [-52, -10],   scale:  580 },
+  argentina:            { center: [-65, -35],   scale:  650 },
+  peru:                 { center: [-75, -9],    scale: 1050 },
+  "costa-rica":         { center: [-84, 10],    scale: 3000 },
+  "dominican-republic": { center: [-70, 19],    scale: 3200 },
+  // Europe
+  uk:                   { center: [-2, 54],     scale: 1500 },
+  france:               { center: [2.5, 46.5],  scale: 1500 },
+  germany:              { center: [10.5, 51.2], scale: 1800 },
+  italy:                { center: [12.5, 42],   scale: 1400 },
+  portugal:             { center: [-8, 39.5],   scale: 2200 },
+  greece:               { center: [23, 38.5],   scale: 1800 },
+  spain:                { center: [-3.5, 40],   scale: 1500 },
+  poland:               { center: [19.5, 52],   scale: 1800 },
+  ukraine:              { center: [32, 49],     scale: 1300 },
+  russia:               { center: [60, 63],     scale:  280 },
+  turkey:               { center: [35, 39],     scale: 1300 },
+  // Africa & Middle East
+  morocco:              { center: [-5.5, 32],   scale: 1600 },
+  egypt:                { center: [30, 27],     scale: 1100 },
+  kenya:                { center: [38, -1],     scale: 1500 },
+  nigeria:              { center: [8, 9],       scale: 1200 },
+  "saudi-arabia":       { center: [45, 24],     scale:  900 },
+  // Africa south
+  "south-africa":       { center: [25, -29],    scale: 1100 },
+  // Oceania
+  australia:            { center: [134, -26],   scale:  470 },
 };
 
 function tempColor(c: number): string {
@@ -256,7 +280,7 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
     { id: "night", label: "Night",   icon: Moon },
   ];
 
-  const mapView = MAP_VIEW[slug] ?? { center: [0, 20] as [number, number], zoom: 1 };
+  const mapView = MAP_VIEW[slug] ?? { center: [0, 20] as [number, number], scale: 160 };
   const hasCities = cities.length > 0;
 
   return (
@@ -292,14 +316,14 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
 
           {/* City selector: map + pills */}
           {hasCities && (
-            <div className="mb-5 grid gap-3 lg:grid-cols-[auto_1fr]">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start">
               {/* Geographic mini-map */}
-              <div className="relative overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950/80"
-                   style={{ width: "100%", maxWidth: 260, minHeight: 160 }}>
+              <div className="relative flex-shrink-0 overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950/80"
+                   style={{ width: "100%", maxWidth: 320, minHeight: 190 }}>
                 <ComposableMap
                   projection="geoMercator"
-                  projectionConfig={{ center: mapView.center, scale: mapView.zoom * 80 }}
-                  style={{ width: "100%", height: 160 }}
+                  projectionConfig={{ center: mapView.center, scale: mapView.scale }}
+                  style={{ width: "100%", height: 190 }}
                 >
                   <Geographies geography={GEO_URL}>
                     {({ geographies }) =>
@@ -308,9 +332,9 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
                           key={geo.rsmKey}
                           geography={geo}
                           style={{
-                            default: { fill: "#1c1c1e", stroke: "#3f3f46", strokeWidth: 0.3, outline: "none" },
-                            hover:   { fill: "#1c1c1e", stroke: "#3f3f46", strokeWidth: 0.3, outline: "none" },
-                            pressed: { fill: "#1c1c1e", stroke: "#3f3f46", strokeWidth: 0.3, outline: "none" },
+                            default: { fill: "#27272a", stroke: "#52525b", strokeWidth: 0.4, outline: "none" },
+                            hover:   { fill: "#27272a", stroke: "#52525b", strokeWidth: 0.4, outline: "none" },
+                            pressed: { fill: "#27272a", stroke: "#52525b", strokeWidth: 0.4, outline: "none" },
                           }}
                         />
                       ))
@@ -357,29 +381,47 @@ export default function ClimateInsights({ slug, countryName, climate, hasBeach, 
               </div>
 
               {/* City pill buttons */}
-              <div className="flex flex-wrap items-start gap-1.5 pt-1">
-                {cities.map((city) => {
-                  const isActive = city.name === selectedCity;
-                  const avgAnnual = city.months.reduce((s, m) => s + m.avg, 0) / 12;
-                  return (
-                    <button
-                      key={city.name}
-                      onClick={() => setSelectedCity(city.name)}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
-                        isActive
-                          ? "border-transparent text-zinc-900"
-                          : "border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
-                      }`}
-                      style={isActive ? { backgroundColor: tempColor(avgAnnual) } : {}}
-                    >
-                      <span
-                        className="h-2 w-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: isActive ? "rgba(0,0,0,0.3)" : tempColor(avgAnnual) }}
-                      />
-                      {city.name}
-                    </button>
-                  );
-                })}
+              <div className="flex flex-1 flex-col gap-1.5">
+                <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-600">
+                  Select City
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {cities.map((city) => {
+                    const isActive = city.name === selectedCity;
+                    const avgAnnual = city.months.reduce((s, m) => s + m.avg, 0) / 12;
+                    return (
+                      <button
+                        key={city.name}
+                        onClick={() => setSelectedCity(city.name)}
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
+                          isActive
+                            ? "border-transparent text-zinc-900"
+                            : "border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
+                        }`}
+                        style={isActive ? { backgroundColor: tempColor(avgAnnual) } : {}}
+                      >
+                        <span
+                          className="h-2 w-2 flex-shrink-0 rounded-full"
+                          style={{ backgroundColor: isActive ? "rgba(0,0,0,0.3)" : tempColor(avgAnnual) }}
+                        />
+                        {city.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Mini legend: color = annual avg temp */}
+                {activeCity && (
+                  <div className="mt-1.5 flex items-center gap-2 text-[10px] text-zinc-500">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span>
+                      <span className="font-semibold text-zinc-300">{activeCity.name}</span>
+                      {" · "}Annual avg{" "}
+                      <span className="font-semibold" style={{ color: tempColor(activeCity.months.reduce((s, m) => s + m.avg, 0) / 12) }}>
+                        {(activeCity.months.reduce((s, m) => s + m.avg, 0) / 12).toFixed(1)}°C
+                      </span>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

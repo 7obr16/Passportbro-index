@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactCountryFlag from "react-country-flag";
-import { ChevronDown, ExternalLink, Heart, DollarSign, Wifi, Users, Shield, Star, Lock, ArrowRight } from "lucide-react";
+import { ChevronDown, ExternalLink, Heart, DollarSign, Wifi, Users, Shield, Star, ArrowRight } from "lucide-react";
 import type { Country } from "@/lib/countries";
 import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
 import {
@@ -123,13 +123,12 @@ export default function LeaderboardClient({ countries }: Props) {
         </div>
       </div>
 
+      {/* Top-3 rows — always fully visible */}
       <div className="space-y-2">
-        {ranked.map((country, idx) => {
+        {ranked.slice(0, 3).map((country, idx) => {
           const score = country.scores[selected];
           const isOpen = openSlug === country.slug;
           const flagCode = COUNTRY_FLAG_CODE[country.slug] ?? countryCodeFromFlagEmoji(country.flagEmoji);
-          const isTop3 = idx < 3;
-          const isLocked = !canAccess && idx >= 3;
 
           return (
             <motion.div
@@ -137,56 +136,15 @@ export default function LeaderboardClient({ countries }: Props) {
               layout
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.15, delay: Math.min(idx * 0.02, 0.3) }}
+              transition={{ duration: 0.15, delay: idx * 0.05 }}
             >
-              {/* Paywall banner — injected once between row 3 and row 4 */}
-              {idx === 3 && !canAccess && (
-                <div className="mb-2 flex items-center gap-4 rounded-xl border border-emerald-500/20 bg-zinc-900/80 px-4 py-4 shadow-lg ring-1 ring-white/[0.04]">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20">
-                    <Lock className="h-5 w-5 text-emerald-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-white">Unlock the Full Ranking</p>
-                    <p className="text-xs text-zinc-500">Rows 4–{ranked.length} are locked. Get full access to see every country ranked.</p>
-                  </div>
-                  <button
-                    onClick={() => setPaywallOpen(true)}
-                    className="group flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-bold text-black transition hover:bg-emerald-400"
-                  >
-                    Unlock
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                </div>
-              )}
-
-            <div
-              className={`overflow-hidden rounded-xl border transition-colors ${
-                isTop3
-                  ? "border-emerald-500/20 bg-zinc-900/70"
-                  : isLocked
-                  ? "border-zinc-800/40 bg-zinc-900/20"
-                  : "border-zinc-800/60 bg-zinc-900/40"
-              } ${isLocked ? "relative" : ""}`}
-            >
-              {/* Blur overlay for locked rows */}
-              {isLocked && (
-                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[3px]">
-                  <Lock className="h-4 w-4 text-zinc-700" />
-                </div>
-              )}
+            <div className="overflow-hidden rounded-xl border border-emerald-500/20 bg-zinc-900/70 transition-colors">
 
               <button
-                disabled={isLocked}
-                onClick={() => !isLocked && setOpenSlug(isOpen ? null : country.slug)}
-                className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition sm:gap-4 sm:px-4 sm:py-3 ${
-                  isLocked ? "cursor-default opacity-40 select-none" : "hover:bg-zinc-800/30"
-                }`}
+                onClick={() => setOpenSlug(isOpen ? null : country.slug)}
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-zinc-800/30 sm:gap-4 sm:px-4 sm:py-3"
               >
-                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold sm:h-8 sm:w-8 sm:text-xs ${
-                  isTop3
-                    ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-zinc-800/80 text-zinc-400"
-                }`}>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-[10px] font-bold text-emerald-400 sm:h-8 sm:w-8 sm:text-xs">
                   {idx + 1}
                 </div>
 
@@ -227,7 +185,7 @@ export default function LeaderboardClient({ countries }: Props) {
               </button>
 
               <AnimatePresence>
-                {isOpen && !isLocked && (
+                {isOpen && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
@@ -275,6 +233,171 @@ export default function LeaderboardClient({ countries }: Props) {
           );
         })}
       </div>
+
+      {/* Rows 4+ — locked section */}
+      {!canAccess && ranked.length > 3 && (
+        <div className="relative mt-2">
+          {/* Preview rows: progressively fade out */}
+          <div className="pointer-events-none select-none space-y-2" aria-hidden="true">
+            {ranked.slice(3, 9).map((country, i) => {
+              const score = country.scores[selected];
+              const flagCode = COUNTRY_FLAG_CODE[country.slug] ?? countryCodeFromFlagEmoji(country.flagEmoji);
+              const opacity = Math.max(0.06, 0.55 - i * 0.09);
+              return (
+                <div
+                  key={country.slug}
+                  className="overflow-hidden rounded-xl border border-zinc-800/40 bg-zinc-900/30"
+                  style={{ opacity, filter: `blur(${2 + i * 1.2}px)` }}
+                >
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800/80 text-[10px] font-bold text-zinc-400 sm:h-8 sm:w-8 sm:text-xs">
+                      {i + 4}
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 sm:h-7 sm:w-7">
+                        {flagCode ? (
+                          <ReactCountryFlag countryCode={flagCode} svg style={{ width: "1.1em", height: "1.1em" }} />
+                        ) : country.flagEmoji ? (
+                          <span className="text-sm leading-none">{country.flagEmoji}</span>
+                        ) : null}
+                      </div>
+                      <p className="truncate text-xs font-semibold text-zinc-100 sm:text-sm">{country.name}</p>
+                    </div>
+                    <p className={`text-base font-black tabular-nums sm:text-lg ${
+                      score >= 70 ? "text-emerald-400" : score >= 40 ? "text-zinc-200" : "text-zinc-400"
+                    }`}>
+                      {score.toFixed(0)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Gradient fade overlay */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-gradient-to-b from-transparent via-zinc-950/60 to-zinc-950" />
+
+          {/* Signup card */}
+          <div className="relative z-10 mt-0 flex justify-center px-2 pb-2 pt-6">
+            <div className="w-full max-w-md rounded-2xl border border-white/[0.07] bg-zinc-900/90 p-7 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
+              <p className="text-lg font-bold tracking-tight text-white">
+                See the full ranking
+              </p>
+              <p className="mt-1.5 text-sm text-zinc-400">
+                {ranked.length - 3} more countries are ranked — create a free account to access the complete list.
+              </p>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <button
+                  onClick={() => setPaywallOpen(true)}
+                  className="group flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+                >
+                  Create Free Account
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </button>
+                <button
+                  onClick={() => { setPaywallOpen(true); }}
+                  className="rounded-lg border border-zinc-700 px-6 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                >
+                  Sign In
+                </button>
+              </div>
+              <p className="mt-4 text-[11px] text-zinc-600">
+                No credit card required to create a free account.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full list when unlocked — rows 4+ */}
+      {canAccess && ranked.length > 3 && (
+        <div className="mt-2 space-y-2">
+          {ranked.slice(3).map((country, i) => {
+            const idx = i + 3;
+            const score = country.scores[selected];
+            const isOpen = openSlug === country.slug;
+            const flagCode = COUNTRY_FLAG_CODE[country.slug] ?? countryCodeFromFlagEmoji(country.flagEmoji);
+            return (
+              <motion.div
+                key={`${country.slug}-${selected}`}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.15, delay: Math.min(idx * 0.02, 0.3) }}
+              >
+              <div className="overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/40 transition-colors">
+              <button
+                onClick={() => setOpenSlug(isOpen ? null : country.slug)}
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-zinc-800/30 sm:gap-4 sm:px-4 sm:py-3"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800/80 text-[10px] font-bold text-zinc-400 sm:h-8 sm:w-8 sm:text-xs">
+                  {idx + 1}
+                </div>
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 sm:h-7 sm:w-7">
+                    {flagCode ? (
+                      <ReactCountryFlag countryCode={flagCode} svg style={{ width: "1.1em", height: "1.1em" }} />
+                    ) : country.flagEmoji ? (
+                      <span className="text-sm leading-none">{country.flagEmoji}</span>
+                    ) : (
+                      <span className="text-[9px] text-zinc-600">--</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-zinc-100 sm:text-sm">{country.name}</p>
+                    <p className="hidden text-[10px] text-zinc-600 sm:block">{country.region}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="hidden text-[9px] uppercase tracking-wider text-zinc-600 sm:block">
+                    {SORT_OPTIONS.find(o => o.id === selected)?.label}
+                  </p>
+                  <p className={`text-base font-black tabular-nums sm:text-lg ${
+                    score >= 70 ? "text-emerald-400" : score >= 40 ? "text-zinc-200" : "text-zinc-400"
+                  }`}>
+                    {score.toFixed(0)}
+                  </p>
+                </div>
+                <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-zinc-600 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="border-t border-zinc-800/50"
+                  >
+                    <div className="grid grid-cols-2 gap-2 px-3 py-3 sm:grid-cols-3 sm:px-4 sm:py-4 lg:grid-cols-6">
+                      {BREAKDOWN.map((item) => {
+                        const s = country.scores[item.key];
+                        return (
+                          <div key={item.key} className="rounded-lg bg-zinc-950/60 p-2.5 text-center">
+                            <p className="mb-1 flex items-center justify-center gap-1 text-[9px] font-medium uppercase tracking-wider text-zinc-600">
+                              <item.icon className="h-2.5 w-2.5" />{item.label}
+                            </p>
+                            <p className={`text-lg font-black tabular-nums ${s >= 70 ? "text-emerald-400" : s >= 40 ? "text-zinc-200" : "text-zinc-400"}`}>
+                              {s.toFixed(0)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-zinc-800/40 px-3 py-2.5 sm:px-4">
+                      <Link href={`/country/${country.slug}`} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 transition hover:text-emerald-400">
+                        View Details <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
 
       <SignupModal isOpen={paywallOpen} onClose={() => setPaywallOpen(false)} />
 

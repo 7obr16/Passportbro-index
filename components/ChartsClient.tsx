@@ -2,12 +2,14 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowRight } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 import type { Country } from "@/lib/countries";
 import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
 import { getCountryScores } from "@/lib/scoring";
 import { countryCodeFromFlagEmoji } from "@/lib/flagUtils";
+import { hasAccess } from "@/lib/access";
+import { supabase } from "@/lib/supabase";
 
 type MetricOption = {
   id: string;
@@ -57,6 +59,9 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+  const [hasPaid, setHasPaid] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -69,6 +74,47 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Lightweight auth sync for charts section — same rules as leaderboard/home.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user;
+      if (!user) {
+        setHasPaid(false);
+        setUserEmail(null);
+        return;
+      }
+      setUserEmail(user.email ?? null);
+      supabase
+        .from("profiles")
+        .select("has_paid")
+        .eq("id", user.id)
+        .single()
+        .then(({ data: profile }) => setHasPaid(profile?.has_paid ?? false));
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      if (!user) {
+        setHasPaid(false);
+        setUserEmail(null);
+        return;
+      }
+      setUserEmail(user.email ?? null);
+      supabase
+        .from("profiles")
+        .select("has_paid")
+        .eq("id", user.id)
+        .single()
+        .then(({ data: profile }) => setHasPaid(profile?.has_paid ?? false));
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const canAccessCharts = hasAccess({ has_paid: hasPaid, email: userEmail }, "__charts__");
 
   const metric = METRICS.find((m) => m.id === metricId)!;
 
@@ -112,7 +158,12 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
   }, [valueMin, valueMax]);
 
   return (
-    <div className="w-full">
+    <div className="relative w-full">
+      {/* Blurred layer wrapping the entire chart area */}
+      <div
+        className={!canAccessCharts ? "pointer-events-none select-none" : ""}
+        style={!canAccessCharts ? { filter: "blur(6px)", opacity: 0.6 } : {}}
+      >
       {/* Single metric selector */}
       <div className="mb-4 flex flex-col items-stretch gap-2 text-sm sm:mb-6 sm:flex-row sm:items-center sm:justify-center">
         <div className="flex items-center gap-2">
@@ -353,6 +404,39 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
         </AnimatePresence>
         </div>
       </div>
+      </div>
+
+      {/* Paywall overlay card for charts */}
+      {!canAccessCharts && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-start justify-center pt-10">
+          <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-white/[0.07] bg-zinc-900/95 p-7 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
+            <p className="text-lg font-bold tracking-tight text-white">
+              Unlock interactive charts
+            </p>
+            <p className="mt-1.5 text-sm text-zinc-400">
+              Create a free account to compare countries on dating, cost, safety, height, and more.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                onClick={() => setPaywallOpen(true)}
+                className="group flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+              >
+                Create Free Account
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
+              <button
+                onClick={() => setPaywallOpen(true)}
+                className="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+              >
+                Sign In
+              </button>
+            </div>
+            <p className="mt-4 text-[11px] text-zinc-600">
+              No credit card required to create a free account.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

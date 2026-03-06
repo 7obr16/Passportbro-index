@@ -1,6 +1,7 @@
 import { getCountries } from "@/lib/countries";
 import SiteNav from "@/components/SiteNav";
 import ChartsClient from "@/components/ChartsClient";
+import SignupModal from "@/components/SignupModal";
 
 export const revalidate = 60;
 

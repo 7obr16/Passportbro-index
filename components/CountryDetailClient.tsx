@@ -302,7 +302,15 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
           )}
         </motion.div>
 
-        {/* Passport Bro Score — always visible so you don't have to go back to menu */}
+        {/* ── PREMIUM CONTENT — everything below hero is gated ── */}
+        <div className="relative">
+          {/* Blurred layer — kicks in immediately below globe + typical look for locked users */}
+          <div
+            className={!canAccess ? "pointer-events-none select-none" : ""}
+            style={!canAccess ? { filter: "blur(7px)" } : {}}
+          >
+
+        {/* Passport Bro Score */}
         <motion.div variants={itemVariants} className="mb-6 sm:mb-8">
           <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">
             {/* Header row: label + Rate button */}
@@ -371,11 +379,6 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
 
           </div>
         </motion.div>
-
-        {/* ── PREMIUM CONTENT — locked behind paywall ── */}
-        <div className="relative">
-          {/* Blurred layer */}
-          <div className={!canAccess ? "pointer-events-none select-none blur-[3px] opacity-50" : ""}>
 
         {/* Country Visual Gallery */}
         <motion.div variants={itemVariants} className="mb-8">
@@ -910,33 +913,28 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
           {/* ── end blurred layer ── */}
           </div>
 
-          {/* Top-fade to smooth transition from free → locked content */}
+          {/* Top-fade to smooth the transition into blurred content */}
           {!canAccess && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-zinc-950 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20 bg-gradient-to-b from-zinc-950/80 to-transparent" />
           )}
 
           {/* Paywall overlay card */}
           {!canAccess && (
-            <div className="pointer-events-none absolute inset-0 z-20 flex justify-center px-4 pt-16">
-              <div className="pointer-events-auto sticky top-24 h-fit w-full max-w-sm rounded-2xl border border-emerald-500/20 bg-zinc-900/95 p-8 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.06]"
-                style={{ boxShadow: "0 0 60px -15px rgba(16,185,129,0.2), 0 32px 64px -16px rgba(0,0,0,0.8)" }}
-              >
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20">
-                  <Lock className="h-6 w-6 text-emerald-400" />
-                </div>
+            <div className="pointer-events-none absolute inset-0 z-20 flex justify-center px-4 pt-4">
+              <div className="pointer-events-auto sticky top-24 h-fit w-full max-w-sm rounded-2xl border border-white/[0.07] bg-zinc-900/95 p-8 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
                 <h3 className="text-xl font-bold tracking-tight text-white">
-                  Unlock Full{" "}
+                  Full{" "}
                   <span className="text-emerald-400">{country.name}</span>{" "}
-                  Breakdown
+                  breakdown
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                  Get detailed stats, community intel, climate data, and everything the brotherhood says about {country.name}.
+                  Create a free account to access detailed stats, community intel, climate data, and cost of living for {country.name}.
                 </p>
                 <ul className="mt-5 space-y-2 text-left">
                   {[
                     "Full score radar & stat breakdown",
                     "Community intel — pros & cons",
-                    "Climate insights & air quality",
+                    "Climate insights & city comparison",
                     "Cost of living deep-dive",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2.5 text-sm text-zinc-300">
@@ -949,15 +947,23 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
                     </li>
                   ))}
                 </ul>
-                <button
-                  onClick={() => openPaywall("signup")}
-                  className="group mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3.5 text-sm font-bold text-black transition-all hover:bg-emerald-400 active:scale-[0.98]"
-                >
-                  Unlock Full Access
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </button>
-                <p className="mt-3 text-[11px] text-zinc-600">
-                  🇵🇭 Philippines is always free — it&apos;s our sample country
+                <div className="mt-6 flex flex-col gap-2">
+                  <button
+                    onClick={() => openPaywall("signup")}
+                    className="group flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-black transition-all hover:bg-emerald-400 active:scale-[0.98]"
+                  >
+                    Create Free Account
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                  <button
+                    onClick={() => openPaywall("login")}
+                    className="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                  >
+                    Sign In
+                  </button>
+                </div>
+                <p className="mt-4 text-[11px] text-zinc-600">
+                  No credit card required to create a free account.
                 </p>
               </div>
             </div>

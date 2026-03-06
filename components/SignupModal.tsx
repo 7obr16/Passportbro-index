@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Check, MapPin, X, Globe, ArrowRight, Lock, LogIn } from "lucide-react";
+import { Shield, Check, MapPin, X, Globe, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export type AuthModalMode = "signup" | "login";
@@ -43,14 +43,14 @@ export default function SignupModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const reset = () => {
     setEmail("");
     setPassword("");
     setError(null);
     setSuccess(false);
-    setResetSent(false);
+    setMagicLinkSent(false);
   };
 
   const switchMode = (next: AuthModalMode) => {
@@ -104,15 +104,17 @@ export default function SignupModal({
     }, 1200);
   };
 
-  // ── Sign In: email + password ──
+  // ── Sign In: passwordless magic link ──
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { error: authError } = await supabase.auth.signInWithOtp({
       email,
-      password,
+      options: {
+        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      },
     });
 
     if (authError) {
@@ -121,23 +123,8 @@ export default function SignupModal({
       return;
     }
 
+    setMagicLinkSent(true);
     setLoading(false);
-    handleClose();
-  };
-
-  // ── Forgot password: sends a reset email ──
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError("Enter your email above first.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined,
-    });
-    setLoading(false);
-    setResetSent(true);
   };
 
   const headline =
@@ -312,10 +299,10 @@ export default function SignupModal({
                       >
                         <div className="mb-4">
                           <h3 className="text-lg font-bold tracking-tight text-white">
-                            {mode === "login" ? "Sign in to your account" : countryName ? `Get the full ${countryName} breakdown` : "Start your journey"}
+                            {mode === "login" ? "Sign in with email" : countryName ? `Get the full ${countryName} breakdown` : "Start your journey"}
                           </h3>
                           <p className="mt-1 text-xs text-zinc-500">
-                            {mode === "login" ? "Enter your email and password" : "Free account · Takes 10 seconds"}
+                            {mode === "login" ? "We'll send you a magic link to sign in instantly" : "Free account · Takes 10 seconds"}
                           </p>
                         </div>
 
@@ -332,32 +319,17 @@ export default function SignupModal({
                           />
                         </div>
 
-                        {/* Password — only for sign in */}
-                        {mode === "login" && (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-bold tracking-widest text-zinc-500">PASSWORD</label>
-                              <button
-                                type="button"
-                                onClick={handleForgotPassword}
-                                disabled={loading}
-                                className="text-[10px] text-zinc-500 transition hover:text-emerald-400 disabled:opacity-50"
-                              >
-                                {resetSent ? "✓ Reset email sent" : "Forgot password?"}
-                              </button>
-                            </div>
-                            <div className="relative">
-                              <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Your password"
-                                className="w-full rounded-lg border border-zinc-700/60 bg-zinc-800/40 px-4 py-3 pr-11 text-sm text-white outline-none placeholder:text-zinc-600 transition-colors focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25"
-                              />
-                              <Lock className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
-                            </div>
-                          </div>
+                        {/* Magic link sent confirmation */}
+                        {magicLinkSent && mode === "login" && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3"
+                          >
+                            <p className="text-xs text-emerald-400">
+                              ✓ Check your email! We sent you a magic link to sign in.
+                            </p>
+                          </motion.div>
                         )}
 
                         {error && (
@@ -378,12 +350,12 @@ export default function SignupModal({
                           {loading ? (
                             <span className="flex items-center gap-2">
                               <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
-                              {mode === "login" ? "Signing in…" : "Creating account…"}
+                              {mode === "login" ? "Sending magic link…" : "Creating account…"}
                             </span>
                           ) : mode === "login" ? (
                             <>
-                              Sign In
-                              <LogIn className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                              Send Magic Link
+                              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                             </>
                           ) : (
                             <>

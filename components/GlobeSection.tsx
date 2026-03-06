@@ -3,6 +3,7 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import {
   motion,
+  AnimatePresence,
   useScroll,
   useTransform,
   useInView,
@@ -98,12 +99,35 @@ function AnimatedCounter({
 
 export default function GlobeSection({
   countries,
+  onRequestSignup,
+  unlockGlobe = false,
+  forceBlurred = false,
 }: {
   countries: Country[];
+  onRequestSignup?: () => void;
+  /** When true (premium / dev), the globe never blurs. */
+  unlockGlobe?: boolean;
+  /** When true, keep the globe blurred immediately (e.g. persisted homepage lock). */
+  forceBlurred?: boolean;
 }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [globeBlurred, setGlobeBlurred] = useState(false);
+
+  // Give visitors more breathing room before the homepage map soft-locks.
+  useEffect(() => {
+    if (unlockGlobe) {
+      setGlobeBlurred(false);
+      return;
+    }
+    if (forceBlurred) {
+      setGlobeBlurred(true);
+      return;
+    }
+    const t = setTimeout(() => setGlobeBlurred(true), 12000);
+    return () => clearTimeout(t);
+  }, [forceBlurred, unlockGlobe]);
 
   const toggleFilter = (filterName: string) => {
     setActiveFilter(prev => prev === filterName ? null : filterName);
@@ -205,7 +229,7 @@ export default function GlobeSection({
 
         {/* ── Massive Edge-to-Edge Map Container ─────────────────── */}
         <div className="relative w-full overflow-hidden">
-          {/* Edge fade masks for ultra-wide monitors (reduced darkness) */}
+          {/* Edge fade masks */}
           <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-20 w-8 bg-gradient-to-r from-zinc-950/80 to-transparent sm:w-16 md:w-24 lg:w-32 xl:w-48" />
           <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-20 w-8 bg-gradient-to-l from-zinc-950/80 to-transparent sm:w-16 md:w-24 lg:w-32 xl:w-48" />
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-24 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent md:h-32" />
@@ -213,11 +237,48 @@ export default function GlobeSection({
           <motion.div
             className="mx-auto w-full max-w-[1400px] xl:max-w-[1600px] 2xl:max-w-[1920px] cursor-grab active:cursor-grabbing"
           >
-            {/* Added instructions for zooming */}
             <div className="pointer-events-none absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-zinc-950/60 px-4 py-1.5 text-[9px] font-semibold tracking-widest text-zinc-400 backdrop-blur-md">
               SCROLL / PINCH TO ZOOM • DRAG TO PAN
             </div>
-            <WorldGlobe countries={countries} activeFilter={activeFilter} />
+
+            {/* Globe with time-delayed blur */}
+            <div className="relative">
+              <motion.div
+                animate={{ filter: globeBlurred && !unlockGlobe ? "blur(8px)" : "blur(0px)" }}
+                transition={{ duration: 1.4, ease: "easeInOut" }}
+              >
+                <WorldGlobe countries={countries} activeFilter={activeFilter} />
+              </motion.div>
+
+              {/* Blur overlay + signup prompt */}
+              <AnimatePresence>
+                {globeBlurred && !unlockGlobe && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="absolute inset-0 z-30 flex items-center justify-center"
+                    style={{ background: "radial-gradient(ellipse at center, rgba(9,9,11,0.55) 0%, rgba(9,9,11,0.82) 100%)" }}
+                  >
+                    <div className="text-center px-6">
+                      <p className="text-base font-bold text-white sm:text-lg">
+                        Sign up to explore the full map
+                      </p>
+                      <p className="mt-1.5 text-sm text-zinc-400">
+                        See every country ranked on the globe
+                      </p>
+                      <button
+                        onClick={onRequestSignup}
+                        className="mt-4 rounded-lg bg-emerald-500 px-6 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+                      >
+                        Create Free Account
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.div>
         </div>
 

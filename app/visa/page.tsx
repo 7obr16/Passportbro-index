@@ -1,10 +1,11 @@
-import SiteNav from "@/components/SiteNav";
+import { Suspense } from "react";
+import SiteNavWithSuspense from "@/components/SiteNavWithSuspense";
 import VisaGlobeClient from "@/components/VisaGlobeClient";
 
 export default function VisaPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
-      <SiteNav />
+      <SiteNavWithSuspense />
 
       <section className="mx-auto max-w-7xl px-5 pt-8 pb-20">
         <div className="mb-8 text-center">
@@ -24,7 +25,9 @@ export default function VisaPage() {
           </p>
         </div>
 
-        <VisaGlobeClient />
+        <Suspense fallback={<div className="min-h-[60vh] bg-zinc-950" />}>
+          <VisaGlobeClient />
+        </Suspense>
       </section>
     </div>
   );

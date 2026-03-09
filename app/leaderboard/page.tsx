@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCountries } from "@/lib/countries";
 import { DATA_SOURCES } from "@/lib/dataSources";
 import LeaderboardClient from "@/components/LeaderboardClient";
-import SiteNav from "@/components/SiteNav";
+import SiteNavWithSuspense from "@/components/SiteNavWithSuspense";
 
 export const revalidate = 60;
 
@@ -15,7 +15,7 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
-      <SiteNav />
+      <SiteNavWithSuspense />
 
       <section className="mx-auto max-w-5xl px-4 pt-6 text-center sm:px-5 sm:pt-10">
         <h1 className="text-2xl font-black tracking-tight sm:text-3xl md:text-4xl">

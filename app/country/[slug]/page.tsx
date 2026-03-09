@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getCountryBySlug, getAllSlugs, getCountries, TIER_CONFIG } from "@/lib/countries";
 import CountryDetailClient from "@/components/CountryDetailClient";
@@ -51,11 +52,13 @@ export default async function CountryPage({ params }: Props) {
   const womenGroupImageUrl = WOMEN_GROUP_IMAGE[slug] ?? null;
 
   return (
-    <CountryDetailClient
-      country={country}
-      allCountries={allCountries}
-      gallery={gallery}
-      womenGroupImageUrl={womenGroupImageUrl}
-    />
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950" />}>
+      <CountryDetailClient
+        country={country}
+        allCountries={allCountries}
+        gallery={gallery}
+        womenGroupImageUrl={womenGroupImageUrl}
+      />
+    </Suspense>
   );
 }

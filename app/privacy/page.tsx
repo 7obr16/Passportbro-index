@@ -1,4 +1,4 @@
-import SiteNav from "@/components/SiteNav";
+import SiteNavWithSuspense from "@/components/SiteNavWithSuspense";
 
 export const metadata = {
   title: "Privacy Policy | Passport Bro Index",
@@ -8,7 +8,7 @@ export const metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
-      <SiteNav />
+      <SiteNavWithSuspense />
 
       <main className="max-w-4xl mx-auto py-12 px-6">
         <div className="prose prose-lg dark:prose-invert max-w-none">

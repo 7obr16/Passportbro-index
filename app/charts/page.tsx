@@ -1,7 +1,7 @@
+import { Suspense } from "react";
 import { getCountries } from "@/lib/countries";
-import SiteNav from "@/components/SiteNav";
+import SiteNavWithSuspense from "@/components/SiteNavWithSuspense";
 import ChartsClient from "@/components/ChartsClient";
-import SignupModal from "@/components/SignupModal";
 
 export const revalidate = 60;
 
@@ -10,7 +10,7 @@ export default async function ChartsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
-      <SiteNav />
+      <SiteNavWithSuspense />
 
       <section className="mx-auto max-w-7xl px-3 pt-5 sm:px-5 sm:pt-8">
         <div className="mb-5 text-center sm:mb-8">
@@ -21,8 +21,10 @@ export default async function ChartsPage() {
             Compare countries on a single metric with the US as reference.
           </p>
         </div>
-        
-        <ChartsClient countries={countries} />
+
+        <Suspense fallback={<div className="min-h-[40vh] bg-zinc-950" />}>
+          <ChartsClient countries={countries} />
+        </Suspense>
       </section>
     </div>
   );

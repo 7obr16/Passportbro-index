@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { BarChart3, Globe, Menu, Plane, Trophy, X, LogIn, LogOut, User } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -18,6 +18,7 @@ const NAV_LINKS = [
 
 export default function SiteNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -53,6 +54,10 @@ export default function SiteNav() {
       ? user.email.slice(0, 19) + "…"
       : user.email
     : "";
+
+  if (searchParams.get("nativeApp") === "1") {
+    return null;
+  }
 
   return (
     <>

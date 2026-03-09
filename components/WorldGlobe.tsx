@@ -89,9 +89,11 @@ function hexToRgba(hex: string, alpha: number): string {
 type Props = { 
   countries: Country[];
   activeFilter?: string | null;
+  /** When false, clicking a country does not navigate (e.g. for inline homepage globe that opens expanded view first). */
+  navigateOnCountryClick?: boolean;
 };
 
-export default function WorldGlobe({ countries, activeFilter = null }: Props) {
+export default function WorldGlobe({ countries, activeFilter = null, navigateOnCountryClick = true }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredCountry, setHoveredCountry] = useState<Country | null>(null);
@@ -195,7 +197,7 @@ export default function WorldGlobe({ countries, activeFilter = null }: Props) {
         projection="geoNaturalEarth1"
         projectionConfig={{ scale: 200, center: [0, 0] }}
         width={1000}
-        height={500}
+        height={620}
         style={{
           width: "100%",
           height: "auto",
@@ -266,7 +268,9 @@ export default function WorldGlobe({ countries, activeFilter = null }: Props) {
                   onMouseEnter={() => setHoveredCountry(country || null)}
                   onMouseLeave={() => setHoveredCountry(null)}
                   onClick={() => {
-                    if (country) router.push(`/country/${country.slug}`);
+                    if (country && navigateOnCountryClick) {
+                      router.push(`/country/${country.slug}`);
+                    }
                   }}
                   className="transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
                   style={{

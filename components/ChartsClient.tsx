@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ArrowRight } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
+import SignupModal from "@/components/SignupModal";
 import type { Country } from "@/lib/countries";
 import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
 import { getCountryScores } from "@/lib/scoring";
@@ -58,10 +60,13 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
   const [metricId, setMetricId] = useState<string>("dating");
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
   const [hasPaid, setHasPaid] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [nativePreviewLocked, setNativePreviewLocked] = useState(false);
+  const [pageScrollY, setPageScrollY] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -114,7 +119,51 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const canAccessCharts = hasAccess({ has_paid: hasPaid, email: userEmail }, "__charts__");
+  const isNativeApp = searchParams.get("nativeApp") === "1";
+  const isNativePremium = searchParams.get("nativePremium") === "1";
+  const showNativeFreemium = isNativeApp && !isNativePremium;
+  const canAccessCharts = showNativeFreemium
+    ? false
+    : isNativeApp
+      ? isNativePremium
+      : hasAccess({ has_paid: hasPaid, email: userEmail }, "__charts__");
+
+  useEffect(() => {
+    if (!showNativeFreemium) {
+      setNativePreviewLocked(false);
+      setPageScrollY(0);
+      return;
+    }
+
+    const onScroll = () => setPageScrollY(typeof window !== "undefined" ? window.scrollY : 0);
+    const timer = window.setTimeout(() => setNativePreviewLocked(true), 3800);
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [showNativeFreemium]);
+
+  const openUnlockFlow = useCallback(() => {
+    if (
+      showNativeFreemium &&
+      typeof window !== "undefined" &&
+      (window as unknown as { ReactNativeWebView?: { postMessage: (value: string) => void } }).ReactNativeWebView
+    ) {
+      (
+        window as unknown as { ReactNativeWebView: { postMessage: (value: string) => void } }
+      ).ReactNativeWebView.postMessage(JSON.stringify({ type: "show-paywall" }));
+      return;
+    }
+
+    setPaywallOpen(true);
+  }, [showNativeFreemium]);
+
+  const nativeCurtainBlur = nativePreviewLocked ? Math.min(2.8, 0.9 + pageScrollY / 420) : 0;
+  const nativeCurtainOpacity = nativePreviewLocked ? Math.min(0.14, 0.06 + pageScrollY / 2400) : 0;
 
   const metric = METRICS.find((m) => m.id === metricId)!;
 
@@ -141,12 +190,19 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
   }, [countries, metric]);
 
   const isMobile = dimensions.width < 640;
-  const padding = { top: 50, right: isMobile ? 50 : 80, bottom: 24, left: isMobile ? 36 : 140 };
+  const padding = {
+    top: isNativeApp ? 42 : 50,
+    right: isMobile ? (isNativeApp ? 42 : 50) : 80,
+    bottom: isNativeApp ? 20 : 24,
+    left: isMobile ? (isNativeApp ? 30 : 36) : 140,
+  };
   const graphWidth = dimensions.width - padding.left - padding.right;
-  const rowHeight = 22;
+  const rowHeight = isNativeApp && isMobile ? 20 : 22;
   const graphHeight = rows.length * rowHeight;
   const contentHeight = padding.top + graphHeight + padding.bottom;
-  const viewportHeight = Math.min(620, Math.max(380, contentHeight));
+  const viewportHeight = isNativeApp
+    ? Math.min(560, Math.max(340, contentHeight))
+    : Math.min(620, Math.max(380, contentHeight));
 
   const getX = (val: number) => padding.left + ((val - valueMin) / (valueMax - valueMin)) * graphWidth;
 
@@ -159,20 +215,44 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
 
   return (
     <div className="relative w-full">
+      {showNativeFreemium && nativePreviewLocked && (
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[28vh] sm:h-[32vh]"
+          style={{
+            background: `linear-gradient(to top, rgba(9,9,11,${nativeCurtainOpacity}) 0%, rgba(9,9,11,${nativeCurtainOpacity * 0.55}) 45%, transparent 100%)`,
+            backdropFilter: `blur(${nativeCurtainBlur}px)`,
+            WebkitBackdropFilter: `blur(${nativeCurtainBlur}px)`,
+            maskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.82) 38%, rgba(0,0,0,0.28) 75%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.82) 38%, rgba(0,0,0,0.28) 75%, transparent 100%)",
+          }}
+          aria-hidden
+        />
+      )}
+
       {/* Blurred layer wrapping the entire chart area */}
       <div
-        className={!canAccessCharts ? "pointer-events-none select-none" : ""}
-        style={!canAccessCharts ? { filter: "blur(6px)", opacity: 0.6 } : {}}
+        className={!canAccessCharts && !showNativeFreemium ? "pointer-events-none select-none" : ""}
+        style={!canAccessCharts && !showNativeFreemium ? { filter: "blur(6px)", opacity: 0.6 } : {}}
       >
       {/* Single metric selector */}
-      <div className="mb-4 flex flex-col items-stretch gap-2 text-sm sm:mb-6 sm:flex-row sm:items-center sm:justify-center">
+      <div
+        className={`flex flex-col items-stretch gap-2 text-sm sm:flex-row sm:items-center sm:justify-center ${
+          isNativeApp ? "mb-3 sm:mb-5" : "mb-4 sm:mb-6"
+        }`}
+      >
         <div className="flex items-center gap-2">
-          <span className="shrink-0 text-xs text-zinc-500 sm:text-sm">Metric:</span>
+          <span className={`shrink-0 text-zinc-500 ${isNativeApp ? "text-[11px] sm:text-xs" : "text-xs sm:text-sm"}`}>
+            Metric:
+          </span>
           <div className="relative flex-1 sm:flex-initial">
             <select
               value={metricId}
               onChange={(e) => setMetricId(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-zinc-800 bg-zinc-900 py-2 pl-3 pr-8 text-xs text-zinc-200 outline-none hover:border-zinc-700 focus:border-emerald-500/50 sm:w-auto sm:min-w-[220px] sm:py-1.5 sm:text-sm"
+              className={`w-full appearance-none rounded-lg border border-zinc-800 bg-zinc-900 pl-3 pr-8 text-zinc-200 outline-none hover:border-zinc-700 focus:border-emerald-500/50 sm:w-auto ${
+                isNativeApp
+                  ? "py-1.5 text-[11px] sm:min-w-[200px] sm:text-xs"
+                  : "py-2 text-xs sm:min-w-[220px] sm:py-1.5 sm:text-sm"
+              }`}
             >
               {METRICS.map((m) => (
                 <option key={m.id} value={m.id}>{m.label}</option>
@@ -181,7 +261,7 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
           </div>
         </div>
-        <p className="text-[11px] text-zinc-500 sm:text-xs">
+        <p className={`text-zinc-500 ${isNativeApp ? "text-[10px] sm:text-[11px]" : "text-[11px] sm:text-xs"}`}>
           Countries compared on one metric. Vertical line = <strong className="text-zinc-400">US (reference)</strong>.
         </p>
       </div>
@@ -406,8 +486,26 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
       </div>
       </div>
 
+      {showNativeFreemium && nativePreviewLocked && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6 pt-20">
+          <div className="pointer-events-auto w-full max-w-sm rounded-xl border border-white/[0.08] bg-zinc-900/95 px-4 py-3.5 shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
+            <p className="text-sm font-semibold text-white">Keep exploring the chart preview</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+              Compare a few countries for free, then unlock every metric and full chart access.
+            </p>
+            <button
+              type="button"
+              onClick={openUnlockFlow}
+              className="mt-3 w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+            >
+              Get full access
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Paywall overlay card for charts */}
-      {!canAccessCharts && (
+      {!canAccessCharts && !showNativeFreemium && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-start justify-center pt-10">
           <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-white/[0.07] bg-zinc-900/95 p-7 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
             <p className="text-lg font-bold tracking-tight text-white">
@@ -437,6 +535,11 @@ export default function ChartsClient({ countries }: { countries: Country[] }) {
           </div>
         </div>
       )}
+
+      <SignupModal
+        isOpen={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+      />
     </div>
   );
 }

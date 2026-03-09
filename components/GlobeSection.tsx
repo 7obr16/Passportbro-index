@@ -75,20 +75,20 @@ function AnimatedCounter({
   return (
     <div
       ref={containerRef}
-      className={`group relative flex flex-col items-center gap-1.5 overflow-hidden rounded-2xl border px-5 py-4 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] cursor-pointer
+      className={`group relative flex flex-col items-center gap-0.5 overflow-hidden rounded-xl border px-3 py-2 backdrop-blur-md transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)] cursor-pointer
         ${isActive 
-          ? "border-white/20 bg-white/5 shadow-[0_0_20px_rgba(255,255,255,0.1)]" 
+          ? "border-white/20 bg-white/5 shadow-[0_0_16px_rgba(255,255,255,0.08)]" 
           : "border-white/[0.04] bg-white/[0.01] hover:border-white/[0.08] hover:bg-white/[0.03]"
         }`}
       onClick={onClick}
     >
       <span
         ref={numberRef}
-        className="bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-2xl font-black tabular-nums text-transparent sm:text-3xl"
+        className="bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-lg font-black tabular-nums text-transparent sm:text-xl"
       >
         0{suffix}
       </span>
-      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500 transition-colors group-hover:text-zinc-400">
+      <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-zinc-500 transition-colors group-hover:text-zinc-400">
         {label}
       </span>
     </div>
@@ -114,6 +114,7 @@ export default function GlobeSection({
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [globeBlurred, setGlobeBlurred] = useState(false);
+  const [globeExpanded, setGlobeExpanded] = useState(false);
 
   // Give visitors more breathing room before the homepage map soft-locks.
   useEffect(() => {
@@ -228,7 +229,7 @@ export default function GlobeSection({
         </motion.div>
 
         {/* ── Massive Edge-to-Edge Map Container ─────────────────── */}
-        <div className="relative w-full overflow-hidden">
+        <div className="relative w-full min-h-[min(56vw,420px)] sm:min-h-[min(52vw,480px)] overflow-hidden">
           {/* Edge fade masks */}
           <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-20 w-8 bg-gradient-to-r from-zinc-950/80 to-transparent sm:w-16 md:w-24 lg:w-32 xl:w-48" />
           <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-20 w-8 bg-gradient-to-l from-zinc-950/80 to-transparent sm:w-16 md:w-24 lg:w-32 xl:w-48" />
@@ -237,17 +238,29 @@ export default function GlobeSection({
           <motion.div
             className="mx-auto w-full max-w-[1400px] xl:max-w-[1600px] 2xl:max-w-[1920px] cursor-grab active:cursor-grabbing"
           >
-            <div className="pointer-events-none absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-zinc-950/60 px-4 py-1.5 text-[9px] font-semibold tracking-widest text-zinc-400 backdrop-blur-md">
-              SCROLL / PINCH TO ZOOM • DRAG TO PAN
-            </div>
-
-            {/* Globe with time-delayed blur */}
+            {/* Globe with time-delayed blur — click to open full-screen map */}
             <div className="relative">
               <motion.div
-                animate={{ filter: globeBlurred && !unlockGlobe ? "blur(8px)" : "blur(0px)" }}
-                transition={{ duration: 1.4, ease: "easeInOut" }}
+                animate={{ filter: globeBlurred && !unlockGlobe ? "blur(4px)" : "blur(0px)" }}
+                transition={{ duration: 1.6, ease: "easeInOut" }}
+                className={!(globeBlurred && !unlockGlobe) ? "cursor-pointer" : ""}
+                role={!(globeBlurred && !unlockGlobe) ? "button" : undefined}
+                tabIndex={!(globeBlurred && !unlockGlobe) ? 0 : undefined}
+                onClick={() => {
+                  if (!(globeBlurred && !unlockGlobe)) setGlobeExpanded(true);
+                }}
+                onKeyDown={(e) => {
+                  if (!(globeBlurred && !unlockGlobe) && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    setGlobeExpanded(true);
+                  }
+                }}
               >
-                <WorldGlobe countries={countries} activeFilter={activeFilter} />
+                <WorldGlobe
+                  countries={countries}
+                  activeFilter={activeFilter}
+                  navigateOnCountryClick={false}
+                />
               </motion.div>
 
               {/* Blur overlay + signup prompt */}
@@ -284,7 +297,7 @@ export default function GlobeSection({
 
         {/* ── Animated Stat Counters ─────────────────────────────── */}
         <motion.div
-          className="relative z-30 mx-auto -mt-8 grid max-w-4xl grid-cols-2 gap-3 px-4 sm:grid-cols-4 sm:gap-4 md:-mt-16 md:px-8"
+          className="relative z-30 mx-auto -mt-4 grid max-w-2xl grid-cols-2 gap-2 px-4 sm:grid-cols-4 sm:gap-3 md:-mt-8 md:px-8"
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{
@@ -317,6 +330,48 @@ export default function GlobeSection({
             // Note: Regions isn't a filter toggle right now, just stat display
           />
         </motion.div>
+
+        {/* Full-screen map overlay — click a country to go to its page */}
+        <AnimatePresence>
+          {globeExpanded && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[100] flex flex-col bg-zinc-950"
+              onClick={() => setGlobeExpanded(false)}
+            >
+              <div className="absolute right-4 top-4 z-10 flex items-center gap-3">
+                <p className="text-xs text-zinc-500 hidden sm:block">
+                  Click a country to explore
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setGlobeExpanded(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800/90 text-zinc-300 transition hover:bg-zinc-700 hover:text-white"
+                  aria-label="Close map"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div
+                className="flex-1 flex min-h-0 w-full items-center justify-center p-4 pt-16"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="h-full w-full max-h-[90vh] max-w-[1800px] min-h-[70vh]">
+                  <WorldGlobe
+                    countries={countries}
+                    activeFilter={activeFilter}
+                    navigateOnCountryClick={true}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -31,23 +31,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-      if (stored === "light" || stored === "dark") {
-        applyTheme(stored);
-        return;
-      }
+      window.localStorage.removeItem(STORAGE_KEY);
     } catch {
       // ignore
     }
-
-    const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-    applyTheme(prefersDark ? "dark" : "light");
+    applyTheme("dark");
   }, []);
 
   const toggleTheme = () => {
-    applyTheme(theme === "dark" ? "light" : "dark");
+    applyTheme("dark");
   };
 
   return (
@@ -55,7 +48,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       value={{
         theme,
         toggleTheme,
-        setTheme: applyTheme,
+        setTheme: () => applyTheme("dark"),
       }}
     >
       {children}

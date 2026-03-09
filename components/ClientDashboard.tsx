@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Users, DollarSign, Cross, Filter, Star, Wifi, Heart, Shield } from "lucide-react";
@@ -44,6 +45,10 @@ const HOME_CURTAIN_TRIGGER_OFFSET_PX = 260;
 const HOME_LOCK_TRIGGER_OFFSET_PX = 820;
 
 export default function ClientDashboard({ initialCountries }: Props) {
+  const searchParams = useSearchParams();
+  const isNativeApp = searchParams.get("nativeApp") === "1";
+  const isNativePremium = searchParams.get("nativePremium") === "1";
+
   // Always start with defaults (SSR-safe). The useEffect below restores from
   // sessionStorage on the first client render without overwriting anything.
   const [filters, setFilters] = useState<FiltersState>(createDefaultFilters);
@@ -113,8 +118,10 @@ export default function ClientDashboard({ initialCountries }: Props) {
   }, []);
 
   // Synthetic slug for the homepage — premium / admin / dev users bypass all blurs.
-  const canAccessHome = hasAccess({ has_paid: hasPaid, email: userEmail }, "__homepage__");
+  const webAccessHome = hasAccess({ has_paid: hasPaid, email: userEmail }, "__homepage__");
+  const canAccessHome = isNativeApp ? isNativePremium : webAccessHome;
   const shouldBlurHome = !canAccessHome && cardsBlurred;
+  const showNativePaywallCta = isNativeApp && !canAccessHome;
 
   // Homepage lock now uses a longer grace window and only hard-locks
   // after the user has also scrolled into the country list.
@@ -306,18 +313,30 @@ export default function ClientDashboard({ initialCountries }: Props) {
                 href="https://www.reddit.com/r/passportbros"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 backdrop-blur-md transition hover:border-emerald-500/40 hover:bg-emerald-500/15"
+                className={`mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 backdrop-blur-md transition hover:border-emerald-500/40 hover:bg-emerald-500/15 ${
+                  isNativeApp ? "px-2.5 py-1 text-[11px]" : "px-3 py-1 text-xs"
+                }`}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                 Sourced from Reddit r/passportbros
               </a>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl md:text-5xl lg:text-7xl">
+              <h1
+                className={`font-black tracking-tight ${
+                  isNativeApp
+                    ? "text-[30px] sm:text-[40px] md:text-5xl lg:text-6xl"
+                    : "text-3xl sm:text-4xl md:text-5xl lg:text-7xl"
+                }`}
+              >
                 The Passport Bro{" "}
                 <span className="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
                   Index
                 </span>
               </h1>
-              <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 drop-shadow-md sm:text-base">
+              <p
+                className={`mx-auto mt-4 leading-relaxed text-zinc-400 drop-shadow-md ${
+                  isNativeApp ? "max-w-xl text-[13px] sm:text-[15px]" : "max-w-2xl text-sm sm:text-base"
+                }`}
+              >
                 Every country ranked by <strong className="text-zinc-200">dating ease</strong> based
                 on real Reddit consensus. Includes GDP per capita, average height,
                 religion, and what the community actually says.
@@ -334,11 +353,11 @@ export default function ClientDashboard({ initialCountries }: Props) {
           </section>
 
           {/* Tier sections — blurs after time/scroll threshold */}
-          <div ref={tierSectionRef} className="relative z-10 mt-8 md:mt-0">
+          <div ref={tierSectionRef} className="relative z-10 mt-6 md:mt-0">
           <motion.div
-            animate={{ filter: shouldBlurHome ? "blur(7px)" : "blur(0px)" }}
-            transition={{ duration: 1.2, ease: "easeInOut" }}
-            className="space-y-12 pointer-events-none-when-blurred"
+            animate={{ filter: shouldBlurHome ? "blur(4px)" : "blur(0px)" }}
+            transition={{ duration: 1.8, ease: "easeInOut" }}
+            className="space-y-8 pointer-events-none-when-blurred"
             style={{ pointerEvents: shouldBlurHome ? "none" : undefined }}
           >
             {grouped.length === 0 ? (
@@ -355,12 +374,12 @@ export default function ClientDashboard({ initialCountries }: Props) {
               grouped.map(({ tier, countries: tierCountries }) => (
                 <section key={tier}>
                   {/* Tier header */}
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className={`h-8 w-2 rounded-full ${TIER_BAR[tier]}`} />
-                    <h2 className="text-lg font-bold tracking-tight text-zinc-100">
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className={`h-5 w-1.5 rounded-full ${TIER_BAR[tier]}`} />
+                    <h2 className="text-base font-bold tracking-tight text-zinc-100">
                       {tier}
                     </h2>
-                    <span className="text-sm text-zinc-500">
+                    <span className="text-xs text-zinc-500">
                       {tierCountries.length} {tierCountries.length === 1 ? "country" : "countries"}
                     </span>
                   </div>
@@ -527,36 +546,60 @@ export default function ClientDashboard({ initialCountries }: Props) {
             )}
           </motion.div>
 
-          {/* Cards blur overlay — fades in when blurred, sits on top with sign-up prompt */}
+          {/* Cards blur overlay — fades in when blurred; native app: CTA opens in-app purchase, rest scroll-through */}
           {shouldBlurHome && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.9 }}
-              className="pointer-events-auto absolute inset-0 z-20 flex items-start justify-center pt-24"
+              className={`absolute inset-0 z-20 flex items-start justify-center pt-24 ${showNativePaywallCta ? "pointer-events-none" : "pointer-events-auto"}`}
               style={{ background: "linear-gradient(to bottom, transparent 0%, rgba(9,9,11,0.6) 20%, rgba(9,9,11,0.92) 60%)" }}
             >
-              <div className="mx-4 mt-8 w-full max-w-sm rounded-2xl border border-white/[0.07] bg-zinc-900/95 p-7 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
-                <p className="text-lg font-bold text-white">See all ranked countries</p>
+              <div className="pointer-events-auto mx-4 mt-8 w-full max-w-sm rounded-2xl border border-white/[0.07] bg-zinc-900/95 p-7 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
+                <p className="text-lg font-bold text-white">
+                  {showNativePaywallCta ? "Unlock all ranked countries" : "See all ranked countries"}
+                </p>
                 <p className="mt-1.5 text-sm text-zinc-400">
-                  Create a free account to browse the full list and unlock every country.
+                  {showNativePaywallCta
+                    ? "Subscribe in the app to unlock the full list and every country."
+                    : "Create a free account to browse the full list and unlock every country."}
                 </p>
                 <div className="mt-5 flex flex-col gap-2">
-                  <button
-                    onClick={openPaywall}
-                    className="group flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
-                  >
-                    Create Free Account
-                    <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
-                  <button
-                    onClick={openPaywall}
-                    className="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
-                  >
-                    Sign In
-                  </button>
+                  {showNativePaywallCta ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (typeof window !== "undefined" && (window as unknown as { ReactNativeWebView?: { postMessage: (s: string) => void } }).ReactNativeWebView) {
+                          (window as unknown as { ReactNativeWebView: { postMessage: (s: string) => void } }).ReactNativeWebView.postMessage(JSON.stringify({ type: "show-paywall" }));
+                        }
+                      }}
+                      className="group flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+                    >
+                      Unlock with Premium
+                      <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={openPaywall}
+                        className="group flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+                      >
+                        Create Free Account
+                        <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                      <button
+                        onClick={openPaywall}
+                        className="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                      >
+                        Sign In
+                      </button>
+                    </>
+                  )}
                 </div>
-                <p className="mt-4 text-[11px] text-zinc-600">No credit card required to create a free account.</p>
+                {!showNativePaywallCta && (
+                  <p className="mt-4 text-[11px] text-zinc-600">No credit card required to create a free account.</p>
+                )}
               </div>
             </motion.div>
           )}
@@ -571,16 +614,16 @@ export default function ClientDashboard({ initialCountries }: Props) {
         </div>
       </div>
 
-      {/* ── Bottom blur curtain — appears after 350px scroll ── */}
+      {/* ── Bottom blur curtain — appears after scroll; fades in gradually ── */}
       {scrollCurtain && (
         <div
           className="pointer-events-none fixed bottom-0 left-0 right-0 z-40 h-[42vh]"
           style={{
-            background: "linear-gradient(to top, rgba(9,9,11,0.98) 0%, rgba(9,9,11,0.7) 40%, transparent 100%)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
-            maskImage: "linear-gradient(to top, black 50%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to top, black 50%, transparent 100%)",
+            background: "linear-gradient(to top, rgba(9,9,11,0.92) 0%, rgba(9,9,11,0.5) 35%, rgba(9,9,11,0.15) 65%, transparent 100%)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+            maskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.4) 55%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.4) 55%, transparent 100%)",
           }}
         />
       )}

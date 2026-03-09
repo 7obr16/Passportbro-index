@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -400,6 +401,7 @@ type ClickedCountry = {
 export default function VisaGlobeClient() {
   const globeRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
   const [geoJson, setGeoJson] = useState<any>(null);
   const [visaData, setVisaData] = useState<VisaData | null>(null);
   const [passport, setPassport] = useState("United States");
@@ -416,6 +418,8 @@ export default function VisaGlobeClient() {
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [paywallCountry, setPaywallCountry] = useState<string | undefined>();
   const [clickedCountry, setClickedCountry] = useState<ClickedCountry | null>(null);
+  const [nativePreviewLocked, setNativePreviewLocked] = useState(false);
+  const [pageScrollY, setPageScrollY] = useState(0);
 
   useEffect(() => {
     const fetchProfile = async (uid: string) => {
@@ -437,19 +441,78 @@ export default function VisaGlobeClient() {
     fetch("/visa-matrix.json").then((r) => r.json()).then(setVisaData);
   }, []);
 
+  const isNativeApp = searchParams.get("nativeApp") === "1";
+  const isNativePremium = searchParams.get("nativePremium") === "1";
+  const showNativeFreemium = isNativeApp && !isNativePremium;
+  const canAccessVisa = showNativeFreemium ? false : isNativeApp ? isNativePremium : hasPaid;
+
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
         setDimensions({
           width: containerRef.current.offsetWidth,
-          height: Math.max(480, Math.min(700, window.innerHeight * 0.72)),
+          height: isNativeApp
+            ? Math.max(420, Math.min(610, window.innerHeight * 0.64))
+            : Math.max(480, Math.min(700, window.innerHeight * 0.72)),
         });
       }
     };
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [isNativeApp]);
+
+  useEffect(() => {
+    if (!showNativeFreemium) {
+      setNativePreviewLocked(false);
+      setPageScrollY(0);
+      return;
+    }
+
+    const onScroll = () => setPageScrollY(typeof window !== "undefined" ? window.scrollY : 0);
+    const timer = window.setTimeout(() => setNativePreviewLocked(true), 3800);
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [showNativeFreemium]);
+
+  const openUnlockFlow = useCallback(
+    (countryName?: string, openImmediately = true) => {
+      setPaywallCountry(countryName);
+
+      if (
+        showNativeFreemium &&
+        typeof window !== "undefined" &&
+        (window as unknown as { ReactNativeWebView?: { postMessage: (value: string) => void } }).ReactNativeWebView
+      ) {
+        if (!openImmediately) {
+          setNativePreviewLocked(true);
+          return;
+        }
+
+        (
+          window as unknown as { ReactNativeWebView: { postMessage: (value: string) => void } }
+        ).ReactNativeWebView.postMessage(JSON.stringify({ type: "show-paywall" }));
+        return;
+      }
+
+      if (showNativeFreemium && !openImmediately) {
+        setNativePreviewLocked(true);
+        return;
+      }
+
+      setPaywallOpen(true);
+    },
+    [showNativeFreemium]
+  );
+
+  const nativeCurtainBlur = nativePreviewLocked ? Math.min(2.9, 1 + pageScrollY / 420) : 0;
+  const nativeCurtainOpacity = nativePreviewLocked ? Math.min(0.15, 0.06 + pageScrollY / 2400) : 0;
 
   const handleGlobeReady = useCallback(() => {
     if (!globeRef.current) return;
@@ -527,9 +590,8 @@ export default function VisaGlobeClient() {
       const name = getCountryName(d);
       if (!name || name === passport) return;
 
-      if (!hasPaid) {
-        setPaywallCountry(name);
-        setPaywallOpen(true);
+      if (!canAccessVisa) {
+        openUnlockFlow(name, false);
         return;
       }
 
@@ -537,7 +599,7 @@ export default function VisaGlobeClient() {
       const cat = classifyVisa(status, false);
       setClickedCountry({ name, flag: COUNTRY_FLAGS[name] ?? "🌐", status, cat });
     },
-    [getCountryName, passport, hasPaid, passportMatrix]
+    [canAccessVisa, getCountryName, openUnlockFlow, passport, passportMatrix]
   );
 
   const hoveredName = hoverD ? getCountryName(hoverD) : null;
@@ -551,8 +613,26 @@ export default function VisaGlobeClient() {
 
   return (
     <div className="w-full">
+      {showNativeFreemium && nativePreviewLocked && (
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[28vh] sm:h-[32vh]"
+          style={{
+            background: `linear-gradient(to top, rgba(9,9,11,${nativeCurtainOpacity}) 0%, rgba(9,9,11,${nativeCurtainOpacity * 0.55}) 45%, transparent 100%)`,
+            backdropFilter: `blur(${nativeCurtainBlur}px)`,
+            WebkitBackdropFilter: `blur(${nativeCurtainBlur}px)`,
+            maskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.82) 38%, rgba(0,0,0,0.28) 75%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.82) 38%, rgba(0,0,0,0.28) 75%, transparent 100%)",
+          }}
+          aria-hidden
+        />
+      )}
+
       {/* Tabs */}
-      <div className="mb-6 flex items-center gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 w-fit">
+      <div
+        className={`flex items-center gap-1 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 w-fit ${
+          isNativeApp ? "mb-4" : "mb-6"
+        }`}
+      >
         {[
           { id: "globe", label: "Visa Globe", icon: Globe },
           { id: "ranking", label: "Passport Rankings", icon: Trophy },
@@ -560,7 +640,9 @@ export default function VisaGlobeClient() {
           <button
             key={id}
             onClick={() => setActiveTab(id as "globe" | "ranking")}
-            className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+            className={`relative flex items-center rounded-lg font-bold transition-all ${
+              isNativeApp ? "gap-1.5 px-3 py-1.5 text-[11px]" : "gap-2 px-4 py-2 text-xs"
+            } ${
               activeTab === id
                 ? "bg-zinc-800 text-white shadow-sm"
                 : "text-zinc-500 hover:text-zinc-300"
@@ -582,14 +664,20 @@ export default function VisaGlobeClient() {
             transition={{ duration: 0.18 }}
           >
             {/* Passport selector + legend */}
-            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className={`flex flex-col gap-4 md:flex-row md:items-end md:justify-between ${isNativeApp ? "mb-4" : "mb-6"}`}>
               <div className="relative w-full max-w-xs">
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.2em] text-amber-500/80">
+                <label
+                  className={`mb-1.5 block font-bold uppercase tracking-[0.2em] text-amber-500/80 ${
+                    isNativeApp ? "text-[9px]" : "text-[10px]"
+                  }`}
+                >
                   Your Passport
                 </label>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex w-full items-center justify-between rounded-xl border border-amber-500/30 bg-zinc-900/80 px-4 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:border-amber-500/50"
+                  className={`flex w-full items-center justify-between rounded-xl border border-amber-500/30 bg-zinc-900/80 font-semibold text-white backdrop-blur-md transition hover:border-amber-500/50 ${
+                    isNativeApp ? "px-3 py-2.5 text-[13px]" : "px-4 py-3 text-sm"
+                  }`}
                 >
                   <span className="flex items-center gap-2">
                     <span>{COUNTRY_FLAGS[passport] ?? "🌐"}</span>
@@ -637,7 +725,7 @@ export default function VisaGlobeClient() {
                 </AnimatePresence>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className={`flex flex-wrap items-center ${isNativeApp ? "gap-2.5" : "gap-3"}`}>
                 {(["free", "arrival", "eta", "required"] as VisaCategory[]).map((cat) => {
                   const cfg = VISA_CATEGORIES[cat];
                   return (
@@ -652,7 +740,7 @@ export default function VisaGlobeClient() {
             </div>
 
             {/* Summary cards */}
-            <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className={`grid grid-cols-2 sm:grid-cols-4 ${isNativeApp ? "mb-4 gap-2.5" : "mb-5 gap-3"}`}>
               {(["free", "arrival", "eta", "required"] as VisaCategory[]).map((cat) => {
                 const cfg = VISA_CATEGORIES[cat];
                 const Icon = cfg.icon;
@@ -661,20 +749,22 @@ export default function VisaGlobeClient() {
                   <div key={cat} className="col-span-1">
                     <button
                       onClick={() => { setExpandedCat(isOpen ? null : cat); setCatSearch(""); }}
-                      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                      className={`flex w-full items-center rounded-xl border text-left transition-all ${
+                        isNativeApp ? "gap-2.5 px-3 py-2.5" : "gap-3 px-4 py-3"
+                      } ${
                         isOpen
                           ? "rounded-b-none border-b-0 border-zinc-700 bg-zinc-900"
                           : "border-zinc-800/80 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/70"
                       }`}
                     >
                       <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                        className={`flex shrink-0 items-center justify-center rounded-lg ${isNativeApp ? "h-8 w-8" : "h-9 w-9"}`}
                         style={{ background: hexToRgba(cfg.hex, 0.15) }}
                       >
                         <Icon className="h-4 w-4" style={{ color: cfg.hex }} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-lg font-black text-white leading-tight">{stats[cat]}</p>
+                        <p className={`font-black leading-tight text-white ${isNativeApp ? "text-base" : "text-lg"}`}>{stats[cat]}</p>
                         <p className="text-[10px] text-zinc-500">{cfg.label}</p>
                       </div>
                       <ChevronDown
@@ -844,10 +934,10 @@ export default function VisaGlobeClient() {
                                 {hoveredStatus && hoveredCat !== "self" && (
                                   <p className="text-[9px] text-zinc-500 capitalize">{hoveredStatus}</p>
                                 )}
-                                {!hasPaid && hoveredCat !== "self" && (
+                                {!canAccessVisa && hoveredCat !== "self" && (
                                   <p className="mt-1 flex items-center gap-1 text-[9px] text-amber-500/80">
                                     <Lock className="h-2.5 w-2.5" />
-                                    Click to unlock details
+                                    {showNativeFreemium ? "Preview mode" : "Click to unlock details"}
                                   </p>
                                 )}
                               </div>
@@ -862,7 +952,7 @@ export default function VisaGlobeClient() {
 
               {/* Click-detail panel — shown when a paid user clicks a country */}
               <AnimatePresence>
-                {clickedCountry && hasPaid && (
+                {clickedCountry && canAccessVisa && (
                   <motion.div
                     initial={{ opacity: 0, y: 12, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -932,9 +1022,9 @@ export default function VisaGlobeClient() {
               </AnimatePresence>
 
               {/* Bottom-right badge — nudges non-paid users to click a country */}
-              {!hasPaid && ready && (
+              {!canAccessVisa && !showNativeFreemium && ready && (
                 <button
-                  onClick={() => setPaywallOpen(true)}
+                  onClick={() => openUnlockFlow()}
                   className="absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-zinc-950/90 px-3 py-2 text-[11px] font-semibold text-amber-400/80 backdrop-blur-xl transition hover:border-amber-500/40 hover:text-amber-300"
                 >
                   <Lock className="h-3.5 w-3.5" />
@@ -957,8 +1047,8 @@ export default function VisaGlobeClient() {
                 rankings={rankings}
                 passport={passport}
                 onSelect={handleRankSelect}
-                hasPaid={hasPaid}
-                onUnlock={() => setPaywallOpen(true)}
+                hasPaid={canAccessVisa}
+                onUnlock={() => openUnlockFlow()}
               />
             ) : (
               <div className="flex h-40 items-center justify-center">
@@ -985,6 +1075,26 @@ export default function VisaGlobeClient() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showNativeFreemium && nativePreviewLocked && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6 pt-20">
+          <div className="pointer-events-auto w-full max-w-sm rounded-xl border border-white/[0.08] bg-zinc-900/95 px-4 py-3.5 shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
+            <p className="text-sm font-semibold text-white">
+              {paywallCountry ? `Unlock visa details for ${paywallCountry}` : "Explore the visa preview"}
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+              Keep browsing the globe and rankings, then unlock full visa details for every destination.
+            </p>
+            <button
+              type="button"
+              onClick={() => openUnlockFlow(paywallCountry, true)}
+              className="mt-3 w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+            >
+              Get full access
+            </button>
+          </div>
+        </div>
+      )}
 
       <SignupModal
         isOpen={paywallOpen}

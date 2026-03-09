@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -30,9 +32,10 @@ import { getCountryScores } from "@/lib/scoring";
 import { getPros, getCons } from "@/lib/communityIntel";
 import { getEnglishScore0To100 } from "@/lib/englishProficiencyIndex";
 import CountryMark from "@/components/CountryMark";
-import ClimateInsights from "@/components/ClimateInsights";
-import AirQualityMap from "@/components/AirQualityMap";
 import CountryStatsSection from "@/components/CountryStatsSection";
+
+const ClimateInsights = dynamic(() => import("@/components/ClimateInsights"), { ssr: false });
+const AirQualityMap = dynamic(() => import("@/components/AirQualityMap"), { ssr: false });
 import BodyComparison from "@/components/BodyComparison";
 import SourceLink from "@/components/SourceLink";
 import SiteNav from "@/components/SiteNav";
@@ -125,6 +128,12 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
   const [paywallMode, setPaywallMode] = useState<"signup" | "login">("signup");
 
   const openPaywall = (mode: "signup" | "login" = "signup") => {
+    if (showNativeFreemium) {
+      if (typeof window !== "undefined" && (window as unknown as { ReactNativeWebView?: { postMessage: (s: string) => void } }).ReactNativeWebView) {
+        (window as unknown as { ReactNativeWebView: { postMessage: (s: string) => void } }).ReactNativeWebView.postMessage(JSON.stringify({ type: "show-paywall" }));
+      }
+      return;
+    }
     setPaywallMode(mode);
     setPaywallOpen(true);
   };
@@ -237,7 +246,34 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
     })
     .join(" ") + " Z";
 
-  const canAccess = hasAccess({ has_paid: hasPaid, email: userEmail }, country.slug);
+  const searchParams = useSearchParams();
+  const isNativeApp = searchParams.get("nativeApp") === "1";
+  const isNativePremium = searchParams.get("nativePremium") === "1";
+  const nativeFreeSlug = "philippines";
+  const showNativeFreemium = isNativeApp && !isNativePremium && country.slug !== nativeFreeSlug;
+
+  const canAccess = showNativeFreemium
+    ? false
+    : isNativeApp && (isNativePremium || country.slug === nativeFreeSlug)
+      ? true
+      : hasAccess({ has_paid: hasPaid, email: userEmail }, country.slug);
+
+  const [scrollY, setScrollY] = useState(0);
+  useEffect(() => {
+    if (!showNativeFreemium) return;
+    const onScroll = () => setScrollY(typeof window !== "undefined" ? window.scrollY : 0);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [showNativeFreemium]);
+
+  const nativeBlurStartPx = 500;
+  const nativeBlurProgress = Math.max(0, scrollY - nativeBlurStartPx);
+  const nativeBlurAmount = Math.min(6, nativeBlurProgress / 120);
+  const nativeCurtainOpacity = Math.min(0.35, nativeBlurProgress / 900);
+  const nativeContentBlurPx = showNativeFreemium
+    ? Math.min(7, Math.max(0, (scrollY - 520) / 70))
+    : 0;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
@@ -304,10 +340,25 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
 
         {/* ── PREMIUM CONTENT — everything below hero is gated ── */}
         <div className="relative">
-          {/* Blurred layer — kicks in immediately below globe + typical look for locked users */}
+          {/* Native freemium: soft bottom curtain that starts later and stays light */}
+          {showNativeFreemium && nativeBlurProgress > 0 && (
+            <div
+              className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[40vh] sm:h-[44vh]"
+              style={{
+                background: `linear-gradient(to top, rgba(9,9,11,${nativeCurtainOpacity * 0.9}) 0%, rgba(9,9,11,${nativeCurtainOpacity * 0.4}) 35%, rgba(9,9,11,${nativeCurtainOpacity * 0.15}) 65%, transparent 100%)`,
+                backdropFilter: `blur(${nativeBlurAmount}px)`,
+                WebkitBackdropFilter: `blur(${nativeBlurAmount}px)`,
+                maskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.75) 25%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.12) 80%, transparent 100%)",
+                WebkitMaskImage: "linear-gradient(to top, black 0%, rgba(0,0,0,0.75) 25%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.12) 80%, transparent 100%)",
+              }}
+              aria-hidden
+            />
+          )}
+
+          {/* Blurred layer — for web locked users (hard blur); native freemium stays scrollable, no hard blur */}
           <div
-            className={!canAccess ? "pointer-events-none select-none" : ""}
-            style={!canAccess ? { filter: "blur(7px)" } : {}}
+            className={!canAccess && !showNativeFreemium ? "pointer-events-none select-none" : ""}
+            style={!canAccess && !showNativeFreemium ? { filter: "blur(7px)" } : {}}
           >
 
         {/* Passport Bro Score */}
@@ -380,6 +431,14 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
           </div>
         </motion.div>
 
+        {/* Content below score — smooth scroll-based blur in native app (starts after Passport Bro score) */}
+        <div
+          style={
+            showNativeFreemium && nativeContentBlurPx > 0
+              ? { filter: `blur(${nativeContentBlurPx}px)` }
+              : undefined
+          }
+        >
         {/* Country Visual Gallery */}
         <motion.div variants={itemVariants} className="mb-8">
           <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
@@ -910,16 +969,34 @@ export default function CountryDetailClient({ country, allCountries, gallery, wo
           Always do your own research before traveling.
         </motion.div>
 
+        </div>
           {/* ── end blurred layer ── */}
           </div>
 
-          {/* Top-fade to smooth the transition into blurred content */}
-          {!canAccess && (
+          {/* Top-fade to smooth the transition into blurred content (web only) */}
+          {!canAccess && !showNativeFreemium && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20 bg-gradient-to-b from-zinc-950/80 to-transparent" />
           )}
 
-          {/* Paywall overlay card */}
-          {!canAccess && (
+          {/* Native freemium: small sticky bottom CTA — does not block scroll */}
+          {showNativeFreemium && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-6 pt-20">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined" && (window as unknown as { ReactNativeWebView?: { postMessage: (s: string) => void } }).ReactNativeWebView) {
+                    (window as unknown as { ReactNativeWebView: { postMessage: (s: string) => void } }).ReactNativeWebView.postMessage(JSON.stringify({ type: "show-paywall" }));
+                  }
+                }}
+                className="pointer-events-auto w-full max-w-sm rounded-xl border border-white/[0.08] bg-zinc-900/95 px-5 py-3.5 text-center text-sm font-bold text-white shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04] transition hover:bg-emerald-500 hover:text-black hover:border-emerald-400/50 active:scale-[0.98]"
+              >
+                Get full access
+              </button>
+            </div>
+          )}
+
+          {/* Paywall overlay card (web locked users only) */}
+          {!canAccess && !showNativeFreemium && (
             <div className="pointer-events-none absolute inset-0 z-20 flex justify-center px-4 pt-4">
               <div className="pointer-events-auto sticky top-24 h-fit w-full max-w-sm rounded-2xl border border-white/[0.07] bg-zinc-900/95 p-8 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.04]">
                 <h3 className="text-xl font-bold tracking-tight text-white">

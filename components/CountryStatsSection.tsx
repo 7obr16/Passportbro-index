@@ -1,16 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+import ReactCountryFlag from "react-country-flag";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, DollarSign, Ruler, Globe2,
   Baby, Calendar, Layers, Users, ChevronDown,
 } from "lucide-react";
 import type { Country } from "@/lib/countries";
+import { COUNTRY_FLAG_CODE } from "@/lib/countryCodes";
+import { countryCodeFromFlagEmoji } from "@/lib/flagUtils";
 import { getPopulationPyramid } from "@/lib/populationDemographics";
 import { getCitySexRatio } from "@/lib/citySexRatio";
 import { getCitiesForCountry } from "@/lib/citiesPrimeAge";
-import CitiesPrimeAgeMap from "@/components/CitiesPrimeAgeMap";
+
+const CitiesPrimeAgeMap = dynamic(() => import("@/components/CitiesPrimeAgeMap"), { ssr: false });
 import { getMedianAgeBySlug, getEthnicHomogeneityBySlug, getHomogeneityLabel, WORLD_MEDIAN_AGE } from "@/lib/demographicsIndex";
 import { getFriendlinessScoreBySlug, getFriendlinessDisplay, hasInterNationsFriendlinessData } from "@/lib/friendlinessIndex";
 import { getFertilityRate, getFertilityLabel, US_FERTILITY_RATE, REPLACEMENT_RATE } from "@/lib/fertilityData";
@@ -45,6 +50,37 @@ const parseGdp = (g: string): number | null => {
 
 const fmtGdp = (n: number): string =>
   n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`;
+
+// ─── Flag icon (SVG so it renders in WebView / all platforms) ──────────────
+function FlagIcon({
+  slug,
+  flagEmoji,
+  className = "",
+  size = "1em",
+}: {
+  slug?: string;
+  flagEmoji?: string;
+  className?: string;
+  size?: string;
+}) {
+  const code = slug
+    ? (COUNTRY_FLAG_CODE[slug] ?? countryCodeFromFlagEmoji(flagEmoji))
+    : countryCodeFromFlagEmoji(flagEmoji);
+  if (code) {
+    return (
+      <ReactCountryFlag
+        countryCode={code}
+        svg
+        style={{ width: size, height: size }}
+        className={className}
+      />
+    );
+  }
+  if (flagEmoji) {
+    return <span className={`inline-block leading-none ${className}`}>{flagEmoji}</span>;
+  }
+  return null;
+}
 
 // ─── Population pyramid helpers ───────────────────────────────────────────────
 const DERIVED_BANDS = ["0-14", "15-24", "25-39", "40-54", "55-64", "65+"] as const;
@@ -412,12 +448,12 @@ function PopulationTab({ country, compare }: { country: Country; compare: Countr
 // ─── TAB: Economy ─────────────────────────────────────────────────────────────
 function EconomyTab({ country, compare }: { country: Country; compare: Country | null }) {
   const entries = useMemo(() => {
-    const main       = { label: country.name,   flag: country.flagEmoji,  gdp: parseGdp(country.gdpPerCapita),  barColor: "from-emerald-600 to-emerald-400", textColor: "text-emerald-300" };
-    const worldEntry = { label: "World Avg",    flag: "🌍",               gdp: WORLD_AVG_GDP as number | null,  barColor: "from-zinc-700 to-zinc-600",       textColor: "text-zinc-400"   };
+    const main       = { label: country.name,   flag: country.flagEmoji,  slug: country.slug, gdp: parseGdp(country.gdpPerCapita),  barColor: "from-emerald-600 to-emerald-400", textColor: "text-emerald-300" };
+    const worldEntry = { label: "World Avg",    flag: "🌍",               slug: undefined as string | undefined, gdp: WORLD_AVG_GDP as number | null,  barColor: "from-zinc-700 to-zinc-600",       textColor: "text-zinc-400"   };
     if (compare) {
       return [
         main,
-        { label: compare.name, flag: compare.flagEmoji, gdp: parseGdp(compare.gdpPerCapita), barColor: "from-sky-700 to-sky-500", textColor: "text-sky-300" },
+        { label: compare.name, flag: compare.flagEmoji, slug: compare.slug, gdp: parseGdp(compare.gdpPerCapita), barColor: "from-sky-700 to-sky-500", textColor: "text-sky-300" },
         worldEntry,
       ];
     }
@@ -444,7 +480,7 @@ function EconomyTab({ country, compare }: { country: Country; compare: Country |
             <div key={entry.label}>
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{entry.flag}</span>
+                  <FlagIcon slug={entry.slug} flagEmoji={entry.flag} size="1.25em" />
                   <span className="text-sm font-semibold text-zinc-200">{entry.label}</span>
                 </div>
                 <span className={`text-2xl font-black tabular-nums tracking-tight ${entry.textColor}`}>
@@ -506,30 +542,30 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
   const bmiBarColor = (bmi: number) =>
     bmi < 25 ? "#10b981" : bmi < 27.5 ? "#84cc16" : bmi < 30 ? "#f59e0b" : "#ef4444";
 
-  type HeightEntry = { name: string; flag: string; h: number | null; barColor: string };
+  type HeightEntry = { name: string; flag: string; slug?: string; h: number | null; barColor: string };
 
   const heightRows: { label: string; icon: string; entries: HeightEntry[] }[] = [
     {
       label: "Male", icon: "♂",
       entries: [
-        { name: country.name, flag: country.flagEmoji, h: maleA, barColor: "bg-sky-500" },
-        ...(compare && maleB ? [{ name: compare.name, flag: compare.flagEmoji, h: maleB, barColor: "bg-sky-300/60" }] : []),
+        { name: country.name, flag: country.flagEmoji, slug: country.slug, h: maleA, barColor: "bg-sky-500" },
+        ...(compare && maleB ? [{ name: compare.name, flag: compare.flagEmoji, slug: compare.slug, h: maleB, barColor: "bg-sky-300/60" }] : []),
       ],
     },
     {
       label: "Female", icon: "♀",
       entries: [
-        { name: country.name, flag: country.flagEmoji, h: femaleA, barColor: "bg-pink-500" },
-        ...(compare && femaleB ? [{ name: compare.name, flag: compare.flagEmoji, h: femaleB, barColor: "bg-pink-300/60" }] : []),
+        { name: country.name, flag: country.flagEmoji, slug: country.slug, h: femaleA, barColor: "bg-pink-500" },
+        ...(compare && femaleB ? [{ name: compare.name, flag: compare.flagEmoji, slug: compare.slug, h: femaleB, barColor: "bg-pink-300/60" }] : []),
       ],
     },
   ];
 
-  type BmiEntry = { name: string; flag: string; male: number | null; female: number | null };
+  type BmiEntry = { name: string; flag: string; slug?: string; male: number | null; female: number | null };
 
   const bmiRows: BmiEntry[] = [
-    { name: country.name, flag: country.flagEmoji, male: country.avgBmiMale ?? null, female: country.avgBmiFemale ?? null },
-    ...(compare ? [{ name: compare.name, flag: compare.flagEmoji, male: compare.avgBmiMale ?? null, female: compare.avgBmiFemale ?? null }] : []),
+    { name: country.name, flag: country.flagEmoji, slug: country.slug, male: country.avgBmiMale ?? null, female: country.avgBmiFemale ?? null },
+    ...(compare ? [{ name: compare.name, flag: compare.flagEmoji, slug: compare.slug, male: compare.avgBmiMale ?? null, female: compare.avgBmiFemale ?? null }] : []),
   ];
 
   return (
@@ -550,7 +586,9 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
                 <div className="space-y-2.5">
                   {row.entries.map((entry) => (
                     <div key={entry.name} className="flex items-center gap-3">
-                      <span className="w-5 shrink-0 text-base">{entry.flag}</span>
+                      <span className="w-5 shrink-0 flex items-center justify-center text-base">
+                        <FlagIcon slug={entry.slug} flagEmoji={entry.flag} size="1em" />
+                      </span>
                       <span className="w-28 shrink-0 truncate text-[11px] text-zinc-400">{entry.name}</span>
                       <div className="relative flex-1 h-6 overflow-hidden rounded-md bg-zinc-800/50">
                         {entry.h != null ? (
@@ -603,7 +641,7 @@ function PhysicalTab({ country, compare }: { country: Country; compare: Country 
             {bmiRows.map((entry) => (
               <div key={entry.name} className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">{entry.flag}</span>
+                  <FlagIcon slug={entry.slug} flagEmoji={entry.flag} size="1em" />
                   <span className="text-[11px] text-zinc-400 font-medium">{entry.name}</span>
                 </div>
                 {[
@@ -668,28 +706,28 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
   const friendlyB = bSlug ? getFriendlinessDisplay(bSlug) : null;
   const usFriendly = getFriendlinessDisplay("usa");
 
-  type FRow = { name: string; flag: string; tfr: number };
-  type ARow = { name: string; flag: string; age: number };
-  type HRow = { name: string; flag: string; homo: number };
-  type FriendlyRow = { name: string; flag: string; score: number; label: string; color: string };
+  type FRow = { name: string; flag: string; slug?: string; tfr: number };
+  type ARow = { name: string; flag: string; slug?: string; age: number };
+  type HRow = { name: string; flag: string; slug?: string; homo: number };
+  type FriendlyRow = { name: string; flag: string; slug?: string; score: number; label: string; color: string };
 
   const fertilityRows: FRow[] = [
-    { name: country.name,    flag: country.flagEmoji, tfr: tfrA           },
-    ...(compare && tfrB  != null ? [{ name: compare.name,   flag: compare.flagEmoji, tfr: tfrB }] : []),
+    { name: country.name,    flag: country.flagEmoji, slug: country.slug, tfr: tfrA           },
+    ...(compare && tfrB  != null ? [{ name: compare.name,   flag: compare.flagEmoji, slug: compare.slug, tfr: tfrB }] : []),
     { name: "US ref",        flag: "🇺🇸",            tfr: US_FERTILITY_RATE },
   ];
   const ageRows: ARow[] = [
-    { name: country.name,    flag: country.flagEmoji, age: ageA         },
-    ...(compare && ageB  != null ? [{ name: compare.name,   flag: compare.flagEmoji, age: ageB }] : []),
+    { name: country.name,    flag: country.flagEmoji, slug: country.slug, age: ageA         },
+    ...(compare && ageB  != null ? [{ name: compare.name,   flag: compare.flagEmoji, slug: compare.slug, age: ageB }] : []),
     { name: "World avg",     flag: "🌍",              age: WORLD_MEDIAN_AGE },
   ];
   const homoRows: HRow[] = [
-    { name: country.name, flag: country.flagEmoji, homo: homoA },
-    ...(compare && homoB != null ? [{ name: compare.name, flag: compare.flagEmoji, homo: homoB }] : []),
+    { name: country.name, flag: country.flagEmoji, slug: country.slug, homo: homoA },
+    ...(compare && homoB != null ? [{ name: compare.name, flag: compare.flagEmoji, slug: compare.slug, homo: homoB }] : []),
   ];
   const friendlinessRows: FriendlyRow[] = [
-    { name: country.name, flag: country.flagEmoji, score: friendlyA.score, label: friendlyA.label, color: friendlyA.color },
-    ...(compare && friendlyB != null ? [{ name: compare.name, flag: compare.flagEmoji, score: friendlyB.score, label: friendlyB.label, color: friendlyB.color }] : []),
+    { name: country.name, flag: country.flagEmoji, slug: country.slug, score: friendlyA.score, label: friendlyA.label, color: friendlyA.color },
+    ...(compare && friendlyB != null ? [{ name: compare.name, flag: compare.flagEmoji, slug: compare.slug, score: friendlyB.score, label: friendlyB.label, color: friendlyB.color }] : []),
     { name: "US ref", flag: "🇺🇸", score: usFriendly.score, label: usFriendly.label, color: usFriendly.color },
   ];
 
@@ -713,7 +751,7 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
                 <div key={entry.name}>
                   <div className="mb-1 flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm">{entry.flag}</span>
+                      <span className="text-sm flex items-center"><FlagIcon slug={entry.slug} flagEmoji={entry.flag} size="1em" /></span>
                       <span className="text-[11px] text-zinc-400">{entry.name}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -753,7 +791,7 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
               <div key={entry.name}>
                 <div className="mb-1 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm">{entry.flag}</span>
+                    <span className="text-sm flex items-center"><FlagIcon slug={entry.slug} flagEmoji={entry.flag} size="1em" /></span>
                     <span className="text-[11px] text-zinc-400">{entry.name}</span>
                   </div>
                   <span className="text-sm font-black tabular-nums text-violet-300">{entry.age} yrs</span>
@@ -786,7 +824,7 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
                 <div key={entry.name}>
                   <div className="mb-1 flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm">{entry.flag}</span>
+                      <span className="text-sm flex items-center"><FlagIcon slug={entry.slug} flagEmoji={entry.flag} size="1em" /></span>
                       <span className="text-[11px] text-zinc-400">{entry.name}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -817,7 +855,7 @@ function SocietyTab({ country, compare }: { country: Country; compare: Country |
               <div key={entry.name}>
                 <div className="mb-1 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm">{entry.flag}</span>
+                    <span className="text-sm flex items-center"><FlagIcon slug={entry.slug} flagEmoji={entry.flag} size="1em" /></span>
                     <span className="text-[11px] text-zinc-400">{entry.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -897,7 +935,7 @@ export default function CountryStatsSection({ country, allCountries }: Props) {
             <span className="text-[10px] text-zinc-500">Compare</span>
             {compareSlug && compare ? (
               <>
-                <span className="text-lg">{compare.flagEmoji}</span>
+                <FlagIcon slug={compare.slug} flagEmoji={compare.flagEmoji} size="1.125em" />
                 <span className="font-semibold text-zinc-200">{compare.name}</span>
               </>
             ) : (
@@ -937,7 +975,9 @@ export default function CountryStatsSection({ country, allCountries }: Props) {
                         c.slug === compareSlug ? "bg-zinc-800/80 text-zinc-100" : "text-zinc-400"
                       }`}
                     >
-                      <span className="text-base">{c.flagEmoji}</span>
+                      <span className="flex items-center text-base">
+                        <FlagIcon slug={c.slug} flagEmoji={c.flagEmoji} size="1em" />
+                      </span>
                       <span>{c.name}</span>
                     </button>
                   ))}
